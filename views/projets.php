@@ -111,7 +111,7 @@ $parentOptions = function (int $excludeId) use ($map): string {
     <?php endif; ?>
 <?php else: ?>
 <div class="form table-scroll" id="projets-card">
-    <table class="list mb-16 plan-table projets-table">
+    <table class="list mb-16 plan-table projets-table cartes-chiffres cartes-projets">
         <thead>
             <tr><th></th><th class="num">Confirmés</th><th class="num">En option</th><th class="num">Annulés</th><th></th></tr>
         </thead>
@@ -141,7 +141,7 @@ $parentOptions = function (int $excludeId) use ($map): string {
             <?php $projetActif = (int) ($s['actif'] ?? 1) === 1; ?>
             <tr class="plan-row row-link <?= $s['a_enfants'] ? 'plan-groupe' : '' ?><?= $projetActif ? '' : ' projet-inactif' ?>" tabindex="0" role="link"
                 data-id="<?= $sid ?>" data-depth="<?= $prof ?>" data-parent="<?= (int) plan_pid($s['parent_id'] ?? null) ?>" data-href="?p=projet&id=<?= $sid ?><?= e($suffixeDepuis) ?>">
-                <td>
+                <td class="col-projet">
                     <div class="inline-edit" style="--depth:<?= $prof ?>">
                         <?= plan_poignee_html() ?>
                         <?= plan_puce_html((bool) $s['a_enfants']) ?>
@@ -171,9 +171,9 @@ $parentOptions = function (int $excludeId) use ($map): string {
                         <?php endif; ?>
                     </div>
                 </td>
-                <td class="num"><?= $compteLien('confirme', $c['confirme']) ?></td>
-                <td class="num"><?= $compteLien('option', $c['option']) ?></td>
-                <td class="num"><?= $compteLien('annule', $c['annule']) ?></td>
+                <td class="num col-confirme" data-libelle="Confirmés"><?= $compteLien('confirme', $c['confirme']) ?></td>
+                <td class="num col-option" data-libelle="En option"><?= $compteLien('option', $c['option']) ?></td>
+                <td class="num col-annule" data-libelle="Annulés"><?= $compteLien('annule', $c['annule']) ?></td>
                 <td class="actions nowrap">
                     <?= menu_deroulant_html(
                         ['icone' => 'calendar-sync', 'petit' => true,

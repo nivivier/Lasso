@@ -39,7 +39,7 @@ foreach (PERMISSION_MODULES as $m) {
     if (($niveaux[$m] ?? '') !== '') { $modulesOuverts[] = $libelleModule($m); }
 }
 $derniere = trim((string) ($c['derniere_connexion_le'] ?? ''));
-$derniere = $derniere === '' ? '' : date('d.m.Y à H:i', strtotime($derniere));
+$derniere = horodatage($derniere, 'd.m.Y à H:i');
 ?>
             <tr class="compte-row">
                 <td>
@@ -67,7 +67,7 @@ $derniere = $derniere === '' ? '' : date('d.m.Y à H:i', strtotime($derniere));
                     <?php endif; ?>
                 </td>
                 <td class="muted small nowrap" data-label="Dernière connexion"><?= $derniere !== '' ? e($derniere) : '<span class="muted">jamais</span>' ?></td>
-                <td class="muted small nowrap" data-label="Créé le"><?= e(date('d.m.Y', strtotime((string) $c['cree_le']))) ?></td>
+                <td class="muted small nowrap" data-label="Créé le"><?= e(horodatage($c['cree_le'], 'd.m.Y')) ?></td>
                 <td class="actions nowrap">
                     <?php // Le crayon seul : la corbeille ne paraît qu'en édition,
                           // comme partout ailleurs (docs/UI.md § 3). ?>

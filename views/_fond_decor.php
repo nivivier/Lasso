@@ -7,7 +7,7 @@
 // Un seul partiel pour ne jamais avoir deux copies d'un même décor à faire
 // évoluer en parallèle.
 //
-// Tous dérivent de --primary/--highlight via color-mix() (voir assets/app.css,
+// Tous dérivent de --primary/--highlight via color-mix() (voir assets/css/,
 // section « Décors de fond ») : ils suivent donc les couleurs de l'employeur et
 // le thème, sans qu'aucune couleur soit écrite ici. Le fond de <body> qui va
 // avec chaque décor est posé par la classe body.fond-<décor> (views/layout.php).

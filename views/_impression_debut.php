@@ -23,7 +23,7 @@
 // le thème sombre d'un écran n'a rien à y faire.
 //
 // ⚠️ couleurs_css_vars() est indispensable ici, et son absence ne se voyait
-// que sur UN élément : la barre d'outils. app.css donne à --brand une valeur
+// que sur UN élément : la barre d'outils. assets/css/ donne à --brand une valeur
 // de repli (#2b0b5b, l'indigo d'origine) pour la page qui n'aurait pas la
 // palette de l'employeur — et une page d'impression n'avait pas cette palette,
 // puisque seule views/layout.php l'injectait. La barre restait donc indigo
@@ -42,7 +42,7 @@
 <head>
     <meta charset="UTF-8">
     <title><?= e($impTitre ?? 'Document') ?></title>
-    <link rel="stylesheet" href="assets/app.css?v=<?= @filemtime(__DIR__ . '/../assets/app.css') ?: '1' ?>">
+    <?= css_liens_html() ?>
     <?= couleurs_css_vars() ?>
 </head>
 <body class="print-page">

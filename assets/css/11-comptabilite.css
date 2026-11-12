@@ -1,0 +1,597 @@
+/* ===================================================== COMPTABILITÉ */
+/* Édition « en place » : champs + bouton d'enregistrement sur la même ligne */
+.inline-edit { display: flex; gap: 8px; align-items: center; flex-wrap: nowrap; }
+.inline-edit input { margin-bottom: 0; }
+.inline-edit .grow { flex: 1 1 auto; min-width: 8rem; }
+.inline-edit .w-iban { flex: 0 0 auto; width: 17rem; max-width: 40vw; }
+/* max-width en rem et non en vw : les champs voisins se laissent étirer par la
+   règle de largeur générale des input et ne sont bornés que par leur vw, ce qui
+   donnerait 30vw à un simple nom de banque. */
+.inline-edit .w-banque { flex: 0 0 auto; width: 10rem; max-width: 12rem; }
+.inline-edit button { flex: 0 0 auto; }
+/* Sous ~480px, plusieurs champs côte à côte en nowrap débordent ou s'écrasent
+   (ex. taux_horaires.php, compta_axes.php) — repli en colonne. */
+@media (max-width: 480px) {
+    .inline-edit { flex-wrap: wrap; }
+    .inline-edit .grow { min-width: 100%; }
+}
+
+/* Montants */
+.montant-neg { color: var(--danger); font-weight: 600; }
+.montant-pos { color: var(--teal-d); font-weight: 600; }
+.nowrap { white-space: nowrap; }
+
+/* Lettrage */
+.bulk-bar { display: flex; gap: 16px; align-items: center; flex-wrap: nowrap; background: var(--card); border: 1px solid var(--primary-tint); border-radius: var(--radius); padding: 12px 16px; position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); box-shadow: 0 4px 24px rgb(var(--primary-rgb) / .22); z-index: 100; white-space: nowrap; }
+.bulk-bar form { display: flex; align-items: center; gap: 10px; }
+.bulk-field { display: flex; align-items: center; }
+/* Le motif d'une dispense : une phrase courte, pas un mot. Assez large pour
+   qu'on lise ce qu'on écrit sans que la barre flottante déborde de l'écran —
+   elle est en white-space:nowrap et ne se replie pas. */
+.bulk-motif { width: 20rem; max-width: 42vw; }
+.compta-lettrage { min-width: 900px; } /* défile horizontalement dans .table-scroll plutôt que de s'écraser sur petit écran */
+.compta-lettrage thead th { position: sticky; top: 0; z-index: 2; }
+/* (retrait des cellules : celui de toutes les listes, --row-pad — voir
+   docs/UI.md § 9. Cet écran posait 5px, soit la moitié, sans autre raison que
+   son histoire.) */
+.list .col-check { width: 34px; text-align: center; }
+/* La case et l'icône de statut occupent deux cellules voisines et doivent se
+   lire sur la même ligne. Elles s'alignaient pourtant selon deux règles
+   différentes : la case sur la ligne de base (défaut du navigateur), l'icône de
+   statut sur le milieu de la hauteur d'x — d'où 2,13 px d'écart entre leurs
+   centres, mesurés. Une seule règle pour les deux, et l'écart tombe à zéro.
+   Vaut aussi pour la case « tout cocher » de l'en-tête, alignée sur les autres
+   entonnoirs de la ligne. */
+.list .col-check input[type="checkbox"] { vertical-align: middle; }
+/* Contre-partie : sa propre colonne, en petit et en gris — elle situe
+   l'écriture sans concurrencer le texte, qui reste la colonne principale. */
+.compta-lettrage .tiers-cell { max-width: 170px; font-size: var(--fs-small); color: var(--muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.compta-lettrage .texte-cell { max-width: 200px; font-size: var(--fs-small); color: var(--ink); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.compta-lettrage .texte-cell.expanded { white-space: normal; overflow: visible; }
+.compta-lettrage .texte-cell:hover { color: var(--primary); }
+/* Contre-partie / communication sous le texte : sa propre ligne, tronquée
+   pour son compte (la cellule est en nowrap + ellipsis, un enfant en bloc
+   hérite du nowrap et doit donc gérer son propre débordement). Se déplie avec
+   la cellule au clic, comme le texte au-dessus. */
+.compta-lettrage .ecr-details { display: block; font-size: var(--fs-tiny); color: var(--muted);
+    overflow: hidden; text-overflow: ellipsis; }
+.compta-lettrage .texte-cell.expanded .ecr-details { white-space: normal; overflow: visible; }
+.ecr-facture-lien { display: inline-flex; vertical-align: -3px; margin-right: 4px; color: var(--highlight); }
+.ecr-facture-lien .ico { width: 14px; height: 14px; }
+
+.compta-lettrage .cat-cell select { margin-bottom: 0; width: 200px; max-width: 200px; padding-top: 5px; padding-bottom: 5px; }
+.compta-lettrage .cat-cell form { margin: 0; }
+.compta-lettrage tr.non-lettre td { background: var(--row-attention); }
+.compta-lettrage tr.non-lettre:hover td { background: var(--amber-tint); }
+/* « Ne pas lettrer » : volontairement exclue → grisée, libellé en italique discret */
+.compta-lettrage tr.ecr-ignore td { background: var(--row-ignore); color: var(--muted); }
+.compta-lettrage tr.ecr-ignore:hover td { background: var(--row-ignore-hover); }
+.compta-lettrage tr.ecr-ignore .row-cat-input { color: var(--muted); font-style: italic; }
+/* Bandeau d'année/mois : un repère, pas un filet — il structure une liste
+   longue et donne à l'œil où se raccrocher en défilant. */
+/* Séparateur de groupe d'une liste : le mois, l'année, l'étape.
+   Le nom est écrit GRAND et MAIGRE, en bas-de-casse, au-dessus d'un filet d'un
+   cheveu : c'est l'air au-dessus de lui qui sépare, pas un trait. Il portait un
+   filet gris de 2px — deux fois l'épaisseur de ceux qui séparent les lignes,
+   donc plus lourd que tout le reste du tableau.
+   Et la rangée est en VERRE : le fond translucide des cartes du tableau de
+   bord (--glass) avec le même flou, de sorte que le décor de la page se voit
+   au travers. C'est la seule rangée qui ne porte pas de blanc — voir
+   .module-content, qui a dû cesser d'être un aplat pour qu'il y ait quelque
+   chose à voir derrière. */
+.compta-lettrage tr.ecr-mois-sep td, .evenements-liste tr.mois-sep td, .list-wide tr.mois-sep td, .campagnes-fiche tr.mois-sep td, .list tr.fiche-mois-sep td {
+    background: var(--glass);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    font-size: var(--fs-big);
+    font-weight: 200;
+    letter-spacing: -.02em;
+    line-height: 1;
+    color: var(--brand);
+    padding: 34px 12px 6px;
+    border-top: 0;
+    border-bottom: 1px solid var(--line);
+}
+
+/* Compte de résultat */
+/* Idem : le compte d'exploitation est dense par nature, mais sa densité est
+   celle du réglage d'affichage, pas une valeur à lui. */
+.compta-cr.cr-flat td { padding: var(--row-pad); }
+.compta-cr .cr-section th { background: var(--primary-tint); text-transform: uppercase; font-size: var(--fs-small); letter-spacing: .05em; color: var(--primary-d); text-align: left; padding: 8px 12px; }
+.compta-cr tr.cr-spacer td { height: 14px; padding: 0; background: var(--bg); border-top: none; border-bottom: none; }
+.compta-cr .cr-groupe td { font-weight: 600; color: var(--ink); }
+.compta-cr.cr-flat .cr-groupe td { font-weight: 400; }
+.compta-cr.cr-flat .cr-groupe td.num:not(.strong) { font-size: var(--fs-basic); }
+.compta-cr .cr-compte td { font-size: var(--fs-basic); }
+.compta-cr .cr-compte td:first-child { padding-left: 34px; color: var(--muted); }
+.compta-cr .cr-clic { cursor: pointer; }
+/* Colonnes des années précédentes en gris (écran uniquement) */
+.compta-cr td.col-prec { color: var(--muted); }
+.compta-cr td.total-col, .compta-cr th.total-col { border-left: 1px solid var(--line); font-weight: 600; }
+.compta-cr .cr-groupe td.col-prec { color: var(--muted); }
+.compta-cr th.col-prec { color: var(--muted); font-weight: 500; }
+.compta-cr .cr-clic:hover td { background: var(--primary-tint); color: var(--ink); }
+.compta-cr .cr-clic td:first-child { padding-left: 16px; }
+.cr-toggle { display: inline-flex; vertical-align: middle; margin-right: 4px; color: var(--muted); transition: transform .15s; }
+.cr-toggle .ico { width: 15px; height: 15px; }
+.cr-clic.open .cr-toggle { transform: rotate(180deg); }
+.cr-count { display: inline-block; min-width: 18px; text-align: center; font-size: var(--fs-small); font-weight: 700; color: var(--primary-d); background: var(--primary-tint); border-radius: var(--radius-pill); padding: 1px 7px; margin-left: 6px; }
+.cr-detail > td { padding: 0 16px 10px 34px; background: var(--surface); }
+.cr-det-row { display: grid; grid-template-columns: 78px 1fr 2fr auto; gap: 12px; align-items: baseline; padding: 5px 0; border-bottom: 1px dashed var(--line); font-size: var(--fs-small); }
+.cr-det-row:last-child { border-bottom: none; }
+.cr-det-row .dt { color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.cr-det-row .cpt { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cr-det-row .tx { color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cr-det-row .mt { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+@media (max-width: 760px) {
+    .cr-det-row { grid-template-columns: 70px 1fr auto; }
+    .cr-det-row .cpt { display: none; }
+}
+.compta-cr .cr-total td { font-weight: 700; border-top: 1px solid var(--line); background: var(--surface); font-size: var(--fs-large); }
+.compta-cr .cr-resultat td { font-weight: 800; color: var(--primary); border-top: 1px solid var(--primary); font-size: var(--fs-large); }
+.compta-cr .cr-resultat td.col-prec { color: var(--muted); border-top-color: var(--line); }
+.list tr.cr-total td { font-weight: 700; background: var(--surface); }
+.compta-cr tfoot .cr-note td { font-weight: 400; font-size: var(--fs-small); color: var(--muted); background: transparent; border-top: none; }
+
+/* Plan comptable hiérarchique */
+/* Retrait de cellule : celui de toutes les listes. Ces tableaux posaient 2px,
+   un cinquième du reste du site — leurs lignes portent des contrôles dont la
+   hauteur propre les tenait déjà ouvertes, mais une liste ne change pas de
+   densité d'un écran à l'autre. */
+.plan-table td { vertical-align: middle; }
+.plan-table .inline-edit { gap: 6px; min-height: 30px; padding-left: calc(var(--depth, 0) * 22px); }
+.plan-puce { display: inline-flex; align-items: center; justify-content: center; width: 16px; color: var(--muted); flex: 0 0 auto; }
+.plan-puce .ico { width: 14px; height: 14px; }
+/* Libellé en lecture seule + crayon (mode JS). Édition directe en repli sans JS. */
+.plan-nom { display: none; font-size: var(--fs-large); color: var(--ink); }
+.plan-row.plan-groupe .plan-nom { font-weight: 700; }
+.plan-edit-btn { display: none; flex: 0 0 auto; }
+.plan-edit-btn .ico { width: 15px; height: 15px; }
+.dnd-on .plan-nom { display: inline-block; }
+.dnd-on .plan-edit-btn { display: inline-flex; }
+.dnd-on .plan-edit { display: none; }
+.dnd-on .plan-row.editing .plan-edit { display: flex; }
+.dnd-on .plan-row.editing .plan-nom,
+.dnd-on .plan-row.editing .plan-edit-btn { display: none; }
+.plan-table tr.plan-groupe input[name="libelle"],
+.plan-table tr.plan-groupe input[name="nom"] { font-weight: 700; color: var(--ink); }
+/* Préfixe :is(.form, .filters) : voir .seg-picker. */
+:is(.form, .filters) .plan-parent { flex-direction: row; margin-bottom: 0; }
+.plan-parent { flex: 0 0 auto; flex-direction: row; align-items: center; gap: 5px; margin-bottom: 0; font-size: var(--fs-small); color: var(--muted); font-weight: 500; }
+.plan-parent select { margin-bottom: 0; max-width: 15rem; }
+.plan-edit { flex: 1 1 auto; gap: 8px; }
+.plan-table .btn-sm { padding: 3px 7px; }
+/* Dans un tableau de plan, le petit bouton à libellé est un cran plus serré
+   (3px de haut) : l'icône seule s'aligne sur sa hauteur, sans quoi la corbeille
+   et la croix dépassaient de la ligne qu'elles servent. */
+.plan-table .actions .btn-sm.icon-only {
+    padding: 0 5px;
+    min-height: calc(var(--fs-basic) * 1.6 + 2 * 3px + 2 * var(--btn-border-w));
+}
+/* La poignée n'existe que si le glisser-déposer marche : c'est le script qui
+   pose .dnd-on. Sans JavaScript elle serait un contrôle mort — et un contrôle
+   mort se saisit quand même, pour ne rien obtenir. Les flèches de repli
+   (.plan-fallback) tiennent alors le rôle. */
+/* Une ligne qui a un mode d'édition ne montre sa corbeille qu'EN édition : un
+   geste irréversible n'a pas à être à portée de clic quand on ne fait que lire.
+   Vaut pour toutes les listes ordonnables (plan comptable, lignes du décompte,
+   projets, catégories, pays, déroulé d'un événement).
+
+   Conditionné à .dnd-on, donc au script : sans JavaScript, ces lignes sont en
+   édition permanente (le formulaire est affiché, voir docs/UI.md §2d) — la
+   corbeille doit donc y rester visible. */
+.dnd-on .plan-row .plan-supprimer { display: none; }
+.dnd-on .plan-row.editing .plan-supprimer { display: inline-flex; }
+/* Le trio de l'édition — enregistrer, supprimer, annuler — se lit à droite ; la
+   croix se pose exactement là où était le crayon, en dernier. Les trois boutons
+   sont posés à plat dans la cellule d'actions (pas de conteneur), pour que leur
+   ordre soit celui de la lecture et que la croix occupe la place du crayon.
+   Enregistrer et annuler partagent la bascule de .cell-edition (plus bas), la
+   corbeille celle de .plan-supprimer (plus haut). */
+
+.plan-grip { display: none; align-items: center; color: var(--muted); cursor: grab; flex: 0 0 auto; }
+.dnd-on .plan-grip { display: inline-flex; }
+/* Le point d'une ligne sans enfant s'efface là où la poignée paraît : deux
+   marques au début de la même ligne, c'en est une de trop, et c'est la poignée
+   qui dit quelque chose — on peut la saisir. Le chevron d'une ligne À enfants
+   reste : lui n'est pas une décoration, il annonce ce qu'elle contient.
+   La règle suit la poignée au pixel près (voir sa contrepartie en mobile, où la
+   poignée s'efface et le point revient). */
+.dnd-on .plan-puce-feuille { display: none; }
+.plan-grip:active { cursor: grabbing; }
+.plan-grip .ico { width: 16px; height: 16px; }
+.plan-row.plan-archive { opacity: .55; }
+/* Quand la ligne porte son propre interrupteur, c'est LUI qui dit son état : la
+   bascule partant en arrière-plan (data-ajax), la ligne doit suivre sans qu'on
+   re-rende quoi que ce soit. Les deux sens sont écrits, pour l'emporter sur la
+   classe .plan-archive posée par le serveur — sinon la ligne resterait grise
+   après réactivation. Sans interrupteur (lecture seule), la classe fait foi. */
+.plan-row:has(.regle-actif-cb:checked) { opacity: 1; }
+.plan-row:has(.regle-actif-cb:not(:checked)) { opacity: .55; }
+/* Même principe pour le badge « inactif » d'un axe analytique. La vue le rend
+   systématiquement dès qu'il y a un interrupteur, et c'est cette règle qui le
+   cache quand la case est cochée — pas l'attribut hidden, que [hidden] rend
+   définitif avec son !important (plus haut). */
+tr:has(.regle-actif-cb:checked) .axe-badge-inactif { display: none; }
+.dnd-on .plan-fallback { display: none; }
+.plan-grip[draggable] { touch-action: none; }
+/* Indicateur d'insertion du glisser-déposer (barre + pastille, niveau = décalage gauche) */
+.plan-indic { position: fixed; height: 3px; background: var(--primary); border-radius: 2px; pointer-events: none; z-index: 60; display: none; }
+.plan-indic::before { content: ''; position: absolute; left: -4px; top: -2px; width: 7px; height: 7px; border-radius: 50%; background: var(--primary); }
+
+/* Boîte de dialogue (suppression de catégorie avec écritures) */
+.modal-overlay { position: fixed; inset: 0; background: rgba(30,36,48,.45); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 16px; }
+.modal-overlay[hidden] { display: none; }
+/* UNE seule fenêtre dans l'application, une seule tête : barre colorée en haut,
+   titre à gauche, les réglages d'entrée au milieu, « Fermer » à droite. C'est
+   le dessin de la barre d'outils d'un aperçu (.print-toolbar) — une fenêtre
+   d'aperçu n'en est qu'un cas particulier, celui où le contenu est un document
+   posé sur son fond gris. Le haut de la carte appartient donc à .modal-head :
+   aucun padding en haut ici, et overflow:hidden pour que la barre épouse les
+   coins arrondis. */
+.modal-card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 0 24px 22px; max-width: 460px; width: 100%; overflow: hidden; }
+.modal-card h3 { font-size: var(--fs-large); }
+/* Les barres sombres à texte blanc — la barre supérieure du téléphone,
+   l'en-tête d'une fenêtre — partagent leur fond. Un aplat sur toute la largeur
+   pesait lourd ; ce dégradé part d'un coin réchauffé d'une pointe de la couleur
+   du module, traverse la surface telle quelle, et se referme un peu plus
+   profond. 150deg est l'angle des dégradés de l'application (titres de page,
+   .info-date). Les proportions restent faibles : assez pour que la lumière se
+   voie, assez peu pour que le blanc garde son contraste dans les deux thèmes
+   (mesuré sur les trois arrêts : 6.1 au pire, en thème clair, pour 4.5 exigés —
+   au-delà de 30% de primary on passerait sous 5, et le blanc des boutons de la
+   barre, lui, n'est pas du gros texte).
+   ⚠️ Un sélecteur partagé, et NON un jeton `--degrade-barre` posé sur :root :
+   les var() d'une propriété personnalisée se résolvent là où elle est
+   DÉCLARÉE, pas là où elle est utilisée — un tel jeton lirait la surface sur
+   :root, où elle n'existe pas, et ne donnerait rien. Écrite ici, la recette
+   est calculée sur chaque barre, qui n'a plus qu'à désigner la sienne.
+   background-color en repli, pour un navigateur sans color-mix(). */
+/* La barre du téléphone est le rail, replié : elle en prend donc le papier et
+   l'encre, et non plus l'aplat sombre de marque. C'est la dernière surface qui
+   portait encore l'ancienne identité. Le filet du bas la détache du contenu,
+   comme le filet du rail détache la colonne de la page. */
+.mobile-bar { --barre-surface: var(--card); color: var(--ink); border-bottom: 1px solid var(--line); }
+.mobile-bar .burger { color: var(--ink); }
+.mobile-bar .burger:hover { background: color-mix(in srgb, var(--ink) 8%, transparent); }
+.mobile-bar .mbar-name { color: var(--ink); }
+.modal-head { --barre-surface: var(--modal-head-bg); }
+.mobile-bar, .modal-head {
+    background-color: var(--barre-surface);
+    background-image: linear-gradient(150deg,
+        color-mix(in srgb, var(--barre-surface) 78%, var(--primary)) 0%,
+        var(--barre-surface) 58%,
+        color-mix(in srgb, var(--barre-surface) 88%, #000) 100%);
+}
+.modal-head {
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    margin: 0 -24px 18px; padding: 13px 18px 13px 24px;
+    color: #fff;
+    position: sticky; top: 0; z-index: 2;
+}
+.modal-titre { font-weight: 700; font-size: var(--fs-large); flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+/* Mêmes boutons que sur la barre d'un aperçu : « ghost » redevient discret sur
+   fond sombre, où du blanc sur blanc ne se verrait pas. */
+.modal-head .btn.ghost { background: transparent; border-color: rgba(255,255,255,.5); color: #fff; box-shadow: none; }
+.modal-head .btn.ghost:hover { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.8); color: #fff; }
+/* Un libellé de la barre reste sur UNE ligne : la mise en forme des libellés de
+   formulaire les empile, ce qui doublait la hauteur de la barre. */
+.modal-head label, .modal-head .inline {
+    color: rgba(255,255,255,.75); margin-bottom: 0;
+    flex-direction: row; align-items: center; gap: 8px;
+}
+/* « Fermer » ferme la rangée, à droite — comme dans la barre d'un aperçu. */
+.modal-fermer { margin-left: auto; }
+/* Fenêtre « Contacter » (?p=structure) : on y rédige un message, pas une
+   confirmation en deux lignes — d'où une largeur de lecture confortable et une
+   hauteur bornée à l'écran, le formulaire défilant à l'intérieur. */
+.modal-card.modal-contacter { max-width: 720px; max-height: 92vh; overflow-y: auto; background: var(--surface); }
+.modal-contacter .contacter-modele { flex: 0 0 auto; margin-bottom: 0; }
+/* Fiche du destinataire choisi, juste sous le sélecteur : elle remplace la
+   marge basse du champ pour rester collée à lui. */
+/* La fiche du destinataire remplace la marge basse de son champ pour rester
+   collée à lui — et garde la sienne en dessous, sans quoi « Objet » venait s'y
+   coller dès que la rangée expéditeur/destinataire s'empile sur téléphone. */
+.modal-contacter .contacter-fiche { margin: -8px 0 16px; min-height: 1.2em; }
+/* Pied de la fenêtre « Contacter » : le rattachement au projet à gauche, les
+   deux boutons à droite, sur une seule rangée tant que la largeur le permet —
+   c'est le dernier regard avant d'envoyer. Il s'enroule en dessous sur écran
+   étroit, les boutons restant à droite. */
+.contacter-pied { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.contacter-pied .field-group { margin-bottom: 0; flex: 0 1 auto; }
+.contacter-pied .modal-actions { margin: 0 0 0 auto; }
+.del-opt { display: flex; align-items: flex-start; gap: 9px; padding: 9px 11px; border: 1px solid var(--line); border-radius: var(--radius-sm); margin-bottom: 8px; cursor: pointer; font-size: var(--fs-basic); }
+.del-opt:has(input:checked) { border-color: var(--primary); background: var(--primary-tint); }
+.del-opt input { margin-top: 3px; }
+.del-opt select { margin: 6px 0 0; max-width: 100%; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+/* Contenu « ajusté » : une page d'aperçu qui n'est pas une feuille A4 (le
+   tableau de l'export SUISA), affichée dans la fenêtre du même nom. */
+.sheet-ajuste { max-width: none; }
+.export-titre { font-size: var(--fs-large); margin: 0 0 12px; }
+.export-apercu-table { font-size: var(--fs-small); white-space: nowrap; }
+.export-apercu-table th { position: sticky; top: 0; background: var(--card); z-index: 1; }
+
+/* Règles : disposition en cartes (une carte par règle) */
+.regle-card { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 14px 16px 8px; margin-bottom: 10px; background: var(--card); }
+.regle-card.regle-new { background: var(--primary-tint); border-color: #d4c8f8; }
+.regle-card.regle-inactive { opacity: .55; }
+/* Un projet mis de côté : la même atténuation qu'une règle éteinte. Il reste
+   entièrement lisible et manipulable — il n'est retiré que des menus qui le
+   proposaient par défaut. */
+.plan-row.projet-inactif .plan-nom,
+.plan-row.projet-inactif .plan-icone,
+.plan-row.projet-inactif .plan-puce { opacity: .5; }
+.regle-card.hidden { display: none; }
+/* La règle dite en une phrase. Le compte et la catégorie à l'encre, les
+   conditions en gris : ce sont les deux bouts qu'on cherche en parcourant une
+   liste de règles — d'où vient l'écriture, où elle va. */
+.regle-disp { display: inline-flex; gap: 8px; align-items: baseline; flex-wrap: wrap; min-width: 0; font-size: var(--fs-small); }
+.regle-disp-compte { color: var(--muted); }
+.regle-disp-conds { color: var(--muted); }
+.regle-disp-fleche { color: var(--muted); }
+.regle-disp-cat { font-weight: 600; color: var(--ink); }
+/* Ce qui manque à une règle pour fonctionner : ni une erreur du moment, ni un
+   geste à faire tout de suite — l'ambre du vocabulaire, sans l'alarme. */
+.regle-disp .warn-txt { color: var(--amber); font-weight: 600; }
+/* Le formulaire d'une règle occupe toute la largeur de sa ligne et s'empile :
+   compte et conditions, puis les conditions elles-mêmes, puis la catégorie. Il
+   déroge au .plan-edit des autres listes, qui est une rangée de champs — une
+   règle en a trop pour tenir sur une ligne. */
+.regles-table .plan-row.editing .plan-edit { display: block; width: 100%; margin-top: 10px; }
+.regle-edit .regle-head { margin-bottom: 8px; }
+/* Au repos, la ligne se lit d'un bout à l'autre sans être coupée. */
+.regles-table .plan-nom { white-space: normal; }
+
+.regle-head { display: flex; gap: 8px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 10px; }
+.regle-head .flex-spacer { flex: 1 1 auto; }
+/* Toggle actif/inactif : pill CSS */
+/* L'interrupteur à bascule. Né sur les règles de lettrage, repris tel quel pour
+   mettre un projet de côté (?p=projets) : un seul clic pour un seul état, c'est
+   le même geste et ce doit être le même objet (docs/UI.md, première règle). Le
+   nom reste celui de son premier usage. */
+.regle-toggle { cursor: pointer; display: flex; align-items: center; }
+/* L'interrupteur est un <label> : dans une carte .form il héritait des 16 px de
+   marge basse des libellés (règle .form label), ce qui donnait à sa boîte 33 px
+   pour 17 px visibles — il remontait donc en haut de sa cellule au lieu d'être
+   centré sur la ligne. Sélecteur au moins aussi spécifique que celui-là. */
+.form .regle-toggle, .form label.regle-toggle { margin-bottom: 0; }
+.regle-toggle input[type="checkbox"] { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
+.regle-toggle-pill { display: inline-block; width: 30px; height: 17px; border-radius: 9px; background: var(--line); border: 1px solid rgba(0,0,0,.12); transition: background .15s, border-color .15s; cursor: pointer; position: relative; flex-shrink: 0; }
+.regle-toggle-pill::after { content: ''; position: absolute; top: 2px; left: 2px; width: 11px; height: 11px; border-radius: 50%; background: white; box-shadow: 0 1px 2px rgba(0,0,0,.25); transition: transform .15s; }
+.regle-toggle input:checked ~ .regle-toggle-pill { background: var(--primary); border-color: var(--primary); }
+.regle-toggle input:checked ~ .regle-toggle-pill::after { transform: translateX(13px); }
+.regle-toggle input:disabled ~ .regle-toggle-pill { opacity: .4; cursor: not-allowed; }
+.regle-toggle:has(input:disabled) { cursor: not-allowed; }
+/* Liste de modules (une carte, lignes séparées par un trait) */
+.module-row { display: flex; gap: 14px; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--line); }
+/* Module qui en exige un autre (Comptabilité analytique, Envois groupés) :
+   décalé sous son parent, avec un filet de rattachement. La dépendance se voit
+   alors dans la liste, au lieu de n'exister que dans le badge « nécessite … »
+   qui n'apparaît, lui, que quand le parent est éteint. */
+.module-row-sous { padding-left: 42px; position: relative; }
+.module-row-sous::before {
+    content: ""; position: absolute; left: 20px; top: 0; bottom: 50%;
+    width: 12px; border-left: 1px solid var(--line); border-bottom: 1px solid var(--line);
+    border-bottom-left-radius: 6px;
+}
+.module-row:first-child { padding-top: 0; }
+.module-row:last-child { padding-bottom: 0; border-bottom: none; }
+.module-row.module-locked { opacity: .8; }
+.module-row .badge { display: inline-flex; align-items: center; gap: 3px; }
+.module-row .badge .ico { width: 11px; height: 11px; }
+.module-row p { margin: 2px 0 0; }
+/* Flèches de tri */
+.regle-arrows { display: flex; gap: 2px; align-items: center; }
+.regle-arrows .btn { padding: 2px 5px; line-height: 1; }
+/* Groupes inline de la ligne de tête (Compte, Conditions) */
+.regle-cond-ctrl { display: flex; flex-direction: column; gap: 3px; }
+.regle-sub { font-size: var(--fs-small); letter-spacing: .04em; line-height: 1.2; }
+.regle-cond-row { display: flex; gap: 4px; align-items: center; }
+.regle-op-select, .regle-ctrl-select { margin: 0; }
+/* Catégorie */
+.regle-cat { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin: 8px 0 0; padding-bottom: 0; }
+.regle-cat input { margin-bottom: 0; }
+.regle-cat .grow { flex: 1 1 auto; min-width: 200px; }
+.regle-label { display: flex; flex-direction: column; gap: 3px; font-size: var(--fs-small); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.regle-conds { display: flex; flex-direction: column; gap: 6px; margin-bottom: 0; min-height: 10px; }
+.regle-no-cond { margin: 0; }
+.cond-row { display: flex; gap: 6px; align-items: center; flex-wrap: nowrap; }
+.cond-row select, .cond-row input { margin: 0; }
+.cond-row .grow { flex: 1 1 auto; min-width: 7rem; }
+.cond-row .cond-type { min-width: 9rem; }
+/* Catégorie cherchable */
+.cat-search { position: relative; }
+.cat-search-input { width: 100%; margin-bottom: 0; }
+.cat-search-list { position: absolute; z-index: 50; top: 100%; left: 0; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-sm); box-shadow: 0 4px 14px rgba(0,0,0,.13); width: 100%; min-width: 240px; max-height: 220px; overflow-y: auto; list-style: none; padding: 4px 0; margin: 2px 0 0; }
+.cat-search-list li { padding: 5px 12px; cursor: pointer; font-size: var(--fs-basic); white-space: nowrap; }
+.cat-search-list li:hover { background: var(--primary-tint); }
+.cat-search-list li[hidden] { display: none; }
+
+.compta-print .list { table-layout: fixed; }
+.compta-print .list th.num { width: 110px; }
+
+/* Version imprimable du bilan — style typographique commun écran + impression */
+/* Flex colonne pleine largeur ; le header occupe toute la largeur du sheet,
+   les tableaux sont centrés horizontalement. */
+.compta-print { display: flex; flex-direction: column; align-items: center; width: 100%; color: var(--ink); }
+.compta-print .cp-head { align-self: stretch; display: flex; align-items: center; gap: 16px; border-bottom: 2px solid var(--brand); padding-bottom: 10px; margin-bottom: 18px; }
+.compta-print .cp-logo { height: 48px; width: auto; object-fit: contain; flex-shrink: 0; }
+.compta-print .cp-head h1 { margin: 0; font-size: var(--fs-basic); font-weight: 500; color: var(--muted); }
+.compta-print .cp-sub { font-size: var(--fs-big); font-weight: 700; color: var(--brand); margin-top: 4px; line-height: 1.2; }
+.compta-print h2 { font-size: var(--fs-basic); font-weight: 700; margin: 16px 0 3px; align-self: stretch; }
+.compta-print table { width: auto; margin-bottom: 6px; border: none; border-radius: 0; box-shadow: none; background: transparent; border-collapse: collapse; }
+.compta-print .list th,
+.compta-print .list td { padding: 2px 10px; font-size: var(--fs-small); border: none; border-bottom: 1px solid var(--line); background: transparent; }
+.compta-print .list tbody tr:hover td { background: transparent; }
+.compta-print .list thead th { font-size: var(--fs-tiny); border-bottom: 1px solid var(--line); color: var(--muted); background: transparent; padding-bottom: 3px; }
+.compta-print .cr-section th { background: transparent; border: none; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 3px 10px; font-size: var(--fs-tiny); color: var(--muted); }
+.compta-print .cr-groupe td { background: transparent; }
+.compta-print .cr-compte td { font-size: var(--fs-tiny); padding-top: 1px; padding-bottom: 1px; color: var(--muted); }
+.compta-print .cr-total td,
+.compta-print .list tr.cr-total td { background: transparent; border-top: 1px solid var(--line); border-bottom: none; }
+.compta-print .cr-resultat td { border-top: 1.5px solid var(--ink); border-bottom: none; }
+.compta-print .cp-foot { color: var(--muted); font-size: var(--fs-small); margin-top: 14px; }
+.compta-print .list.compta-cr { margin-top: 16px; }
+
+/* Nœuds d'arbre avec profondeur variable (CSS custom property --depth) */
+.bilan-noeud-pad { padding-left: calc(16px + var(--depth, 0) * 22px); }
+.cr-noeud-pad    { padding-left: calc(16px + var(--depth, 0) * 18px); }
+
+/* Labels de section et notes dans les cartes comptabilité */
+.card-note      { padding: 4px 0 12px; }
+.cr-detail td > .muted.small { padding: 8px 0; }
+
+
+
+/* Historique typé des fiches (structures/lieux) — voir views/_historique.php */
+.hist-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.hist-item { display: flex; gap: 8px; align-items: flex-start; }
+.hist-item .hist-ico { flex: 0 0 auto; margin-top: 1px; color: var(--muted); display: inline-flex; }
+.hist-item .hist-ico svg { width: 15px; height: 15px; }
+/* Des TOKENS, pas des teintes : ces trois couleurs étaient écrites en dur et ne
+   suivaient donc pas le thème sombre (docs/UI.md § 13). --ok pour un message
+   parti, --muted pour une note — du texte libre, rien de plus —, --primary pour
+   un concert joué. Pas --rose : cette teinte dit « contact privilégié » partout
+   ailleurs, y compris dans cet historique (.ico-pink plus bas), et une couleur
+   ne peut pas dire deux choses. */
+.hist-item.hist-edition .hist-ico { color: var(--evidence, var(--muted)); }
+.hist-item.hist-mailing .hist-ico { color: var(--ok); }
+.hist-item.hist-note .hist-ico { color: var(--muted); }
+.hist-item.hist-dernier_concert .hist-ico { color: var(--primary); }
+/* Couleur portée par l'ENTRÉE et non par son type (historique_icone(),
+   lib/booking.php) : un changement de statut prend la couleur du statut
+   atteint. Trois classes au lieu d'une seule règle générique, parce qu'il faut
+   ici la même spécificité que les quatre règles de type ci-dessus (0,3,0) pour
+   les dépasser — un simple .ico-pink perdait, et le cœur restait gris. */
+.hist-item .hist-ico.ico-ok { color: var(--ok); }
+.hist-item .hist-ico.ico-pink { color: var(--rose); }
+.hist-item .hist-ico.ico-danger { color: var(--danger); }
+/* Le corps d'une entrée prend toute la largeur restante : sans ça, le
+   formulaire d'édition se calait sur la largeur du texte de la note. */
+.hist-corps { flex: 1 1 auto; min-width: 0; }
+/* Une entrée tient sur une ligne : date · contenu · méta. La date en tête
+   parce que le flux est chronologique et qu'une colonne de dates alignées se
+   balaie du regard ; le contenu prend la place restante ; le type et l'auteur
+   partent à droite en gris, ils situent l'entrée sans la disputer.
+   tabular-nums : sans chiffres de chasse fixe, les dates ne s'alignent pas. */
+.hist-ligne {
+    display: flex; align-items: baseline; gap: 4px 14px; flex-wrap: wrap;
+}
+.hist-date {
+    flex: 0 0 auto; font-size: var(--fs-tiny); color: var(--muted);
+    font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.hist-texte { flex: 1 1 220px; min-width: 0; font-size: var(--fs-basic); color: var(--ink); }
+.hist-meta { flex: 0 0 auto; font-size: var(--fs-tiny); color: var(--muted); text-align: right; }
+.hist-meta .badge { margin-left: 4px; }
+/* « (modifiée le …) » : une précision sur l'entrée, pas un second événement —
+   d'où la parenthèse et l'italique, dans la même méta grise que l'auteur. */
+.hist-modif { font-style: italic; }
+/* Les entrées se suivent de près : un filet plutôt qu'un écart, pour que la
+   colonne de dates se lise comme une colonne. */
+.hist-list { gap: 0; }
+.hist-item { padding: 7px 0; }
+.hist-item + .hist-item { border-top: 1px solid var(--line); }
+/* Crayon / enregistrer / annuler en surimpression, en haut à droite de
+   l'entrée — même trio et même bascule que les cartes de la fiche
+   (.card-actions-overlay), à ceci près qu'ici les boutons sont petits et
+   collés au bord : une entrée n'a pas les 26px de marge d'une carte.
+   Le bloc fait la hauteur d'un petit bouton (31px) et les y centre : la ligne
+   de texte n'en fait que 21, si bien qu'un bouton calé en haut dépassait sous
+   le filet de l'entrée. .hist-corps prend la même hauteur minimale, pour que
+   l'entrée fasse la place de son propre bouton plutôt que de le laisser
+   déborder. */
+.hist-actions { position: absolute; top: 0; right: 0; z-index: 1; gap: 6px; height: 31px; align-items: center; }
+.hist-corps { min-height: 31px; }
+/* Réserve la place des boutons : celle du crayon seul en lecture, celle
+   d'« enregistrer + annuler » en édition. Sans cela, une note longue passait
+   sous les boutons.
+   Mesuré : le crayon fait 31px, le couple enregistrer/annuler 68px — la réserve
+   ajoute une douzaine de pixels pour que le texte ne vienne pas les frôler. */
+.hist-corps .card-disp { padding-right: 44px; }
+.hist-corps .card-edit:not([hidden]) { padding-right: 82px; }
+/* Le crayon d'une entrée d'historique est visible en permanence, comme celui de
+   toutes les autres lignes de l'application (voir docs/UI.md § 2). */
+
+/* La rangée d'ajout est une bande à part : fond légèrement distinct et bords
+   alignés sur ceux de la CARTE, pas sur son contenu — d'où les marges
+   négatives de la valeur exacte du padding de .card (26px). Elle se lit comme
+   une barre de saisie posée sous le titre, distincte du flux qu'elle alimente.
+   Pas de marge négative en haut : .card-head-row garde son espace. */
+.hist-note-form {
+    margin: 0 -26px 18px; padding: 14px 26px;
+    background: var(--surface);
+    border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+}
+/* « Voir les N précédentes » centré sous le flux : c'est une action sur la
+   liste entière, pas sur sa dernière ligne. */
+.hist-voir-plus { display: flex; justify-content: center; margin-top: 12px; }
+
+/* Rangée d'ajout / d'édition d'une note : date, texte, prise de contact, bouton
+   sur une seule ligne tant que la largeur le permet (.add-row s'enroule en
+   dessous). C'est ce qui a motivé la carte « Historique détaillé » pleine
+   largeur : dans une colonne de 400px, ces quatre contrôles se comprimaient au
+   point de casser les libellés en quatre lignes. */
+/* Plus aucun libellé au-dessus : tous les contrôles font la même hauteur et
+   s'alignent sur leur milieu, la bande se lit comme une barre de saisie d'un
+   seul tenant. */
+.hist-note-row { gap: 10px 12px; align-items: center; }
+/* Sélecteurs d'ENFANT DIRECT : .add-row label impose « flex: 1; min-width:
+   160px » à tous ses libellés (même spécificité qu'une classe seule) — sans ça
+   la case à cocher s'étirait autant que le champ de note. */
+.hist-note-row > label { margin-bottom: 0; }
+.hist-note-row > .hist-note-texte { flex: 1 1 320px; min-width: 0; }
+/* « input.hist-note-date » et non la classe seule : la règle de base des champs
+   (input:not([type=checkbox]):not([type=radio])) impose width:100% avec une
+   spécificité de 0,2,1 — une classe seule perdait, et la date prenait toute la
+   ligne à elle. */
+.hist-note-row > input.hist-note-date { flex: 0 0 auto; width: auto; height: var(--action-height); }
+.hist-note-row > .hist-note-contact { flex: 0 0 auto; min-width: 0; white-space: nowrap; }
+.hist-note-row > button { flex: 0 0 auto; }
+/* Le champ de note fait la hauteur d'un bouton : c'est un <textarea> (une note
+   à plusieurs lignes reste possible, la poignée l'agrandit) mais rows=1 seul ne
+   suffit pas — le padding vertical des champs diffère de celui des boutons. */
+.hist-note-row > textarea.hist-note-texte {
+    height: var(--action-height); min-height: var(--action-height);
+    resize: vertical; overflow-y: auto;
+}
+
+/* ---------------- Recherche unifiée (?p=recherche, tableau de bord) --------
+   Le champ et son bouton forment une seule ligne ; le champ prend toute la
+   place restante. --action-height (voir plus haut) aligne le champ sur la
+   hauteur des boutons, plutôt que de refixer une valeur en dur qui finirait
+   par diverger. */
+/* Plus de bouton « Rechercher » : la loupe du champ (.search-go) soumet le
+   formulaire, donc le champ occupe toute la largeur disponible. */
+.recherche-form { margin: 0 0 18px; }
+.recherche-form .recherche-champ { display: block; width: 100%; }
+.recherche-form .recherche-champ input { height: var(--action-height); }
+
+/* Sur le tableau de bord, la recherche est le premier geste de la page :
+   détachée du reste, et sur toute la largeur du contenu. */
+.recherche-dash { margin-bottom: 24px; }
+/* La ligne d'en-tête du tableau de bord ne porte plus que le « + » et le
+   réglage des cartes, depuis que la recherche unifiée vit dans le rail. */
+.page-head-dash { justify-content: flex-end; }
+/* Tableau de bord : la recherche tient la ligne d'en-tête, à la place du titre,
+   et prend toute la largeur laissée par le bouton d'organisation des cartes.
+   Sa marge basse appartient alors à .page-head. */
+/* .page-head-recherche : plus rendue par le tableau de bord (la recherche est
+   dans le rail), gardée pour .recherche-dash qu'une autre page poserait. */
+.page-head-recherche > .recherche-dash { flex: 1 1 240px; min-width: 0; margin-bottom: 0; }
+
+.recherche-groupe { margin-bottom: 16px; }
+.recherche-groupe-titre {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: var(--fs-large);
+    margin-bottom: 6px;
+}
+/* Le compteur est repoussé à droite du titre. */
+.recherche-groupe-titre .muted { margin-left: auto; font-weight: 400; }
+.recherche-groupe .list td { padding: var(--row-pad); }
+.recherche-groupe .list tr:last-child td { border-bottom: 0; }
+

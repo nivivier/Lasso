@@ -488,14 +488,14 @@ lassoInitTagSuggest();
                 </tr>
                 <tr>
                     <th>Dernière modification</th>
-                    <td><?= !empty($notes[0]['cree_le']) ? e(date('d.m.Y H:i', strtotime($notes[0]['cree_le']))) : '—' ?></td>
+                    <td><?= !empty($notes[0]['cree_le']) ? e(horodatage($notes[0]['cree_le'], 'd.m.Y H:i')) : '—' ?></td>
                 </tr>
                 <tr>
                     <?php // structures.cree_le vaut datetime('now') à l'insertion : pour une
                           // fiche importée, c'est donc la date de l'import, pas celle de la
                           // création chez la source — d'où le libellé qui couvre les deux. ?>
                     <th>Créée / importée</th>
-                    <td><?= !empty($structure['cree_le']) ? e(date('d.m.Y H:i', strtotime((string) $structure['cree_le']))) : '—' ?></td>
+                    <td><?= !empty($structure['cree_le']) ? e(horodatage($structure['cree_le'], 'd.m.Y H:i')) : '—' ?></td>
                 </tr>
                 <?php if (!empty($structure['mise_a_jour_le'])): ?>
                 <tr>

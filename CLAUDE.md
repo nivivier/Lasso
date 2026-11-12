@@ -56,7 +56,23 @@ Avant de conclure une tâche qui touche au code : **`php tests/run.php`**, qui f
 à la fois le `php -l` sur l'ensemble du projet et TOUS les fichiers de tests. Il sort
 en code ≠ 0 au moindre échec (c'est la même commande que la CI, voir
 `.github/workflows/tests.yml`) — ne pas se contenter de lancer un fichier de tests
-isolé, c'est ainsi qu'un fichier cassé est passé inaperçu.
+isolé, c'est ainsi qu'un fichier cassé est passé inaperçu. Elle comprend
+`tests/pages_test.php`, qui ouvre TOUTES les routes GET sur une base de
+démonstration neuve (serveur intégré) : une route qui ne s'affiche qu'avec un
+paramètre particulier s'ajoute à son tableau `$parametres`. Il envoie ensuite
+chaque formulaire POST des pages rendues, puis injecte une balise dans chaque
+colonne de texte libre et vérifie qu'elle ressort échappée partout (une
+réponse JSON est exclue : c'est au script qui la reçoit de l'insérer en
+texte, `textContent`, jamais `innerHTML`). Et `tests/navigateur_test.php`
+exécute le JavaScript dans un Chrome sans fenêtre, page par page, et relève
+toute erreur d'exécution ou blocage CSP.
+- **Horodatages** (`lib/horodatage.php`) : UTC en base (c'est ce qu'écrit `datetime('now')`). PHP écrit
+  avec `horodatage_maintenant()`, jamais `date()` ; on affiche avec
+  `horodatage($valeur, $format)`, jamais `date(…, strtotime(…))` sur une colonne
+  horodatée (`tests/horodatage_test.php`, `docs/DECISIONS.md § Horodatages`).
+- **Feuille de style** : `assets/css/NN-domaine.css`, chargés dans l'ordre de
+  `CSS_FICHIERS` (lib/helpers.php) — un fichier ajouté s'y inscrit.
+  `asset_url()` pour tout fichier d'`assets/` (version par date de fichier).
 
 ## Architecture
 - **Front controller** `index.php` : charge `lib/config.php`, force HTTPS, en-têtes
@@ -95,7 +111,9 @@ isolé, c'est ainsi qu'un fichier cassé est passé inaperçu.
   `lib/db/migrations.php` — les deux chargés par `db.php`, jamais requis directement.
   **Migrations versionnées** via `PRAGMA user_version` + `$steps` → `migration_N()`
   (idempotentes : `ALTER` après vérif d'existence de colonne). Pour faire évoluer le
-  schéma : ajouter une entrée `$steps` + une fonction `migration_N()`.
+  schéma : ajouter une entrée `$steps` + une fonction `migration_N()` dans le
+  dernier fichier de `lib/db/migrations/` (tranches de 25, chargées par
+  `migrations.php`, jamais directement).
   ⚠️ Pour recréer une table avec un schéma modifié : créer la nouvelle sous un nom
   temporaire (`x_new`), y copier les données, `DROP TABLE x`, puis
   `ALTER TABLE x_new RENAME TO x` — **jamais** `RENAME TO x_old` puis recréation,
@@ -140,6 +158,33 @@ isolé, c'est ainsi qu'un fichier cassé est passé inaperçu.
 - **Config** `lib/config.php` charge d'abord `lib/config.local.php` (non versionné) ;
   constantes : `APP_ENV`, `APP_DB_PATH`, `FORCE_HTTPS`, `SETUP_SECRET`,
   `PASSWORD_MIN`, `BCRYPT_COST`, `SESSION_IDLE/ABSOLUTE`, `LOGIN_MAX_ATTEMPTS/WINDOW`.
+- **Journal d'activité** `lib/journal.php` (`?p=journal`, admin) : armé UNE
+  fois par le dispatcher (`journal_armer()`), il relève tout POST d'un compte
+  connecté — route, identifiant visé, issue. ⚠️ **Jamais le contenu du
+  formulaire** (mots de passe, salaires, AVS) : seulement les clés de
+  `JOURNAL_CIBLES`/`JOURNAL_GESTES`. `tests/journal_test.php` le vérifie, ainsi
+  que les gardes de suppression côté serveur (fiche payée, etc.).
+  **Les erreurs du serveur** (avertissements, exceptions, erreurs fatales) y
+  sont relevées aussi, table `journal_erreurs`, par `journal_erreurs_armer()`
+  et `journal_exception()` (index.php) : une ligne par erreur distincte,
+  compteur, « vue » ou non (avis au tableau de bord des administrateurs).
+  ⚠️ Jamais la pile d'appels ; `journal_erreur()` ne doit jamais lever.
+- **Secrets** `lib/secrets.php` : les mots de passe SMTP **et les n° AVS**
+  (`employes.numero_avs`, `fiches.employe_avs`) sont CHIFFRÉS en base
+  (`secret_chiffrer()` à l'écriture, `secret_dechiffrer()` à la lecture, qui
+  rend `null` si la clé est inconnue). AVS : `avs_stocker()` / `avs_lire()` /
+  `avs_affiche()`, et jamais un `WHERE` sur ces colonnes
+  (`avs_trouver_employe()`). Clés : `SECRETS_CLE` et/ou le fichier
+  `<APP_DB_PATH>.cle.php` (une clé ou une liste — la première chiffre, toutes
+  déchiffrent), jamais dans la base ; dans l'archive SEULEMENT si elle est
+  chiffrée par phrase (`CLE_SECRETS.txt`, reprise à la restauration). ⚠️ Tout
+  nouveau secret ou identifiant sensible stocké en base passe par ces
+  fonctions ; `tests/secrets_test.php` vérifie les écritures existantes.
+- **Clôture d'exercice** (`lib/compta.php § Clôture`) : le verrou des écritures
+  est tenu par des **déclencheurs SQLite** (`migration_104`), pas par les
+  routes. ⚠️ Une migration qui recrée `ecritures` ou `ecritures_ventilations`
+  perd ces déclencheurs : elle doit rejouer `compta_cloture_declencheurs_sql()`
+  (`docs/DECISIONS.md`).
 - **Modules & droits** `lib/modules.php` (voir `docs/SPEC_PERMISSIONS.md`) :
   - `MODULES`/`module_actif()` : activation globale par module (carnet/salaires/
     compta/analytique/pieces/facturation/evenements/booking/fonds/mailing),
@@ -200,7 +245,10 @@ isolé, c'est ainsi qu'un fichier cassé est passé inaperçu.
     tenir à jour.
     **Trois routes échappent au dispatcher**, toutes hors session et donc sans
     jeton CSRF possible, chacune autorisée par une signature ou un jeton dédié :
-    - `route_sauvegarde()` — exporte toute la base, gardée à part ;
+    - `route_sauvegarde()` — exporte toute la base, gardée à part. POST
+      seulement (phrase secrète facultative, `check_csrf()`) ; un GET renvoie
+      à `?p=sauvegardes`, la page qui réunit télécharger, copies du serveur et
+      restaurer (administrateurs) ;
     - `route_mailing_traiter()` — vide la file d'envoi, déclenchée par le
       planificateur de tâches de l'hébergeur (jeton `mailing_traiter_token`) ;
     - `route_desinscription()` — lien de désinscription d'un e-mail. Elle

@@ -403,7 +403,7 @@ $lienFiche = function (string $type, int $id): string {
                                 <?php endif; ?>
                             </td>
                         <?php endforeach; ?>
-                        <td class="muted small"><?= e(date('d.m.Y', strtotime($paire['cree_le']))) ?></td>
+                        <td class="muted small"><?= e(horodatage($paire['cree_le'], 'd.m.Y')) ?></td>
                     </tr>
                 <?php endforeach; ?>
                 </tbody>

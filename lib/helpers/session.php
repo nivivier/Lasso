@@ -114,7 +114,7 @@ function send_security_headers(): void
         header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
     }
     // CSP. Plus aucun domaine Google : Inter est servie depuis assets/fonts/
-    // (voir le @font-face en tête de assets/app.css). Restent les tuiles
+    // (voir le @font-face en tête de assets/css/). Restent les tuiles
     // OpenStreetMap (vue carte des lieux, lib/geocodage.php).
     //
     // script-src n'accepte plus 'unsafe-inline' : chaque <script> inline porte le

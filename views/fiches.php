@@ -6,7 +6,7 @@
 // Filtres de colonne (EXPÉRIMENTAL) : Statut/Date/Employé vivent chacun à
 // côté du titre de la colonne qu'ils filtrent réellement plutôt que dans la
 // barre d'outils — voir filtre_colonne_html()/filtre_colonne_actifs_html()
-// (lib/helpers.php) et .col-filter* (assets/app.css). $autresXxx : les
+// (lib/helpers.php) et .col-filter* (assets/css/). $autresXxx : les
 // AUTRES filtres actifs de la page, reportés en hidden inputs par chaque
 // panneau pour ne pas se perdre entre eux quand on n'en modifie qu'un.
 $statutLabels = ['avenir' => 'À venir', 'apayer' => 'À payer', 'payees' => 'Payées'];
@@ -67,6 +67,12 @@ $fChoisie = $f ?? null;
         ?>
         <div class="head-actions">
             <?= bascule_vue_html('fiches', $vue, $qsSansVue) ?>
+            <?php if (peut_lire('coeur')):
+                // Rangé derrière « … » par le bandeau. L'année suit le filtre
+                // quand il n'en retient qu'une : c'est celle qu'on exporte.
+                $lienCertificats = ['p' => 'export', 'type' => 'certificats'] + (count($annee) === 1 ? ['annee' => (int) reset($annee)] : []); ?>
+            <a class="btn ghost" href="?<?= e(http_build_query($lienCertificats)) ?>"><?= icon('download') ?> <span class="lbl">Exporter pour certificats de salaire</span></a>
+            <?php endif; ?>
             <?php if (peut_ecrire('salaires')): ?>
             <a class="btn" href="?p=fiche_form" title="Nouvelle fiche"><?= icon('file-plus') ?> <span class="lbl">Nouvelle fiche</span></a>
             <?php endif; ?>
@@ -148,7 +154,7 @@ if ($vue === 'duo') { ob_start(); }
             <td class="num strong col-net <?= $apayer ? 'net-apayer' : (fiche_a_venir($f) ? 'net-avenir' : '') ?>"><?= chf_ou_zero((float) $f['salaire_net']) ?></td>
             <td class="col-paiement"><?= badge_paiement($f) ?></td>
             <td class="num col-cout"><?= cout_emp_affiche($f) ?></td>
-            <td class="center col-envoyee"><?php if (trim((string) ($f['email_envoye_le'] ?? '')) !== ''): ?><span class="mail-sent" title="Envoyée le <?= e(date('d.m.Y', strtotime((string) $f['email_envoye_le']))) ?>"><?= icon('check') ?></span><?php endif; ?></td>
+            <td class="center col-envoyee"><?php if (trim((string) ($f['email_envoye_le'] ?? '')) !== ''): ?><span class="mail-sent" title="Envoyée le <?= e(horodatage($f['email_envoye_le'], 'd.m.Y')) ?>"><?= icon('check') ?></span><?php endif; ?></td>
         </tr>
     <?php endforeach; ?>
     <?php endif; ?>

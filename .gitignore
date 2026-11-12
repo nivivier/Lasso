@@ -12,6 +12,8 @@
 *.sqlite-wal
 *.sqlite-shm
 *.sqlite.bak
+# Clé des secrets (lib/secrets.php), posée à côté de la base
+*.sqlite.cle.php
 
 # === Fichiers uploadés (logos…) sauf la protection .htaccess ===
 /uploads/*

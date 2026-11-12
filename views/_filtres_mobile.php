@@ -2,7 +2,7 @@
 // Panneau « Filtres » des listes en mini-cartes.
 //
 // Sur téléphone, la mise en cartes masque le <thead> (@media 700px,
-// assets/app.css) : les entonnoirs accrochés aux en-têtes de colonne
+// assets/css/) : les entonnoirs accrochés aux en-têtes de colonne
 // deviennent inatteignables. Ce panneau les reprend derrière un unique bouton
 // posé dans la toolbar, à côté de la recherche — invisible au-delà de 700 px,
 // où les entonnoirs du <thead> reprennent la main. La vue carte de

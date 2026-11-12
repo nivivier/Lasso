@@ -181,6 +181,15 @@ function route_employe_photo(): void
     redirect('employe', $err === null ? ['id' => $id] : ['id' => $id, 'err_avatar' => $err]);
 }
 
+// Les personnes de l'annuaire qui n'ont pas encore d'emploi : celles qu'un
+// nouvel employé peut reprendre plutôt que de dupliquer leur identité.
+function personnes_sans_emploi(): array
+{
+    return db()->query('SELECT id, prenom, nom, email, rue, npa_localite, date_naissance FROM personnes
+        WHERE id NOT IN (SELECT personne_id FROM employes WHERE personne_id IS NOT NULL)
+        ORDER BY nom COLLATE NOCASE, prenom COLLATE NOCASE')->fetchAll();
+}
+
 function route_employe_form(): void
 {
     require_login();
@@ -193,6 +202,12 @@ function route_employe_form(): void
         if (!$emp) {
             redirect('employes');
         }
+        // Le n° AVS est chiffré en base (lib/secrets.php § N° AVS) : le
+        // formulaire le montre en clair. Illisible (base restaurée sans sa
+        // clé), le champ part vide et un champ laissé vide ne l'efface pas.
+        $avsStocke = (string) $emp['numero_avs'];
+        $emp['avs_illisible'] = avs_illisible($avsStocke);
+        $emp['numero_avs'] = avs_lire($avsStocke);
     }
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         check_csrf();
@@ -219,8 +234,28 @@ function route_employe_form(): void
         } elseif ($champs['numero_avs'] !== '' && !avs_valide($champs['numero_avs'])) {
             $err = 'Numéro AVS invalide (format attendu : 756.XXXX.XXXX.XX).';
         }
+        // Personne existante (création seulement) : l'emploi s'y rattache au
+        // lieu d'en créer une seconde. Une personne n'a qu'un emploi — la
+        // liste ne propose que celles qui n'en ont pas, et le serveur le
+        // revérifie (la liste a pu vieillir depuis l'ouverture de la page).
+        $personneExistante = $id ? 0 : (int) ($_POST['personne_id'] ?? 0);
+        if (!$err && $personneExistante) {
+            $stmtP = db()->prepare('SELECT (SELECT COUNT(*) FROM personnes WHERE id = :id),
+                                           (SELECT COUNT(*) FROM employes WHERE personne_id = :id)');
+            $stmtP->execute(['id' => $personneExistante]);
+            [$existe, $dejaEmploye] = array_map('intval', $stmtP->fetch(PDO::FETCH_NUM));
+            if (!$existe) {
+                $personneExistante = 0;
+            } elseif ($dejaEmploye) {
+                $err = 'Cette personne est déjà employée.';
+            }
+        }
         if ($err) {
-            render('employe_form', ['emp' => array_merge((array) $emp, $champs), 'err' => $err], 'Employé');
+            render('employe_form', [
+                'emp' => array_merge((array) $emp, $champs, $id ? [] : ['personne_id' => $personneExistante]),
+                'err' => $err,
+                'personnesDispo' => $id ? [] : personnes_sans_emploi(),
+            ], 'Employé');
             return;
         }
         if (!in_array($champs['canton'], CANTONS, true)) {
@@ -241,7 +276,8 @@ function route_employe_form(): void
                       supplement_vacances=:supplement_vacances,
                       impot_source_taux=:impot_source_taux, actif=:actif';
         $emploi = [
-            'numero_avs'          => $champs['numero_avs'],
+            'numero_avs'          => ($champs['numero_avs'] === '' && !empty($emp['avs_illisible']))
+                ? $avsStocke : avs_stocker($champs['numero_avs']),
             'canton'              => $champs['canton'],
             'procedure'           => $champs['procedure'],
             'supplement_vacances' => $champs['supplement_vacances'],
@@ -261,7 +297,15 @@ function route_employe_form(): void
             db()->prepare('UPDATE employes SET ' . $sqlEmploi . ' WHERE id=:id')
                 ->execute($emploi + ['id' => $id]);
         } else {
-            $personneId = personne_creer($champs);
+            // La saisie fait foi aussi pour une personne reprise : les champs
+            // ont été préremplis depuis sa fiche, ce qu'on y a corrigé l'est
+            // pour tous les écrans qui la montrent.
+            if ($personneExistante) {
+                $personneId = $personneExistante;
+                personne_enregistrer($personneId, $champs);
+            } else {
+                $personneId = personne_creer($champs);
+            }
             db()->prepare(
                 'INSERT INTO employes (personne_id, numero_avs, canton, procedure, supplement_vacances, impot_source_taux, actif)
                  VALUES (:personne_id, :numero_avs, :canton, :procedure, :supplement_vacances, :impot_source_taux, :actif)'
@@ -280,7 +324,10 @@ function route_employe_form(): void
         $nbFichesEmp = (int) $stmtNb->fetchColumn();
     }
     // À l'affichage, l'override saisi en % : on ne touche pas aux valeurs stockées (fractions)
-    render('employe_form', ['emp' => $emp, 'err' => null, 'nbFiches' => $nbFichesEmp], $id ? 'Modifier employé' : 'Nouvel employé');
+    render('employe_form', [
+        'emp' => $emp, 'err' => null, 'nbFiches' => $nbFichesEmp,
+        'personnesDispo' => $id ? [] : personnes_sans_emploi(),
+    ], $id ? 'Modifier employé' : 'Nouvel employé');
 }
 
 function route_employe_supprimer(): void
@@ -386,7 +433,6 @@ function route_fiches_importer(): void
 // par numéro AVS. Renvoie [resultats par ligne, résumé chiffré].
 function importer_fiches_salaire(array $fiches, bool $simule): array
 {
-    $findEmp = db()->prepare('SELECT id FROM employes WHERE replace(numero_avs, " ", "") = ?');
     $existe  = db()->prepare('SELECT id FROM fiches WHERE employe_id = ? AND annee = ? AND mois = ?');
     $resultats = [];
     $resume = ['total' => 0, 'nouvelles' => 0, 'existantes' => 0, 'erreurs' => 0];
@@ -409,9 +455,9 @@ function importer_fiches_salaire(array $fiches, bool $simule): array
                 $ligne['detail'] = 'Données manquantes (AVS, année ou mois).';
                 $resume['erreurs']++; $resultats[] = $ligne; continue;
             }
-            $findEmp->execute([$avs]);
-            $empId = $findEmp->fetchColumn();
-            if ($empId === false) {
+            // Le n° AVS est chiffré en base : la correspondance se fait en PHP.
+            $empId = avs_trouver_employe($avs);
+            if ($empId === null) {
                 $ligne['statut'] = 'erreur';
                 $ligne['detail'] = "Aucun employé avec le numéro AVS $avs.";
                 $resume['erreurs']++; $resultats[] = $ligne; continue;
@@ -432,7 +478,7 @@ function importer_fiches_salaire(array $fiches, bool $simule): array
                     'employe_nom' => $nom,
                     'employe_rue' => (string) ($f['employe_rue'] ?? ''),
                     'employe_npa' => (string) ($f['employe_npa'] ?? ''),
-                    'employe_avs' => (string) ($f['employe_avs'] ?? $avs),
+                    'employe_avs' => avs_stocker((string) ($f['employe_avs'] ?? $avs)),
                     'canton' => (string) ($f['canton'] ?? ''),
                     'procedure' => (string) ($f['procedure'] ?? 'Ordinaire'),
                     'salaire_horaire' => $num('salaire_horaire'), 'nombre_heures' => $num('nombre_heures'),
@@ -612,9 +658,10 @@ function route_fiches_recalculer(): void
     }
 
     $stmt = db()->prepare(
-        'SELECT f.*, e.prenom, e.nom FROM fiches f
+        'SELECT f.*, pe.prenom, pe.nom FROM fiches f
            JOIN employes e ON e.id = f.employe_id
-          WHERE f.annee = ? ORDER BY f.mois, e.nom, e.prenom'
+           LEFT JOIN personnes pe ON pe.id = e.personne_id
+          WHERE f.annee = ? ORDER BY f.mois, pe.nom, pe.prenom'
     );
     $stmt->execute([$annee]);
     $lignes = [];
@@ -886,11 +933,14 @@ function route_fiches(): void
             . " + (CAST(strftime('%m','now') AS INTEGER) - f.mois))";
         $where .= $echeance === 'afaire' ? " AND $ecoules = 1" : " AND $ecoules >= 2";
     }
-    [$rechSql, $rechParams] = recherche_sql(['e.nom', 'e.prenom']);
+    // L'identité vit sur personnes depuis la migration 100 : employes n'a plus
+    // de nom. Les trois requêtes ci-dessous partagent donc la même jointure.
+    [$rechSql, $rechParams] = recherche_sql(['pe.nom', 'pe.prenom']);
     $where .= $rechSql;
     $params = array_merge($params, $rechParams);
 
-    $stmtTot = db()->prepare('SELECT COUNT(*) FROM fiches f JOIN employes e ON e.id = f.employe_id' . $where);
+    $joinFiches = ' FROM fiches f JOIN employes e ON e.id = f.employe_id LEFT JOIN personnes pe ON pe.id = e.personne_id';
+    $stmtTot = db()->prepare('SELECT COUNT(*)' . $joinFiches . $where);
     $stmtTot->execute($params);
     $pgTotal = (int) $stmtTot->fetchColumn();
 
@@ -901,7 +951,7 @@ function route_fiches(): void
         'SELECT COALESCE(SUM(f.salaire_brut),0) AS brut, COALESCE(SUM(f.total_deductions),0) AS ded,
                 COALESCE(SUM(f.ded_impot_source),0) AS impot, COALESCE(SUM(f.salaire_net),0) AS net,
                 COALESCE(SUM(f.total_charges_emp),0) AS charges_emp, COALESCE(SUM(f.cout_total_emp),0) AS cout_emp
-         FROM fiches f JOIN employes e ON e.id = f.employe_id' . $where
+        ' . $joinFiches . $where
     );
     $stmtSum->execute($params);
     $totaux = $stmtSum->fetch();
@@ -911,7 +961,7 @@ function route_fiches(): void
     // triés, d'où leur présence ici.
     $tri = tri_colonne('fiches', [
         'date'     => ['f.annee', 'f.mois'],
-        'employe'  => ['e.nom COLLATE NOCASE', 'e.prenom COLLATE NOCASE'],
+        'employe'  => ['pe.nom COLLATE NOCASE', 'pe.prenom COLLATE NOCASE'],
         'brut'     => 'f.salaire_brut',
         'net'      => 'f.salaire_net',
         'cout'     => 'f.cout_total_emp',
@@ -1477,7 +1527,7 @@ function build_person_xml(callable $el, array $emp, array $ctx): DOMElement
         $part->appendChild($el('DateOfBirth', date('Y-m-d', strtotime($emp['date_naissance']))));
     }
     $si = $el('Social-InsuranceIdentification');
-    $si->appendChild($el('SV-AS-Number', (string) $emp['numero_avs']));
+    $si->appendChild($el('SV-AS-Number', avs_lire((string) $emp['numero_avs'])));
     $part->appendChild($si);
     $part->appendChild($el('Lastname', (string) $emp['nom']));
     $part->appendChild($el('Firstname', (string) $emp['prenom']));
@@ -1590,14 +1640,37 @@ function route_fiche_imprimer(): void
     render_bare('fiche_imprimer', ['f' => $f]);
 }
 
+// ⚠️ Une fiche PAYÉE ne se supprime pas : l'historique est figé (CLAUDE.md).
+// La règle vit ICI et dans la requête elle-même, pas seulement dans l'absence
+// de bouton — l'écran de modification d'une fiche payée ne s'ouvre pas, mais
+// un POST direct passait. Même principe que route_facture_supprimer(), qui
+// ne supprime qu'un brouillon.
 function route_fiche_supprimer(): void
 {
     require_login();
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         check_csrf();
-        db()->prepare('DELETE FROM fiches WHERE id = ?')->execute([(int) ($_POST['id'] ?? 0)]);
+        $id = (int) ($_POST['id'] ?? 0);
+        if (!fiche_supprimer($id)) {
+            redirect('fiche', ['id' => $id, 'err' => 'payee']);
+        }
     }
     redirect('fiches');
+}
+
+// Supprime une fiche NON payée. Faux si la fiche existe et est payée (rien
+// n'est supprimé) ; vrai sinon — supprimée, ou déjà absente. La condition est
+// dans la requête elle-même : pas de fenêtre entre la lecture et l'écriture.
+function fiche_supprimer(int $id): bool
+{
+    $suppr = db()->prepare("DELETE FROM fiches WHERE id = ? AND trim(COALESCE(date_paiement, '')) = ''");
+    $suppr->execute([$id]);
+    if ($suppr->rowCount() > 0) {
+        return true;
+    }
+    $stmt = db()->prepare('SELECT 1 FROM fiches WHERE id = ?');
+    $stmt->execute([$id]);
+    return !$stmt->fetchColumn();
 }
 
 function route_fiche_modifier(): void

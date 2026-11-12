@@ -62,8 +62,10 @@ $groupes = ['annee' => 'Année', 'semestre' => 'Semestre', 'trimestre' => 'Trime
 <?php if (!$buckets): ?>
     <p class="muted">Aucune fiche pour cette sélection.</p>
 <?php else: ?>
+<?php // Sur téléphone, une carte par période : son nom, puis chaque montant
+      // avec son libellé (.cartes-cotisations, data-libelle). ?>
 <div class="table-scroll">
-<table class="list resume">
+<table class="list resume cartes-chiffres cartes-cotisations">
     <colgroup>
         <col style="width:16%"><col style="width:8%">
         <?php foreach ($champs as $c): ?><col><?php endforeach; ?>
@@ -77,20 +79,20 @@ $groupes = ['annee' => 'Année', 'semestre' => 'Semestre', 'trimestre' => 'Trime
     <tbody>
     <?php foreach ($buckets as $b): ?>
         <tr>
-            <td><?= e($b['label']) ?></td>
-            <td class="num"><?= (int) $b['nb'] ?></td>
+            <td class="col-periode"><?= e($b['label']) ?></td>
+            <td class="num" data-libelle="Fiches"><?= (int) $b['nb'] ?></td>
             <?php foreach ($champs as $c): ?>
-                <td class="<?= $cls($c) ?>"><?= chf((float) $b[$c]) ?></td>
+                <td class="<?= $cls($c) ?>" data-libelle="<?= e($labels[$c]) ?>"><?= chf((float) $b[$c]) ?></td>
             <?php endforeach; ?>
         </tr>
     <?php endforeach; ?>
     </tbody>
     <tfoot>
         <tr class="total-row">
-            <td><?= $groupe === 'annee' ? 'Total général' : 'Total ' . $annee ?></td>
-            <td class="num"><?= (int) $totaux['nb'] ?></td>
+            <td class="col-periode"><?= $groupe === 'annee' ? 'Total général' : 'Total ' . $annee ?></td>
+            <td class="num" data-libelle="Fiches"><?= (int) $totaux['nb'] ?></td>
             <?php foreach ($champs as $c): ?>
-                <td class="<?= $cls($c) ?> strong"><?= chf((float) $totaux[$c]) ?></td>
+                <td class="<?= $cls($c) ?> strong" data-libelle="<?= e($labels[$c]) ?>"><?= chf((float) $totaux[$c]) ?></td>
             <?php endforeach; ?>
         </tr>
     </tfoot>
@@ -119,7 +121,7 @@ $groupes = ['annee' => 'Année', 'semestre' => 'Semestre', 'trimestre' => 'Trime
     <p class="muted">Aucune fiche pour <?= (int) $retAnnee ?>.</p>
 <?php else: ?>
 <div class="table-scroll">
-<table class="list resume">
+<table class="list resume cartes-chiffres cartes-cotisations">
     <colgroup>
         <col style="width:20%">
         <?php foreach ($retCols as $c): ?><col><?php endforeach; ?>
@@ -138,11 +140,11 @@ $groupes = ['annee' => 'Année', 'semestre' => 'Semestre', 'trimestre' => 'Trime
     <tbody>
     <?php foreach ($retenues as $r): ?>
         <tr class="<?= $r['type'] === 'sous' ? 'subtotal-row' : ($r['type'] === 'total' ? 'total-row' : 'ret-trim') ?>">
-            <td><?= e($r['label']) ?></td>
+            <td class="col-periode"><?= e($r['label']) ?></td>
             <?php foreach ($retCols as $c): ?>
-                <td class="num"><?= chf((float) $r['vals'][$c]) ?></td>
+                <td class="num" data-libelle="<?= e($retLabels[$c]) ?>"><?= chf((float) $r['vals'][$c]) ?></td>
             <?php endforeach; ?>
-            <td class="num col-total"><?= chf((float) array_sum($r['vals'])) ?></td>
+            <td class="num col-total" data-libelle="Total"><?= chf((float) array_sum($r['vals'])) ?></td>
         </tr>
     <?php endforeach; ?>
     </tbody>

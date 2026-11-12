@@ -55,7 +55,7 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
         <?php endif; ?>
         <?php endif; ?>
         <?php if ($envoyee): ?>
-            <span class="mail-sent" title="Envoyée le <?= e(date('d.m.Y à H:i', strtotime((string) $f['email_envoye_le']))) ?>"><?= icon('check') ?> <span class="lbl">Envoyée</span></span>
+            <span class="mail-sent" title="Envoyée le <?= e(horodatage($f['email_envoye_le'], 'd.m.Y à H:i')) ?>"><?= icon('check') ?> <span class="lbl">Envoyée</span></span>
         <?php endif; ?>
         <?php // « Modifier » ferme le groupe, à droite : c'est le geste qui
               // ouvre l'écran d'édition, et c'est là-bas que vit la suppression

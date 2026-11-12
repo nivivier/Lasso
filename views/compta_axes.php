@@ -24,6 +24,7 @@ $peutEcrireAxes = peut_ecrire('analytique');
     <?php endif; ?>
 </div>
 <?php if ($saved): ?><p class="ok flash">Axe enregistré.</p><?php endif; ?>
+<?php if (!empty($errUtilise)): ?><p class="err flash">Cet axe est utilisé par des fiches de salaire, des factures ou des projets : il ne peut pas être supprimé. Désactivez-le pour le retirer des menus.</p><?php endif; ?>
 
     <?php if ($peutEcrireAxes): ?>
     <?php // Exemplaire unique du formulaire de repositionnement : le script y

@@ -22,6 +22,7 @@ require_once __DIR__ . '/helpers/session.php';
 require_once __DIR__ . '/helpers/listes.php';
 require_once __DIR__ . '/helpers/geo.php';
 require_once __DIR__ . '/helpers/icones.php';
+require_once __DIR__ . '/secrets.php';
 
 // Validation stricte d'une date « Y-m-d » : DateTime::createFromFormat() seul
 // accepterait silencieusement une date invalide comme "2026-02-30" en la
@@ -321,6 +322,11 @@ function chf_ou_zero(float $v): string
     return abs($v) < 0.005 ? '<span class="montant-zero">–</span>' : e(chf($v));
 }
 
+// Horodatages (UTC en base, heure locale à l'affichage) : lib/horodatage.php,
+// chargé ici et par les fichiers qui servent sans helpers.php (journal,
+// sauvegarde).
+require_once __DIR__ . '/horodatage.php';
+
 // Montant CHF : "1 234.55"
 function chf(float $v): string
 {
@@ -344,7 +350,7 @@ function pct(float $v): string
 // dans evenement_suisa_badge()/evenement_badge_statut() (lib/evenements.php)
 // et facturation_badge() (lib/facturation.php). $classe :
 // suffixe de couleur ('ok'|'warn'|'muted'|'emise', voir .badge dans
-// assets/app.css) ou '' pour le badge neutre par défaut (mauve).
+// assets/css/) ou '' pour le badge neutre par défaut (mauve).
 // Un bouton qui mène AILLEURS : le site d'un interlocuteur, un dossier partagé.
 // Il ouvre dans un onglet à lui, puisque ce qu'on fait ici n'est pas fini.
 //
@@ -568,7 +574,7 @@ if ($l > 75) {
         'brand_2'      => hsl_vers_hex($h, min($s + 8, 78), 35),
 
         // Variantes pour le mode sombre. Ces quatre valeurs ne peuvent pas être
-        // écrites dans assets/app.css : elles dérivent d'une couleur choisie en
+        // écrites dans assets/css/ : elles dérivent d'une couleur choisie en
         // base (Paramètres → Employeur), et le bloc <style> qui les injecte est
         // émis APRÈS la feuille de style — il l'emporterait donc sur toute
         // media query qui s'y trouverait.
@@ -596,7 +602,7 @@ if ($l > 75) {
         // DE TEXTE sur une teinte (badges, onglets actifs, liens survolés) et
         // deux seulement comme fond de survol. On l'oriente donc vers l'usage
         // dominant : clair, pour être lisible sur les teintes sombres. Les deux
-        // fonds de survol sont traités à part dans le bloc sombre d'app.css.
+        // fonds de survol sont traités à part dans le bloc sombre (assets/css/12-theme-sombre-composants.css).
         'primary_d_sombre'    => hsl_vers_hex($h, min($s + 15, 95), 78),
     ];
 }
@@ -604,21 +610,21 @@ if ($l > 75) {
 // Bloc <style> qui redéfinit les variables CSS de couleur d'après la couleur
 // principale et la couleur de mise en évidence choisies, plus l'image de fond
 // personnalisée (page Apparence) — injecté dans <head> (views/layout.php),
-// après app.css. Cette dernière remplace la couleur principale à certains
+// après assets/css/. Cette dernière remplace la couleur principale à certains
 // endroits (boutons principaux, sommes de brut, liens, tags) ; voir
-// --highlight* dans app.css pour la liste des règles concernées.
+// --highlight* dans assets/css/ pour la liste des règles concernées.
 // L'image de fond personnalisée (si configurée) est posée ici en dur
 // (body.has-sidebar::before{background-image:...}) plutôt que via une
-// variable CSS consommée depuis app.css : une URL relative dans une custom
+// variable CSS consommée depuis assets/css/ : une URL relative dans une custom
 // property se résout par rapport à la feuille de style où la var() est
-// *utilisée*, pas où la propriété est déclarée — utilisée dans app.css
-// (assets/app.css), "uploads/…" se serait résolu en "assets/uploads/…"
+// *utilisée*, pas où la propriété est déclarée — utilisée dans assets/css/
+// (assets/css/), "uploads/…" se serait résolu en "assets/uploads/…"
 // (inexistant) au lieu de "uploads/…" à la racine du site. Ici, dans le
 // <style> inline de la page elle-même, l'URL relative se résout normalement
 // par rapport à la page — comme param_fond()/param_logo() partout ailleurs
 // (<img src="uploads/…">). L'effet clair/flouté (filter) est posé sur ce
 // même ::before, jamais sur <body> lui-même — voir le commentaire dans
-// app.css (body.has-sidebar::before). Sans image personnalisée (cas par
+// assets/css/ (body.has-sidebar::before). Sans image personnalisée (cas par
 // défaut), rien n'est émis ici : le fond calculé (.wave-decor, voir
 // views/_fond_decor.php) prend le relais, posé par views/layout.php.
 // Émet les deux blocs qui appliquent une palette sombre : l'un sous la media
@@ -1092,7 +1098,7 @@ const FONDS_DECOR = [
 ];
 
 // Les COULEURS d'un décor calculé. Un décor n'en connaît que deux, --fond-a et
-// --fond-b (assets/app.css) ; ce réglage dit à quoi elles renvoient. Le défaut
+// --fond-b (assets/css/) ; ce réglage dit à quoi elles renvoient. Le défaut
 // « duo » est ce que faisaient les décors avant d'être réglables, et les
 // installations en service n'y voient donc aucun changement.
 // Rien ici n'est une couleur écrite en dur : les quatre combos recombinent des
@@ -1562,7 +1568,7 @@ function fiche_email_html(array $f): string
     // URL absolue (les clients mail n'affichent pas les chemins relatifs) ; '' si aucun logo.
     $logo_src = $logoRel !== '' ? $scheme . '://' . $host . '/' . ltrim($logoRel, '/') : '';
     $impression = true; // pas de lien sur le nom dans l'e-mail
-    $css = @file_get_contents(__DIR__ . '/../assets/app.css') ?: '';
+    $css = css_source();
 
     ob_start();
     require __DIR__ . '/../views/_fiche_body.php';
@@ -1741,7 +1747,8 @@ function smtp_config(): array
         'port'   => (int) $val('smtp_port', (string) SMTP_PORT),
         'secure' => $val('smtp_secure', SMTP_SECURE) === 'tls' ? 'tls' : 'ssl',
         'user'   => $val('smtp_user', SMTP_USER),
-        'pass'   => $val('smtp_pass', SMTP_PASS),
+        // Chiffré en base (lib/secrets.php) ; illisible → repli comme s'il était vide.
+        'pass'   => (secret_dechiffrer((string) param('smtp_pass', '')) ?? '') ?: SMTP_PASS,
     ];
 }
 
@@ -1769,7 +1776,17 @@ function smtp_config_booking(?array $expediteur = null): array
         'port'   => (int) $val('smtp_port', 'smtp_booking_port', (string) $general['port']),
         'secure' => $val('smtp_secure', 'smtp_booking_secure', $general['secure']) === 'tls' ? 'tls' : 'ssl',
         'user'   => $val('smtp_user', 'smtp_booking_user', $general['user']),
-        'pass'   => $val('smtp_pass', 'smtp_booking_pass', $general['pass']),
+        // Mots de passe chiffrés en base (lib/secrets.php) : déchiffrés AVANT
+        // la cascade, pour qu'un illisible passe la main au niveau suivant.
+        'pass'   => (function () use ($expediteur, $general): string {
+            foreach ([(string) ($expediteur['smtp_pass'] ?? ''), (string) param('smtp_booking_pass', '')] as $v) {
+                $clair = secret_dechiffrer(trim($v)) ?? '';
+                if ($clair !== '') {
+                    return $clair;
+                }
+            }
+            return $general['pass'];
+        })(),
     ];
 }
 
@@ -2338,7 +2355,7 @@ function menu_deroulant_html(array $bouton, array $entrees, array $opts = []): s
     };
     $libelle = trim((string) ($bouton['libelle'] ?? ''));
     // Un saut de ligne DANS le libellé est une coupure voulue : elle ne paraît
-    // que sur écran étroit (.btn-compact-break, assets/app.css), là où le
+    // que sur écran étroit (.btn-compact-break, assets/css/), là où le
     // libellé se réduit et se range sur deux lignes. Ailleurs le <br> n'existe
     // pas — ce n'est pas un repli sous contrainte, c'est un choix de mise en
     // page pour un bouton précis. L'infobulle, elle, reste d'un tenant.
@@ -2430,7 +2447,7 @@ function campagne_reponse_toggle_html(int $campagneId, int $structureId, string 
 // l'utilisateur (?p=tags, structure_tags.couleur) — fond teinté à
 // faible opacité (même esprit que --highlight-tint/-d) + texte à la couleur
 // pleine. '' (attribut vide) si pas de couleur : le badge garde son style par
-// défaut (.badge, assets/app.css).
+// défaut (.badge, assets/css/).
 function badge_style_html(string $couleur): string
 {
     if (!preg_match('/^#[0-9a-f]{6}$/i', $couleur)) {
@@ -2565,11 +2582,69 @@ function nb_ecritures_a_lettrer(): int
 // La page est tamponnée pour que le sprite d'icônes puisse être inséré après
 // coup, juste sous <body> : on ne sait quelles icônes ont servi qu'une fois le
 // contenu rendu, et le <symbol> doit précéder les <use> qui le référencent.
+// ---------------------------------------------------------------------------
+// Fichiers servis depuis assets/ : l'URL porte la date du fichier (?v=…), pour
+// que le navigateur, qui les garde un an (.htaccess, « immutable »), recharge
+// après une mise à jour. Une seule écriture de ce motif, recopié cinq fois
+// auparavant.
+function asset_url(string $chemin): string
+{
+    return $chemin . '?v=' . (@filemtime(__DIR__ . '/../' . $chemin) ?: '1');
+}
+
+// La feuille de style, en fichiers par domaine (assets/css/), DANS CET ORDRE :
+// c'est l'ordre de la cascade, celui de l'ancienne feuille d'un seul tenant
+// (7 600 lignes), découpé à ses intertitres sans qu'aucune règle ne bouge. Un
+// fichier ajouté s'inscrit ici, à sa place — tests/css_test.php vérifie que la
+// liste et le dossier disent la même chose.
+const CSS_FICHIERS = [
+    'assets/css/01-base.css',
+    'assets/css/02-theme-sombre-palette.css',
+    'assets/css/03-navigation.css',
+    'assets/css/04-decors.css',
+    'assets/css/05-entetes.css',
+    'assets/css/06-cartes-formulaires.css',
+    'assets/css/07-boutons-messages-filtres.css',
+    'assets/css/08-tableaux.css',
+    'assets/css/09-fiche-impression.css',
+    'assets/css/10-tiroir-mobile.css',
+    'assets/css/11-comptabilite.css',
+    'assets/css/12-theme-sombre-composants.css',
+    'assets/css/13-mini-cartes.css',
+    'assets/css/14-evenements.css',
+    'assets/css/15-pieces.css',
+    'assets/css/16-accessibilite.css',
+];
+
+// Les <link> de la feuille de style : page, impression, export.
+function css_liens_html(): string
+{
+    $h = '';
+    foreach (CSS_FICHIERS as $f) {
+        $h .= '<link rel="stylesheet" href="' . e(asset_url($f)) . '">' . "\n";
+    }
+    return $h;
+}
+
+// La feuille entière, d'un seul texte : ce qu'embarque un e-mail (un client
+// de messagerie ne va pas chercher de fichier), et ce que lisent les tests.
+function css_source(): string
+{
+    $css = '';
+    foreach (CSS_FICHIERS as $f) {
+        $css .= (string) @file_get_contents(__DIR__ . '/../' . $f) . "\n";
+    }
+    return $css;
+}
+
 function render(string $view, array $data = [], ?string $title = null): void
 {
     extract($data);
     $contentView = __DIR__ . '/../views/' . $view . '.php';
-    $pageTitle   = $title ?? 'Fiches de salaire';
+    // Un onglet prend le titre que lui donne la navigation (titre_onglet()),
+    // quel que soit celui que la route passe ; une fiche garde le sien.
+    $pageTitle   = (function_exists('titre_onglet') ? titre_onglet((string) ($_GET['p'] ?? '')) : null)
+        ?? $title ?? 'Lasso';
     icones_mode_sprite(true);
     ob_start();
     require __DIR__ . '/../views/layout.php';

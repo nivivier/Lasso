@@ -2,6 +2,9 @@
 /** @var string $q */ /** @var array $groupes */ /** @var int $total */ /** @var bool $tropCourt */
 ?>
 <div class="module-content"><div class="module-content-inner">
+    <?php // Même raison que sur le tableau de bord : un titre de niveau 1 pour
+          // les lecteurs d'écran, le champ suffit à l'œil. ?>
+    <h1 class="sr-only">Recherche</h1>
 
     <form class="recherche-form" method="get" action="">
         <input type="hidden" name="p" value="recherche">

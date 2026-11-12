@@ -1,0 +1,193 @@
+/* ============================================================================
+   Mode sombre — voir docs/DECISIONS.md § Mode sombre
+
+   Seuls les TOKENS sont redéfinis ici : aucun composant n'est retouché, puisque
+   tous lisent déjà la palette. C'est ce qui rend ce bloc court malgré l'ampleur
+   du changement, et c'est aussi pourquoi il ne faut jamais écrire une couleur
+   en dur dans une règle de composant.
+
+   Ne dépend d'aucune préférence stockée : `prefers-color-scheme` suit le
+   réglage du système. Les couleurs d'accent (--primary, --highlight) viennent
+   des réglages Employeur et sont injectées par couleurs_css_vars() APRÈS cette
+   feuille — leurs variantes sombres sont donc produites côté PHP, pas ici.
+
+   Les surfaces d'impression (.sheet, body.print-page) restent blanches : on
+   imprime sur du papier.
+   ========================================================================== */
+/* ============================================================================
+   Thème sombre — palette source
+
+   Les valeurs ne sont écrites QU'ICI. Elles ne s'appliquent pas d'elles-mêmes :
+   les deux blocs ci-dessous se contentent de les affecter aux tokens réels,
+   selon le mode choisi dans Paramètres → Apparence.
+
+   Pourquoi deux blocs et non un seul : l'un dépend d'une media query, l'autre
+   d'un attribut — aucun sélecteur CSS ne peut exprimer les deux à la fois. Seule
+   la LISTE d'affectations est donc dupliquée, jamais les couleurs : une teinte
+   se corrige à un seul endroit.
+   ========================================================================== */
+:root {
+    /* Le châssis sombre suit le clair : une encre CHAUDE, pas un gris bleuté.
+       Le thème clair est passé au papier crème ; un sombre violacé en face
+       donnait deux applications différentes selon l'heure, et surtout tirait
+       l'ambre et le rouge vers le froid exactement comme le faisait l'ancien
+       fond clair. */
+    --d-bg: #17150f;
+    --d-card: #201d16;
+    --d-ink: #f2ede2;
+    --d-muted: #a79c89;
+    --d-line: #35302a;
+    --d-teal: #2fd0ba;
+    --d-teal-d: #24a894;
+    --d-teal-tint: #12312e;
+    --d-amber: #e0a745;
+    --d-amber-tint: #33260f;
+    --d-amber-bord: #a8741f;
+    --d-amber-piste: #4a3a1b;
+    --d-orange: #f0743f;
+    --d-orange-tint: #3a1e11;
+    --d-danger: #f2685c;
+    --d-danger-d: #d9503f;
+    --d-danger-tint: #3a1c1a;
+    --d-danger-bord: #b8463a;
+    --d-ok: #4ec07d;
+    --d-ok-tint: #12301f;
+    --d-ok-bord: #2f7a4c;
+    --d-personne: #58cfe4;
+    --d-personne-tint: #10333b;
+    --d-document: #c49bf5;
+    --d-document-tint: #2a1740;
+    --d-evenement: #f583b4;
+    --d-evenement-tint: #3c1024;
+    --d-row-attention: #2a2417;
+    --d-row-manuelle: #1f1d2c;
+    --d-row-ignore: #191823;
+    --d-row-ignore-hover: #21202c;
+    /* Les surfaces « vitre dépolie » (cartes du tableau de bord, bandeau
+       d'en-tête, en-tête de la carte des lieux) ASSOMBRISSENT leur fond en
+       sombre, là où elles l'éclaircissent en clair : un voile blanc à 5 %
+       posé sur un fond déjà sombre délavait les cartes sans les détacher
+       davantage. Rester léger — c'est une vitre, pas un aplat. */
+    /* Le verre dépoli du rail et des cartes : un voile CLAIR en sombre, et non
+       un voile noir. Depuis que le rail est en verre (il l'était déjà pour les
+       cartes du tableau de bord), un voile noir sur un fond déjà sombre ne
+       détachait plus rien — la colonne disparaissait dans la page. */
+    --d-glass: rgba(255, 255, 255, .055);
+    --d-brand-surface: #0f0e17;
+    --d-glass-hover: rgba(255, 255, 255, .08);
+    --d-shadow: 0 1px 2px rgba(0,0,0,.35), 0 6px 20px rgba(0,0,0,.45);
+    --d-shadow-sm: 0 1px 3px rgba(0,0,0,.4);
+    --d-surface: #262219;
+    --d-primary: #9b83ff;
+    --d-primary-base: #9b83ff;
+    --d-primary-d: #b6a4ff;
+    --d-primary-tint: #262046;
+    --d-highlight: #6f9bff;
+    --d-highlight-d: #93b5ff;
+    --d-highlight-tint: #1b2547;
+    --d-brand: #c9bcff;
+}
+
+/* Mode « automatique » : on suit le système. Le :not() est essentiel — sans lui,
+   un thème clair explicitement choisi perdrait face à un système en sombre. */
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="clair"]) {
+        --bg: var(--d-bg);
+        --card: var(--d-card);
+        --ink: var(--d-ink);
+        --muted: var(--d-muted);
+        --line: var(--d-line);
+        --teal: var(--d-teal);
+        --teal-d: var(--d-teal-d);
+        --teal-tint: var(--d-teal-tint);
+        --amber: var(--d-amber);
+        --amber-tint: var(--d-amber-tint);
+        --amber-piste: var(--d-amber-piste);
+        --orange: var(--d-orange);
+        --orange-tint: var(--d-orange-tint);
+        --danger: var(--d-danger);
+    --amber-bord: var(--d-amber-bord);
+    --danger-bord: var(--d-danger-bord);
+    --ok-tint: var(--d-ok-tint);
+    --ok-bord: var(--d-ok-bord);
+    --personne: var(--d-personne);
+    --personne-tint: var(--d-personne-tint);
+    --document: var(--d-document);
+    --document-tint: var(--d-document-tint);
+    --evenement: var(--d-evenement);
+    --evenement-tint: var(--d-evenement-tint);
+        --amber-bord: var(--d-amber-bord);
+        --danger-bord: var(--d-danger-bord);
+        --ok-tint: var(--d-ok-tint);
+        --ok-bord: var(--d-ok-bord);
+        --personne: var(--d-personne);
+        --personne-tint: var(--d-personne-tint);
+        --document: var(--d-document);
+        --document-tint: var(--d-document-tint);
+        --evenement: var(--d-evenement);
+        --evenement-tint: var(--d-evenement-tint);
+        --danger-d: var(--d-danger-d);
+        --danger-tint: var(--d-danger-tint);
+        --ok: var(--d-ok);
+        --row-attention: var(--d-row-attention);
+        --row-manuelle: var(--d-row-manuelle);
+        --row-ignore: var(--d-row-ignore);
+        --row-ignore-hover: var(--d-row-ignore-hover);
+        --glass: var(--d-glass);
+        --brand-surface: var(--d-brand-surface);
+    --glass-hover: var(--d-glass-hover);
+        --shadow: var(--d-shadow);
+        --shadow-sm: var(--d-shadow-sm);
+        --surface: var(--d-surface);
+        --primary: var(--d-primary);
+        --primary-base: var(--d-primary-base);
+        --primary-d: var(--d-primary-d);
+        --primary-tint: var(--d-primary-tint);
+        --highlight: var(--d-highlight);
+        --highlight-d: var(--d-highlight-d);
+        --highlight-tint: var(--d-highlight-tint);
+        --brand: var(--d-brand);
+        --modal-head-bg: color-mix(in srgb, var(--brand) 18%, var(--card));
+    }
+}
+
+/* Choix explicite « sombre », quel que soit le réglage du système. */
+:root[data-theme="sombre"] {
+    --brand-surface: var(--d-brand-surface);
+    --bg: var(--d-bg);
+    --card: var(--d-card);
+    --ink: var(--d-ink);
+    --muted: var(--d-muted);
+    --line: var(--d-line);
+    --teal: var(--d-teal);
+    --teal-d: var(--d-teal-d);
+    --teal-tint: var(--d-teal-tint);
+    --amber: var(--d-amber);
+    --amber-tint: var(--d-amber-tint);
+    --amber-piste: var(--d-amber-piste);
+    --orange: var(--d-orange);
+    --orange-tint: var(--d-orange-tint);
+    --danger: var(--d-danger);
+    --danger-d: var(--d-danger-d);
+    --danger-tint: var(--d-danger-tint);
+    --ok: var(--d-ok);
+    --row-attention: var(--d-row-attention);
+    --row-manuelle: var(--d-row-manuelle);
+    --row-ignore: var(--d-row-ignore);
+    --row-ignore-hover: var(--d-row-ignore-hover);
+    --glass: var(--d-glass);
+    --glass-hover: var(--d-glass-hover);
+    --shadow: var(--d-shadow);
+    --shadow-sm: var(--d-shadow-sm);
+    --surface: var(--d-surface);
+    --primary: var(--d-primary);
+    --primary-base: var(--d-primary-base);
+    --primary-d: var(--d-primary-d);
+    --primary-tint: var(--d-primary-tint);
+    --highlight: var(--d-highlight);
+    --highlight-d: var(--d-highlight-d);
+    --highlight-tint: var(--d-highlight-tint);
+    --brand: var(--d-brand);
+    --modal-head-bg: color-mix(in srgb, var(--brand) 18%, var(--card));
+}
+

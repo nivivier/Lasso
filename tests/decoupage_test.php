@@ -1,8 +1,9 @@
 <?php
 // Les fichiers découpés passent par leur porte. Lancement : php tests/decoupage_test.php
 //
-// lib/helpers.php et lib/booking.php ont été découpés en sous-fichiers
-// (lib/helpers/, lib/booking/) qu'ils chargent eux-mêmes. La règle : un
+// lib/helpers.php, lib/booking.php et lib/db/migrations.php ont été découpés
+// en sous-fichiers (lib/helpers/, lib/booking/, lib/db/migrations/) qu'ils
+// chargent eux-mêmes. La règle : un
 // sous-fichier ne se requiert JAMAIS directement — « require lib/booking.php »
 // doit continuer de tout apporter, et un sous-fichier chargé seul manquerait
 // des constantes et des fonctions de ses voisins. Et chaque sous-fichier doit
@@ -24,7 +25,7 @@ function check(string $label, $attendu, $obtenu): void
     }
 }
 
-$portes = ['helpers' => 'lib/helpers.php', 'booking' => 'lib/booking.php'];
+$portes = ['helpers' => 'lib/helpers.php', 'booking' => 'lib/booking.php', 'db/migrations' => 'lib/db/migrations.php'];
 
 $fichiers = [];
 $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($racine, FilesystemIterator::SKIP_DOTS));
@@ -39,7 +40,7 @@ foreach ($portes as $dossier => $porte) {
     echo "lib/$dossier/ — porte unique : $porte\n";
     foreach (glob("$racine/lib/$dossier/*.php") as $sous) {
         $nom = basename($sous);
-        $motif = '#require(_once)?\s*\(?\s*__DIR__\s*\.\s*\'[./]*' . preg_quote("$dossier/$nom", '#') . '\'#';
+        $motif = '#require(_once)?\s*\(?\s*__DIR__\s*\.\s*\'[./]*' . preg_quote(basename($dossier) . "/$nom", '#') . '\'#';
         $qui = array_keys(array_filter($fichiers, fn ($src) => preg_match($motif, $src)));
         check("$dossier/$nom chargé par sa porte, et par elle seule", [$porte], $qui);
     }

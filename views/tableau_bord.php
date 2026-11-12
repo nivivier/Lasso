@@ -4,7 +4,7 @@
 /** @var array $prochainsEvenements */
 /** @var int $suisaAFaire */ /** @var int $suisaEnvoye */ /** @var int $suisaManquant */
 /** @var array $campagnesDash */ /** @var int $campagnesAVenir */ /** @var array $fondsDash */
-/** @var ?array $rappelSauvegarde */
+/** @var ?array $rappelSauvegarde */ /** @var int $erreursNouvelles */
 
 // Une carte du tableau de bord met en valeur ce qui ATTEND UN GESTE : la ligne
 // se détache sur un fond ambre très clair (.ligne-action). C'est la seule
@@ -21,6 +21,18 @@ $dash_action = fn (bool $attend): string => $attend ? ' ligne-action' : '';
 // $suffixe dit ce que sont ces autres quand ils ne sont pas de la même espèce
 // que les lignes montrées : « et 3 autres à venir » sous les campagnes en
 // cours. Vide, la ligne dit simplement « et 3 autres ».
+// La cellule d'identité d'une ligne de widget : le nom, et sous lui sa date
+// (échéance, mois de la fiche), en petit. Ils occupaient deux colonnes, et la
+// date, qui ne se coupe pas, prenait au nom la place qui lui manquait :
+// « Joaq… » dans une carte où le montant avait de la marge. Empilés, le nom a
+// toute la largeur qui reste au montant. Le nom se tronque encore au besoin,
+// avec points de suite, et le title le rend entier au survol.
+$dashIdent = function (string $nom, string $sous, string $avatar = '', string $sousClasse = ''): string {
+    return '<td class="dash-nom" title="' . e($nom) . '"><span class="dash-ident">' . $avatar
+        . '<span class="dash-ident-texte"><span class="dash-ident-nom">' . e($nom) . '</span>'
+        . '<span class="dash-ident-sous' . $sousClasse . '">' . $sous . '</span></span></span></td>';
+};
+
 $dash_reste = function (int $reste, int $colonnes, string $href, string $suffixe = ''): string {
     if ($reste <= 0) {
         return '';
@@ -33,7 +45,7 @@ $dash_reste = function (int $reste, int $colonnes, string $href, string $suffixe
 
 // Génère le SVG du graphique comptable (inline, sans bibliothèque).
 // Les couleurs de décor (grille, ligne du zéro, libellés d'axes et de légende)
-// ne sont PAS écrites ici mais portées par des classes stylées dans app.css
+// ne sont PAS écrites ici mais portées par des classes stylées dans assets/css/
 // (.dash-chart .ch-grille/.ch-zero/.ch-label) : codées en dur, elles ne
 // suivaient pas le thème — en sombre, les libellés tombaient à 3.54:1 (sous le
 // seuil AA) et la grille, presque blanche, passait devant les courbes. Seules
@@ -279,8 +291,8 @@ $dashTitre = function (string $groupe, string $titre): string {
                 <?php foreach ($piecesDash['pieces'] as $pc): ?>
                     <tr class="row-link<?= $dash_action(piece_en_retard($pc)) ?>" tabindex="0" role="link"
                         data-href="?p=piece&id=<?= (int) $pc['id'] ?>&depuis=dashboard">
-                        <td class="small"><?= $pc['date_echeance'] !== '' ? e(date('d.m.Y', strtotime((string) $pc['date_echeance']))) : '<span class="muted">—</span>' ?></td>
-                        <td class="dash-nom" title="<?= e((string) $pc['libelle']) ?>"><?= e((string) $pc['libelle']) ?></td>
+                        <?= $dashIdent((string) $pc['libelle'],
+                            $pc['date_echeance'] !== '' ? 'échéance ' . e(date('d.m.Y', strtotime((string) $pc['date_echeance']))) : 'sans échéance') ?>
                         <td class="num strong"><?= chf(abs((float) $pc['montant'])) ?></td>
                     </tr>
                 <?php endforeach; ?>
@@ -289,7 +301,7 @@ $dashTitre = function (string $groupe, string $titre): string {
                       // l'URL sans leur marqueur et retombent sur la session
                       // (docs/UI.md § 9). Sans lui, le compte annoncé ici et la
                       // liste ouverte ne porteraient pas sur les mêmes lignes. ?>
-                <?= $dash_reste($piecesDash['nb'] - count($piecesDash['pieces']), 3,
+                <?= $dash_reste($piecesDash['nb'] - count($piecesDash['pieces']), 2,
                         lien_liste_filtree('pieces', ['etat' => ['a_payer'], 'type' => [], 'annee' => []])) ?>
                 </tbody>
             </table>
@@ -331,31 +343,24 @@ $dashTitre = function (string $groupe, string $titre): string {
                       // précédent et d'avant, si (echeance_etat, route_tableau_bord()). ?>
                 <?php foreach ($aPayerVisibles as $f): ?>
                     <tr class="row-link<?= $dash_action(($f['echeance_etat'] ?? '') !== '') ?>" tabindex="0" role="link" data-href="?p=fiche&id=<?= (int) $f['id'] ?>&depuis=dashboard">
-                        <?php // Le mois ne se coupe pas en deux : c'est le nom, juste
-                              // à côté, qui absorbe le manque de place (il se tronque
-                              // avec des points de suite, lui). ?>
-                        <td class="small nowrap"><?= e(mois_nom((int) $f['mois'])) ?> <?= (int) $f['annee'] ?></td>
                         <?php // La pastille devant le nom, comme dans la liste des
                               // fiches : elle vient de l'employé (couleur ou photo),
                               // pas de la fiche — qui fige ses montants, pas
-                              // l'apparence de la personne. ?>
-                        <?php // Le nom se tronque (.dash-nom) : le title le rend entier au survol. ?>
-                        <td class="dash-nom" title="<?= e($f['employe_nom']) ?>"><?= avatar_initiales(
-                            (string) $f['employe_nom'],
-                            (string) ($f['avatar_couleur'] ?? ''),
-                            (string) ($f['avatar_photo'] ?? '')
-                        ) ?><?= e($f['employe_nom']) ?></td>
+                              // l'apparence de la personne. Le mois, sous le nom. ?>
+                        <?= $dashIdent((string) $f['employe_nom'],
+                            e(mois_nom((int) $f['mois'])) . ' ' . (int) $f['annee'],
+                            avatar_initiales((string) $f['employe_nom'], (string) ($f['avatar_couleur'] ?? ''), (string) ($f['avatar_photo'] ?? ''))) ?>
                         <td class="num strong net-apayer"><?= chf((float) $f['salaire_net']) ?></td>
                     </tr>
                 <?php endforeach; ?>
-                <?= $dash_reste(count($aPayer) - count($aPayerVisibles), 3, $aPayerLien) ?>
+                <?= $dash_reste(count($aPayer) - count($aPayerVisibles), 2, $aPayerLien) ?>
                 </tbody>
                 <tfoot>
                     <?php // Le total porte sur TOUTES les fiches, pas sur les seules
                           // lignes visibles. Il n'a plus à le préciser : la ligne
                           // « et X autres » juste au-dessus rend l'écart lisible. ?>
                     <tr class="total-row">
-                        <td colspan="2"><strong>Total à verser (net)</strong></td>
+                        <td><strong>Total à verser (net)</strong></td>
                         <?php // Total à l'encre, pas en ambre : l'ambre signale ce qui
                               // attend une action, or un total n'est pas une alerte —
                               // les lignes au-dessus, elles, la portent déjà. ?>
@@ -424,15 +429,17 @@ $dashTitre = function (string $groupe, string $titre): string {
                 <?php foreach ($facturesVisibles as $fac): $cl = $factEtat($fac); ?>
                     <tr class="row-link<?= $dash_action($cl === ' facture-retard-long') ?>" tabindex="0" role="link" data-href="?p=facture&id=<?= (int) $fac['id'] ?>&depuis=dashboard"
                         title="<?= e(facturation_statut_effectif($fac) === 'en_retard' ? 'Échéance dépassée' : 'Émise, pas encore échue') ?>">
-                        <td class="small<?= $cl ?>"><?= $fac['date_echeance'] !== '' ? e(date('d.m.Y', strtotime($fac['date_echeance']))) : '—' ?></td>
-                        <td class="dash-nom" title="<?= e($fac['structure_nom']) ?>"><?= e($fac['structure_nom']) ?></td>
+                        <?php // L'échéance, sous le nom, garde la couleur de son retard. ?>
+                        <?= $dashIdent((string) $fac['structure_nom'],
+                            $fac['date_echeance'] !== '' ? 'échéance ' . e(date('d.m.Y', strtotime($fac['date_echeance']))) : 'sans échéance',
+                            '', $cl) ?>
                         <td class="num strong<?= $cl ?>"><?= chf((float) $fac['montant_total']) ?></td>
                     </tr>
                 <?php endforeach; ?>
-                <?= $dash_reste(count($facturesEmises) - count($facturesVisibles), 3, $facturesLien) ?>
+                <?= $dash_reste(count($facturesEmises) - count($facturesVisibles), 2, $facturesLien) ?>
                 </tbody>
                 <tfoot>
-                    <tr class="total-row"><td><strong>Total</strong></td><td></td><td class="num strong"><?= chf($totEmises) ?></td></tr>
+                    <tr class="total-row"><td><strong>Total</strong></td><td class="num strong"><?= chf($totEmises) ?></td></tr>
                 </tfoot>
             </table>
             <?php endif; ?>
@@ -591,6 +598,10 @@ $dashTitre = function (string $groupe, string $titre): string {
       // (.side-recherche, views/layout.php) : la garder ici en aurait fait deux,
       // dont l'une n'était atteignable qu'en rentrant à l'accueil. Il ne reste
       // donc de cette ligne que ce qu'on vient CRÉER depuis l'accueil. ?>
+<?php // Le titre de la page pour qui ne la VOIT pas : un lecteur d'écran
+      // navigue par titres, et l'accueil n'en avait aucun de niveau 1. À
+      // l'écran, le rail et la barre disent déjà où l'on est. ?>
+<h1 class="sr-only">Tableau de bord</h1>
 <div class="page-head page-head-dash">
     <?php
     // Le « + » : ce qu'on vient créer depuis l'accueil. Chaque entrée n'y figure
@@ -696,19 +707,28 @@ $dashTitre = function (string $groupe, string $titre): string {
     <?= pieces_menu_nouvelle_html(
         // Plein comme le « + » d'à côté : déposer un justificatif est une
         // action du même ordre que créer, pas un réglage de l'écran.
-        ['icone' => 'paperclip', 'libelle' => '', 'titre' => 'Déposer une pièce comptable…'],
+        ['icone' => 'paperclip', 'libelle' => 'Déposer une pièce', 'titre' => 'Déposer une pièce comptable…'],
         ['depuis' => 'dashboard', 'classe' => 'dash-pieces']
     ) ?>
     <?php endif; ?>
     <?php // Le « + » à droite de tout : c'est le geste qui AJOUTE, pas celui qui
-          // range l'écran, et c'est lui qu'on vient chercher le plus souvent. ?>
+          // range l'écran, et c'est lui qu'on vient chercher le plus souvent.
+          // Les deux actions portent leur libellé (masqué sur téléphone, comme
+          // tout .head-actions .lbl) : trois ronds côte à côte ne se lisaient
+          // pas. « Organiser les cartes » reste une icône : il range l'écran. ?>
     <?= menu_deroulant_html(
-        ['icone' => 'plus', 'plein' => true, 'titre' => 'Créer…'],
+        ['icone' => 'plus', 'libelle' => 'Créer', 'plein' => true, 'titre' => 'Créer…'],
         $dashCreer,
         ['classe' => 'dash-creer']
     ) ?>
 </div>
 
+
+<?php if (!empty($erreursNouvelles)): ?>
+    <p class="warn"><?= icon('info') ?>
+        <?= (int) $erreursNouvelles === 1 ? 'Une erreur du serveur n\'a pas encore été vue.' : (int) $erreursNouvelles . ' erreurs du serveur n\'ont pas encore été vues.' ?>
+        <a href="?p=journal#erreurs">Voir le journal</a></p>
+<?php endif; ?>
 
 <?php if (!empty($rappelSauvegarde)): ?>
     <p class="warn"><?= icon('info') ?>
@@ -716,7 +736,7 @@ $dashTitre = function (string $groupe, string $titre): string {
             ? 'Aucun téléchargement de sauvegarde n\'est enregistré.'
             : 'Dernière sauvegarde téléchargée il y a ' . (int) $rappelSauvegarde['jours'] . ' jours.' ?>
         Elle est la seule copie des données qui quitte le serveur.
-        <a href="?p=export">Télécharger une sauvegarde</a></p>
+        <a href="?p=sauvegardes">Télécharger une sauvegarde</a></p>
 <?php endif; ?>
 
 <?php if (!$cartes): ?>

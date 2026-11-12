@@ -2,7 +2,7 @@
 // Garde-fou de l'échelle typographique. Lancement : php tests/tailles_texte_test.php
 //
 // Huit tokens portent les tailles de texte de toute l'application
-// (--fs-tiny … --fs-geant, assets/app.css), et AUCUNE règle n'écrit plus un
+// (--fs-tiny … --fs-geant, assets/css/), et AUCUNE règle n'écrit plus un
 // nombre de pixels. La convention n'était écrite NULLE PART : le code la
 // disait 206 fois contre 32, et c'est dans ces 32 que la dette s'était logée.
 //
@@ -37,7 +37,11 @@ function check(string $label, $attendu, $obtenu): void
     printf("  FAIL  %s\n        attendu %s\n        obtenu  %s\n", $label, var_export($attendu, true), var_export($obtenu, true));
 }
 
-$css = (string) file_get_contents($racine . '/assets/app.css');
+require_once __DIR__ . '/../lib/config.php';
+require_once __DIR__ . '/../lib/helpers.php';
+// La feuille entière, ses fichiers mis bout à bout dans l'ordre de la cascade
+// (CSS_FICHIERS, lib/helpers.php).
+$css = css_source();
 
 // Les tokens tels que la feuille les déclare, pas tels qu'on les croit.
 preg_match_all('/--fs-([a-z]+)\s*:\s*([0-9.]+)px/', $css, $m);

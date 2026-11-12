@@ -194,7 +194,7 @@ $nbCols = 9 + ($stMontreEvenements ? 1 : 0) - ($stCheck ? 0 : 1)
               // En mini-cartes (mobile), l'icône de statut est masquée et c'est la
               // BORDURE de la case à cocher qui porte la couleur ; en vue tableau,
               // c'est lui qui choisit le tracé de l'icône de statut (masque CSS,
-              // voir assets/app.css) — d'où l'absence de <svg> dans la cellule.
+              // voir assets/css/) — d'où l'absence de <svg> dans la cellule.
               //
               // Pas de data-href : il recopiait à l'octet près le href du lien du
               // nom, 56 octets par ligne (15,9 Ko compressés sur 2959 lignes) pour

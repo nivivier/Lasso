@@ -1,0 +1,489 @@
+/* =================== Buttons =================== */
+button, .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 7px; font: inherit; font-size: var(--fs-basic); cursor: pointer;
+    background: var(--highlight); color: #fff; border: var(--btn-border-w) solid var(--highlight);
+    /* Capsule : un bouton est le seul objet de l'écran qu'on ENFONCE, et la
+       forme le dit mieux qu'une ombre. Le rayon est volontairement supérieur à
+       toute hauteur de bouton (999px), donc il suit --btn-padding-v sans avoir
+       à être recalculé. */
+    padding: var(--btn-padding-v) 18px; border-radius: 999px; font-weight: 600;
+    transition: background .15s, border-color .15s, transform .05s; box-shadow: var(--shadow-sm);
+}
+button:hover, .btn:hover { background: var(--highlight-d); border-color: var(--highlight-d); text-decoration: none; }
+button:active, .btn:active { transform: translateY(1px); }
+/* Le secondaire est un CONTOUR D'ENCRE, pas une boîte grise : à côté d'un
+   primaire en couleur pleine, un fond blanc bordé de gris se lit comme un champ
+   désactivé. Même graisse que le primaire — c'est une action, pas une note. La
+   largeur de bordure ne change pas : à 2px, le bouton grandirait d'un pixel et
+   ne s'alignerait plus sur les champs voisins (--action-height). */
+.btn.ghost { background: transparent; color: var(--ink); border-color: var(--ink); font-weight: 600; box-shadow: none; }
+.btn.ghost:hover { background: color-mix(in srgb, var(--ink) 8%, transparent); border-color: var(--ink); color: var(--ink); }
+.btn.danger { background: var(--danger); border-color: var(--danger); }
+.btn.danger:hover { background: var(--danger-d); border-color: var(--danger-d); }
+/* Un bouton d'icône seule n'a pas de ligne de texte : sa hauteur ne vient que
+   de l'icône (17px) et du padding, soit près de 6px de moins qu'un bouton à
+   libellé (interligne 20.8px) posé juste à côté — « Contacter » et « Modifier »
+   dans la même barre d'actions. --action-height, qui EST la boîte de
+   button/.btn, lui redonne cette hauteur sans toucher au dessin de l'icône.
+   Padding vertical nul, et non 9px : c'est la hauteur minimale qui commande,
+   sinon le padding s'ajoute à l'icône et dépasse la cible de quelques dixièmes
+   — l'égalité doit être exacte, ces boutons se touchent. */
+.btn.icon-only { padding: 0 11px; min-height: var(--action-height); }
+.btn.icon-only .ico { width: 17px; height: 17px; }
+.btn-sm { padding: var(--btn-sm-padding-v) 8px; font-size: var(--fs-basic); }
+/* Un bouton d'icône déclaré petit doit l'être : .btn.icon-only l'emporte sur
+   .btn-sm par spécificité, si bien qu'un « btn-sm icon-only » gardait la taille
+   normale — une corbeille ou une croix plus hautes que l'« Enregistrer » à côté
+   d'elles, dans la même ligne de liste. Le carré de 6 px donne exactement la
+   hauteur du petit bouton à libellé (icône 17 px ≈ interligne 21 px). */
+.btn.icon-only.btn-sm { padding: 0 6px; min-height: var(--action-height-sm); }
+/* .btn-compact-break (?p=compta_ecritures, bouton « Écriture manuelle ») :
+   <br> caché sur bureau (assez de place pour une seule ligne) — voir plus
+   bas, en mobile, sa réactivation forcée. display:none retire le saut de
+   ligne comme s'il n'existait pas dans le texte (pas seulement invisible). */
+.btn-compact-break { display: none; }
+.add-row { display: flex; gap: 14px; align-items: flex-end; flex-wrap: wrap; }
+.add-row label { flex: 1; min-width: 160px; margin-bottom: 0; }
+.add-row button { white-space: nowrap; }
+
+/* Lignes de prestation (fiche) */
+.ligne-row { display: flex; gap: 10px; align-items: center; margin-bottom: 9px; }
+.ligne-row .l-unite { flex: 0 0 170px; width: auto; }
+.ligne-row .l-qte { flex: 0 0 90px; width: auto; }
+.ligne-row .l-taux-choix { flex: 0 0 180px; width: auto; }
+.ligne-row .l-taux-manuel { flex: 0 0 90px; width: auto; }
+.ligne-row .l-sub { flex: 1; font-size: var(--fs-basic); min-width: 110px; }
+.ligne-row .l-del { flex: 0 0 auto; padding: 8px 12px; line-height: 1; }
+/* Prestations (fiche de salaire) : plus de colonnes sur la ligne (axe +
+   événement toujours visibles) → chaque champ ne garde que la largeur dont
+   il a vraiment besoin. */
+.ligne-row-presta .l-unite,
+.ligne-row-presta .l-taux-choix,
+.ligne-row-presta .l-axe { min-width: 0; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
+.ligne-row-presta .l-taux-choix,
+.ligne-row-presta .l-axe,
+.ligne-row-presta .l-evenement,
+.evenement-employes .epf-col-sm { font-size: var(--fs-small); }
+/* Quantité : largeur doublée et fixe, y compris en mobile (spécificité 3 classes
+   pour l'emporter sur la règle mobile générique .ligne-row .l-qte). */
+.ligne-row.ligne-row-presta .l-qte { flex: 0 0 60px; width: auto; min-width: 0; }
+/* Les autres champs ne gardent qu'une largeur minimale : ils s'agrandissent
+   si la ligne a de la place, sans jamais dépasser la largeur de la carte
+   (flex-grow réparti dans l'espace restant du conteneur, pas au-delà). */
+.ligne-row-presta .l-unite { flex: 1 1 130px; }
+.ligne-row-presta .l-taux-choix { flex: 1 1 90px; }
+.ligne-row-presta .l-taux-manuel { flex: 1 1 90px; width: auto; }
+.ligne-row-presta .l-axe { flex: 1 1 90px; width: auto; }
+.ligne-row-presta .l-evenement { flex: 1 1 200px; width: auto; max-width: 200px; }
+.lignes-foot { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 4px; }
+.total-h { font-size: var(--fs-basic); color: var(--muted); }
+.total-h strong { color: var(--brand); font-size: var(--fs-large); }
+
+/* Carte « Employés » de la fiche événement : une colonne par donnée (fiche,
+   axe, durée, taux, total) — même ligne partagée via l'attribut form="…" sur
+   les champs, qui vivent dans des <td> séparés. Dropdowns étroits pour éviter
+   tout débordement horizontal une fois la ligne en mode édition. */
+.evenement-employes td { vertical-align: middle; }
+.evenement-employes .fiche-select-sm { width: 150px; }
+.evenement-employes .l-axe { width: 110px; }
+/* Le flex vit sur un <div> interne, jamais sur le <td> lui-même : sinon
+   display:flex écrase display:table-cell et casse vertical-align du <td>. */
+/* Toutes les colonnes SAUF « Durée et taux horaire » se serrent sur leur
+   contenu : un tableau en disposition automatique répartit sinon la largeur
+   disponible entre toutes, si bien que « Employé », « Axe » ou « Total brut »
+   prenaient 160 à 210px pour un nom et deux menus, pendant que les quatre
+   champs de la durée s'entassaient sur deux lignes dans 150px.
+   width:1% + nowrap est la façon canonique de dire « juste ton contenu » : la
+   colonne restante absorbe tout le reste. */
+.evenement-employes .epf-col-serre { width: 1%; white-space: nowrap; }
+/* Les quatre champs de la prestation tiennent sur UNE ligne, à une largeur où
+   ils se lisent : l'unité et le barème portent des libellés (« Service »,
+   « Base — 30 »), pas des nombres. Ils ne passent à la ligne que si la carte
+   n'a VRAIMENT pas la largeur — en nowrap, une ligne ouverte sous 1400px
+   débordait de la carte de 157px, boutons d'enregistrement compris : le pli
+   coûte une ligne, le débordement coûtait le bouton. */
+.evenement-employes .epf-duree { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.evenement-employes .epf-duree select,
+.evenement-employes .epf-duree input { min-width: 0; } /* sinon un <input> flex ne rétrécit jamais sous sa taille de contenu */
+.evenement-employes .l-unite { flex: 1 1 140px; width: auto; }
+.evenement-employes .l-qte { flex: 0 0 56px; width: 56px; }
+.evenement-employes .l-taux-choix { flex: 1 1 130px; width: auto; }
+.evenement-employes .l-taux-manuel { flex: 0 0 84px; width: 84px; }
+.epf-actions-cell { width: 1%; white-space: nowrap; }
+.epf-actions { display: flex; gap: 6px; align-items: center; justify-content: flex-end; }
+
+/* =================== Messages =================== */
+.err  { background: var(--danger-tint); color: var(--danger); padding: 11px 15px; border-radius: var(--radius-sm); margin-bottom: 16px; font-size: var(--fs-basic); }
+.ok   { background: var(--teal-tint); color: var(--ok); padding: 11px 15px; border-radius: var(--radius-sm); margin-bottom: 16px; font-size: var(--fs-basic); }
+.warn { background: var(--amber-tint); color: var(--amber); padding: 11px 15px; border-radius: var(--radius-sm); margin-bottom: 16px; font-size: var(--fs-basic); }
+
+/* Toast flottant (messages de succès/erreur/avertissement) — disparaît après
+   3 s via JS. Bordure en currentColor : reprend la couleur de .ok/.err/.warn
+   combinée sur le même élément, plutôt qu'une couleur fixe. */
+.flash {
+    position: fixed; top: 18px; left: 50%; transform: translateX(-50%);
+    z-index: 200; margin: 0; box-shadow: var(--shadow);
+    border: 1px solid currentColor; animation: flash-in .22s ease-out;
+}
+.flash.flash-out { opacity: 0; transition: opacity .4s ease; }
+@keyframes flash-in { from { opacity: 0; transform: translateX(-50%) translateY(-10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+@media print { .flash { display: none; } }
+
+/* Bandeau « X ligne(s) modifiée(s) — Annuler » après une modification groupée
+   (voir _bulk_undo_flash.php) — même esprit visuel que .flash, mais reste
+   affiché 10 s (géré en JS, app.js) et porte un bouton interactif. */
+.bulk-undo-flash {
+    position: fixed; top: 18px; left: 50%; transform: translateX(-50%);
+    z-index: 200; display: flex; align-items: center; gap: 14px;
+    background: var(--teal-tint); color: var(--ok); border: 1px solid var(--teal);
+    padding: 10px 16px; border-radius: var(--radius-sm); box-shadow: var(--shadow);
+    font-size: var(--fs-basic); animation: flash-in .22s ease-out;
+}
+.bulk-undo-flash .link-btn {
+    background: none; border: none; padding: 0; color: var(--ok); font-weight: 700;
+    text-decoration: underline; cursor: pointer; font-size: var(--fs-basic);
+}
+@media print { .bulk-undo-flash { display: none; } }
+.muted { color: var(--muted); }
+.small { font-size: var(--fs-small); }
+.tiny { font-size: var(--fs-tiny); }
+.clean-list { list-style: none; margin: 0; padding: 0; }
+/* Dans une carte, une liste de mini-lignes suit la règle des tableaux de carte
+   (voir « .card > table.list » plus haut) : elle déborde du retrait de 26px
+   pour que ses séparateurs aillent de bord à bord, et ce sont les lignes
+   elles-mêmes qui reprennent ce retrait. Un filet arrêté à 26px des bords
+   flotte dans le vide et fait lire deux cadres emboîtés là où il n'y en a
+   qu'un. Les mêmes mini-lignes sur téléphone sont dans une cellule de tableau,
+   pas dans une carte : elles ne sont pas touchées. */
+.card .clean-list { margin-left: calc(-1 * var(--card-pad)); margin-right: calc(-1 * var(--card-pad)); }
+.card .clean-list > .evt-mini { padding-left: var(--card-pad); padding-right: var(--card-pad); }
+/* Cellule de la liste des événements qui porte la mini-ligne : elle n'existe
+   que sur téléphone, où la liste passe en cartes (règles .cartes-evenements). */
+.col-mini { display: none; }
+/* La mini-ligne d'un événement — evenement_mini_html() (lib/evenements.php).
+   Une seule définition pour les trois écrans qui en montrent une liste courte :
+   carte « Événements » d'une structure, carte « Prochains événements » du
+   tableau de bord, liste des événements sur téléphone. */
+.evt-mini { display: flex; align-items: center; gap: 10px; }
+.evt-mini + .evt-mini { border-top: 1px solid var(--line); }
+.evt-mini-lien {
+    flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 12px;
+    padding: 9px 0; color: inherit; text-decoration: none;
+}
+a.evt-mini-lien:hover { text-decoration: none; color: inherit; }
+/* La date en page d'agenda : jour, mois, année — plus haute que large, pour se
+   lire comme une date et non comme une suite de chiffres. */
+.evt-date {
+    flex: 0 0 auto; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; width: 40px; padding: 5px 3px 4px;
+    border-radius: var(--radius-sm); background: var(--primary-tint);
+    /* Un filet, parce que les cartes du tableau de bord sont translucides : sur
+       leur fond, la teinte pâle de la pastille se confondait avec la carte. */
+    border: 1px solid var(--line);
+    line-height: 1.05; text-align: center;
+}
+.evt-date-j { font-size: var(--fs-large); font-weight: 700; color: var(--primary-d); font-variant-numeric: tabular-nums; }
+.evt-date-m { font-size: var(--fs-tiny); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--primary-d); }
+.evt-date-a { font-size: var(--fs-tiny); font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
+.evt-corps { flex: 1 1 auto; min-width: 0; }
+/* L'artiste nomme, la ville situe : dans une liste de dates, c'est la ville
+   qu'on cherche des yeux — elle passe donc au-dessus du lot, et le nom du
+   projet descend d'un cran. */
+.evt-titre {
+    display: block; font-size: var(--fs-small); font-weight: 600; line-height: 1.35; color: var(--muted);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.evt-second { font-weight: 500; }
+.evt-sep { color: var(--muted); font-weight: 400; }
+.evt-ville {
+    display: block; font-size: var(--fs-large); line-height: 1.3;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.evt-ville .tiny { font-size: var(--fs-tiny); }
+.evt-salle, .evt-org {
+    display: block; font-size: var(--fs-small); line-height: 1.35; color: var(--muted);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.evt-mini-annule :is(.evt-titre, .evt-ville, .evt-salle, .evt-org) { text-decoration: line-through; }
+/* Le statut à droite, l'icône au-dessus du mot : la colonne reste étroite quel
+   que soit le libellé, et la couleur ne porte jamais le sens toute seule. La
+   largeur commune est calée sur le plus long des trois libellés (« Confirmé ») :
+   sans elle, chaque ligne centrerait son icône sur son propre mot et la colonne
+   partirait en zigzag. */
+.evt-statut {
+    flex: 0 0 auto; display: inline-flex; flex-direction: column; align-items: center;
+    gap: 1px; white-space: nowrap; font-weight: 600; min-width: 56px;
+}
+.evt-statut .ico { width: 17px; height: 17px; }
+.evt-statut-txt { font-size: var(--fs-tiny); font-weight: 500; }
+.evt-statut-ok { color: var(--teal-d); }
+.evt-statut-warn { color: var(--amber); }
+.evt-statut-muted { color: var(--muted); }
+.text-strike { text-decoration: line-through; }
+
+/* Utilitaires d'espacement / disposition (remplacent les styles inline) */
+.mt-0 { margin-top: 0; }
+.mt-18 { margin-top: 18px; }
+.mt-22 { margin-top: 22px; }
+.mb-0 { margin-bottom: 0; }
+
+/* ?p=utilisateurs — l'identité d'un compte en tête de ligne, et son édition dans une
+   ligne dépliée par le crayon (aucun champ modifiable tant qu'elle est fermée,
+   comme sur les axes analytiques ou les lignes du décompte). */
+.compte-identite { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.compte-nom { font-weight: 600; }
+/* Les champs d'identité du panneau d'édition : intitulé en petites capitales
+   au-dessus de son champ, comme dans un formulaire ordinaire. */
+.compte-edit-identite label,
+.compte-edit-identite .compte-edit-personne { margin-bottom: 12px; display: flex; flex-direction: column; gap: 3px; }
+.compte-edit-identite label,
+.compte-edit-identite .lbl-champ { font-size: var(--fs-tiny); color: var(--muted); font-weight: 700; }
+.compte-edit-identite .lbl-champ { margin-bottom: 0; }
+.compte-edit-identite input { width: 100%; min-width: 0; }
+/* Ligne de création d'un compte, dépliée par le bouton de la carte. Elle vit
+   dans le tableau, hors d'un .form : ses champs n'héritent donc d'aucune mise
+   en forme et la portent eux-mêmes. Une rangée qui s'enroule — sur téléphone,
+   chaque champ prend la largeur. */
+.compte-ajout-form { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+.compte-ajout-form label {
+    display: flex; flex-direction: column; gap: 4px; margin: 0; flex: 1 1 200px; min-width: 0;
+    font-size: var(--fs-small); font-weight: 600; color: var(--muted);
+}
+.compte-ajout-form input { width: 100%; }
+.compte-ajout-form > p { flex: 1 1 100%; margin: 0; }
+
+/* ?p=utilisateurs sur téléphone : onze colonnes ne tiennent pas, et les réduire les
+   rend illisibles. Le tableau se relit alors en BLOCS — un compte, un bloc —,
+   l'en-tête disparaît et chaque cellule porte son intitulé (data-label, posé
+   dans views/_compte_ligne.php). Même contenu, même balisage : c'est
+   l'affichage qui change de forme, pas la page. */
+@media (max-width: 760px) {
+    .perm-table, .perm-table tbody, .perm-table tr, .perm-table td { display: block; width: auto; }
+    /* Les largeurs fixes des trois dernières colonnes n'ont plus d'objet une
+       fois les cellules empilées — et elles sont plus spécifiques que la règle
+       ci-dessus, d'où ce rappel. */
+    .perm-table td:nth-last-child(1), .perm-table td:nth-last-child(2),
+    .perm-table td:nth-last-child(3), .perm-table td:first-child { width: auto; }
+    .perm-table thead { display: none; }
+    .perm-table { table-layout: auto; }
+    .perm-table tr.compte-row, .perm-table tr.compte-edit-row {
+        border: 1px solid var(--line); border-radius: var(--radius-sm);
+        padding: 12px 14px; margin-bottom: 10px; position: relative;
+    }
+    /* La ligne d'édition prolonge celle qu'elle remplace : elles ne s'affichent
+       jamais ensemble, d'où la même boîte. */
+    .perm-table > tbody > tr.compte-row > td, .perm-table > tbody > tr.compte-edit-row > td {
+        border: 0; padding: 4px 0; white-space: normal;
+    }
+    /* Identité en tête du bloc, actions posées en face d'elle. */
+    .perm-table > tbody > tr.compte-row > td:first-child { padding-right: 46px; font-size: var(--fs-large); }
+    /* ⚠️ « > tbody > tr.compte-row > » et non « .perm-table td.actions » : le
+       panneau d'édition contient un SECOND tableau (.perm-liste), dont chaque
+       ligne porte aussi un td.actions. Sans cette borne, les trois boutons de
+       droits de la première ligne partaient se poser en absolu sur le champ
+       e-mail. Vu à l'écran. */
+    .perm-table > tbody > tr.compte-row > td.actions { position: absolute; top: 10px; right: 12px; padding: 0; }
+    /* Le module et son niveau l'un sous l'autre : côte à côte, les trois
+       niveaux en toutes lettres ne tiennent pas dans la largeur d'un
+       téléphone. */
+    .perm-liste td { display: block; width: auto; padding: 6px 0; }
+    .perm-liste tr { display: block; border-top: 1px solid var(--line); padding: 6px 0; }
+    .perm-liste td.actions { text-align: left; }
+    .perm-btn { padding: 0 9px; }
+    .perm-table td[data-label="Droits"]::before,
+    .perm-table td[data-label="Dernière connexion"]::before,
+    .perm-table td[data-label="Créé le"]::before {
+        content: attr(data-label) " : "; font-weight: 600;
+    }
+    .compte-edit-cell { padding: 12px 14px 16px; }
+}
+.mb-8 { margin-bottom: 8px; }
+.mb-16 { margin-bottom: 16px; }
+.mt-16 { margin-top: 16px; }
+.mb-22 { margin-bottom: 22px; }
+.mb-24 { margin-bottom: 24px; }
+.mt-10 { margin-top: 10px; }
+.ml-auto { margin-left: auto; }
+.d-inline { display: inline; }
+button:disabled, .btn:disabled, .btn[disabled] { opacity: .5; cursor: not-allowed; }
+button:disabled:hover, .btn:disabled:hover { background: var(--highlight); border-color: var(--highlight); }
+.btn.ghost:disabled:hover { background: var(--card); }
+
+.center { text-align: center; }
+.import-confirm { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.import-confirm form { margin: 0; }
+.mail-sent { display: inline-flex; align-items: center; gap: 4px; color: var(--teal-d); font-weight: 600; font-size: var(--fs-basic); }
+.mail-sent .ico { width: 16px; height: 16px; }
+
+/* Icône de visibilité (liste événements) — voir evenement_icone_visibilite(). */
+.visibilite-icone { display: inline-flex; }
+.visibilite-icone .ico { width: 18px; height: 18px; }
+.visibilite-icone.visibilite-public { color: var(--ink); }
+.visibilite-icone.visibilite-prive { color: var(--muted); }
+.visibilite-icone.visibilite-non-repertorie { color: var(--muted); opacity: .35; }
+
+/* Icône « production externe » (handshake) devant le nombre de salariés. */
+.salaries-cell .ico { width: 15px; height: 15px; color: var(--muted); vertical-align: middle; margin-right: 5px; }
+
+/* =================== Filters =================== */
+/* align-items: flex-end (pas center) : le champ de recherche (.search-label,
+   sans texte de label visible) doit rester aligné avec les <select> des
+   autres filtres, qui ont eux un texte de label au-dessus — seul le bas des
+   colonnes flex (donc les champs eux-mêmes) coïncide alors. */
+.filters { display: flex; gap: 4px 10px; align-items: flex-end; margin-bottom: 22px; flex-wrap: wrap; background: var(--card); padding: 16px 26px; border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-sm); }
+.filters label { margin-bottom: 0; }
+/* Même boîte (padding/font-size) que .search-label input[type=search] ci-dessous,
+   pour une hauteur identique — sinon les <select> (padding 10px, 14px de
+   base) dépassent le champ de recherche. */
+.filters select { padding: 10px 28px 10px 10px; font-size: var(--fs-basic); }
+/* Auto-suffisant (pas besoin d'un ancêtre .filters/.form) : utilisé aussi tel
+   quel dans un .section-head (ex. compta_analyse_axe.php). flex-grow:1 :
+   le champ occupe tout l'espace restant de la toolbar (ex. quand
+   .head-actions est poussé à droite par margin-left:auto et laisse un grand
+   vide) plutôt que de rester figé à 200px. (Le line-height hérité de
+   ".filters label" à travers ce <label>, qui écrasait la hauteur de
+   l'input search à l'intérieur, est corrigé directement sur
+   input[type="search"] — voir plus haut — et pas ici : même essayé ici
+   d'abord, ça n'avait aucun effet, ".filters label" ayant une spécificité
+   plus élevée.) */
+.search-label { display: flex; flex-direction: column; gap: 6px; font-size: var(--fs-basic); font-weight: 500; color: var(--muted); flex: 1 1 110px; }
+/* L'exception "recherche compacte + <form> figé" pour ?p=structures /
+   ?p=evenements en vue carte vit désormais sur .toolbar-carte (classe
+   explicite posée par la vue), pas ici — voir .toolbar-carte, plus haut dans
+   ce fichier. */
+/* Filtres secondaires repliés (?p=structures : Jauge/Mois du lieu) —
+   <details> natif. .filters-more-body en position:fixed (repositionné par JS
+   à l'ouverture, voir assets/app.js) plutôt que position:absolute : un essai
+   absolute (ancré sur .filters, puis sur .toolbar) faisait grandir la
+   largeur intrinsèque de .filters (display:flex, width:auto) jusqu'à celle
+   de .filters-more-body (max-width 640px) MALGRÉ l'absolute — un descendant
+   absolument positionné ne devrait normalement pas peser sur la taille de
+   ses ancêtres, mais ça a été constaté ici (probablement le calcul de
+   « hypothetical main size » qui sert à décider le wrap flex, avant que
+   l'exclusion de l'absolute ne s'applique) : .toolbar (flex-wrap:wrap)
+   passait alors à la ligne, poussant .head-actions plus bas avec un grand
+   vide au-dessus. position:fixed échappe complètement à ce calcul (aucun
+   ancêtre n'en dépend, cf. même technique sur .col-filter-menu). */
+.filters-more { margin-left: auto; flex-shrink: 0; align-self: flex-end; }
+/* Le déclencheur (<summary>) reprend l'aspect d'un .btn.ghost.btn-sm, sans
+   dépendre de ces classes sur la balise (list-style/marker natifs à retirer
+   en plus). */
+/* height:var(--action-height) (voir :root, calque button/.btn) : sans elle,
+   le bouton « Plus de filtres » (icône seule, donc pas de ligne de texte pour
+   pousser sa hauteur) restait plus bas (37px) que les autres boutons d'action
+   de la toolbar. box-sizing:border-box (règle générale, tout en haut du
+   fichier) : la hauteur totale inclut déjà le padding et la bordure, donc le
+   padding ci-dessous (9px 11px, purement pour l'espace autour de l'icône
+   17px) n'a pas besoin de correspondre exactement à --btn-padding-v — align-
+   items:center recentre le contenu dans la hauteur imposée quoi qu'il arrive. */
+.filters-more > summary {
+    cursor: pointer; display: inline-flex; align-items: center; justify-content: center; color: var(--ink);
+    list-style: none; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-sm);
+    padding: 9px 11px; height: var(--action-height); transition: background .15s, border-color .15s;
+}
+.filters-more > summary:hover { background: var(--primary-tint); border-color: var(--primary-tint); color: var(--primary-d); }
+/* Sélecteur d'enfant direct sur les cinq règles ci-dessus et ci-dessous : le
+   panneau « Filtres » de ?p=structures contient lui-même des <details> de
+   filtre, dont un sélecteur descendant teintait les boutons — tous paraissaient
+   actifs.
+   Panneau ouvert : le déclencheur prend l'aspect « actif » des boutons segmentés
+   voisins (Liste / Carte), pour qu'on voie d'un coup d'œil que des filtres
+   supplémentaires sont en jeu — le panneau lui-même s'ouvre en position fixed,
+   donc rien d'autre ne le signale une fois la page défilée. */
+.filters-more[open] > summary {
+    background: var(--highlight-tint);
+    border-color: var(--highlight-tint);
+    color: var(--highlight-d);
+}
+.filters-more > summary::-webkit-details-marker { display: none; }
+.filters-more > summary .ico { width: 17px; height: 17px; }
+/* Sans cadre : le panneau se pose dans l'espace réservé sous la barre d'outils
+   (margin-bottom posé en JS), donc il ne recouvre rien et n'a pas besoin de se
+   distinguer d'un fond. Il portait auparavant fond/bordure/ombre/padding, ce qui
+   en faisait une carte flottante inutile au-dessus d'une zone vide.
+   L'exception est la vue carte, juste en dessous. */
+.filters-more-body {
+    display: none; position: fixed; top: 0; left: 0; z-index: 20;
+    width: max-content; max-width: min(640px, calc(100vw - 40px));
+    gap: 16px; flex-wrap: wrap;
+}
+/* Vue carte : là, le panneau s'ouvre VRAIMENT par-dessus quelque chose — la
+   carte est en position:fixed sur toute la fenêtre, l'espace réservé sous la
+   barre ne la repousse donc pas. Sans fond, les champs se liraient sur les
+   tuiles. Le cadre est conservé pour ce seul cas. */
+.toolbar-carte .filters-more-body {
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+    box-shadow: var(--shadow-sm); padding: 16px;
+}
+.filters-more[open] .filters-more-body { display: flex; }
+.filters-more-body label { margin-bottom: 0; }
+/* Filtres de jauge (?p=lieux) : champs numériques deux fois plus étroits que les
+   autres filtres — une capacité tient sur quelques chiffres. */
+.filters-more-body .jauge-filtre input { width: 5rem; }
+
+/* Pagination des listes longues (fiches, employés, écritures, factures,
+   débiteurs, événements) — voir views/_pagination.php. */
+/* ⚠️ Son air est du REMPLISSAGE, pas une marge : en marge, il tombait entre le
+   tableau et elle — une bande vide que rien ne remplissait, et sur laquelle le
+   fond blanc de la pagination ne s'étendait pas (voir .module-content). En
+   remplissage, elle se pose contre le tableau et porte son espace elle-même.
+   Longhands et non le raccourci : .module-content-inner > .pagination pose
+   déjà ses retraits latéraux, qu'un `padding` les écraserait. */
+/* Le compte et le réglage à gauche, la navigation à droite — et non les trois
+   centrés en bloc. Une pagination centrée fait croire qu'elle est le sujet de
+   la fin de page ; collée aux deux bords, elle est ce qu'elle est : une règle
+   graduée sous la liste. */
+.pagination { display: flex; align-items: center; gap: 10px 16px; justify-content: flex-start; padding-top: 14px; padding-bottom: 14px; flex-wrap: wrap; }
+/* display:contents : la rangée de navigation cesse d'être une boîte et ses
+   trois enfants deviennent des éléments de la pagination elle-même. C'est ce
+   qui permet de poser les NUMÉROS à gauche, à la suite du compte, et de
+   n'envoyer que les deux flèches à droite — sans toucher à l'ordre du
+   balisage (précédent, numéros, suivant), qui est celui qu'attendent le
+   clavier et le lecteur d'écran. Masquer la rangée (JS, listes en mode client)
+   continue de masquer les trois d'un coup. */
+.pagination-nav { display: contents; }
+.pagination-pages { order: 0; }
+.pagination-nav > a, .pagination-nav > button, .pagination-nav > span.btn { order: 1; }
+/* La flèche « précédent » pousse la paire en bout de ligne ; « suivant » se
+   recolle à elle (l'écart de 16px de la rangée ramené à 6 entre les deux). */
+.pagination-nav > :first-child { margin-left: auto; }
+.pagination-nav > :last-child { margin-left: -10px; }   /* l'écart de 16px de la rangée, ramené à 6 entre les deux flèches */
+.pagination-taille { display: flex; }
+.pagination-taille label { display: flex; align-items: center; gap: 8px; margin-bottom: 0; font-size: var(--fs-basic); color: var(--muted); }
+.pagination-taille select { font: inherit; font-size: var(--fs-basic); padding: 5px 26px 5px 12px; border: 2px solid var(--line); border-radius: 999px; background-color: var(--card); background-position: right 8px center; background-size: 12px; cursor: pointer; }
+.pagination-info { font-size: var(--fs-basic); color: var(--muted); }
+/* ⚠️ PAS de display:flex ici : la rangée est en display:contents (voir plus
+   haut), c'est ce qui sort les numéros du groupe des flèches. Une seconde
+   déclaration .pagination-nav { display: flex } vivait ici et annulait la
+   première en silence — elle est la raison pour laquelle les numéros
+   restaient collés aux flèches. */
+.pagination-nav [aria-disabled="true"], .pagination-nav button:disabled { opacity: 1; cursor: default; }
+/* Les deux flèches : des boutons ronds en contour, à la hauteur des boutons
+   d'action — et non les petites pastilles grises d'avant. Celle qui ne mène
+   nulle part garde la place et le dessin, en pâle : une flèche qui disparaît
+   fait sauter l'autre d'un bout à l'autre de la ligne. */
+.pagination-nav > a.btn, .pagination-nav > button.btn, .pagination-nav > span.btn {
+    width: var(--action-height); height: var(--action-height); min-height: 0; padding: 0;
+    border-radius: 999px; border: 2px solid var(--ink); background: transparent; color: var(--ink);
+    box-shadow: none;
+}
+.pagination-nav > a.btn:hover, .pagination-nav > button.btn:hover {
+    background: color-mix(in srgb, var(--ink) 8%, transparent); border-color: var(--ink); color: var(--ink);
+}
+.pagination-nav > [aria-disabled="true"], .pagination-nav > button.btn:disabled {
+    border-color: var(--line); color: var(--muted);
+}
+.pagination-nav .ico { width: 17px; height: 17px; }
+.pagination[data-pg-client] [data-pg-nav][hidden] { display: none; }
+/* Numéros de page cliquables (pagination_pages_affichees(), lib/helpers.php,
+   et son pendant JS pagesAffichees() dans assets/app.js pour le mode client). */
+.pagination-pages { display: flex; align-items: center; gap: 2px; }
+.pagination-page {
+    appearance: none; cursor: pointer; font: inherit; font-size: var(--fs-basic); font-weight: 500; color: var(--muted);
+    background: none; border: none; border-radius: 999px; min-width: 26px; height: 26px; padding: 0 4px;
+    display: inline-flex; align-items: center; justify-content: center; transition: color .12s, background .12s;
+}
+.pagination-page:hover { color: var(--ink); background: var(--surface); text-decoration: none; }
+.pagination-page.on { color: #fff; background: var(--primary); font-weight: 700; cursor: default; }
+.pagination-ellipsis { color: var(--muted); font-size: var(--fs-basic); padding: 0 2px; }
+

@@ -149,6 +149,8 @@ function personne_donnees_vue(int $id): ?array
         'employes'    => $stmtE->fetchAll(),
         'utilisateurs' => $stmtU->fetchAll(),
         'pieces'      => $pieces,
+        // Ce qu'on peut encore lier — rendu seulement pour qui peut écrire.
+        'structuresDispo' => peut_ecrire('carnet') ? personne_structures_dispo($id) : [],
         'ok'          => isset($_GET['ok']),
     ];
 }
@@ -156,6 +158,13 @@ function personne_donnees_vue(int $id): ?array
 function route_personne(): void
 {
     require_login();
+    // Sans identifiant : la fiche en CRÉATION, comme ?p=structure — le bouton
+    // « Nouvelle personne » de la liste y mène. Une personne vierge, sans
+    // rattachement : on la relie ensuite depuis sa fiche.
+    if ((int) ($_GET['id'] ?? 0) === 0) {
+        render('personne', personne_vierge_vue(), 'Nouvelle personne');
+        return;
+    }
     $donnees = personne_donnees_vue((int) ($_GET['id'] ?? 0));
     if ($donnees === null) {
         redirect('personnes');
@@ -163,19 +172,52 @@ function route_personne(): void
     render('personne', $donnees, personne_nom($donnees['p']));
 }
 
+// Les structures auxquelles cette personne n'est pas encore rattachée, pour
+// le champ « Lier » de sa fiche.
+function personne_structures_dispo(int $personneId): array
+{
+    $stmt = db()->prepare('SELECT id, nom FROM structures
+        WHERE id NOT IN (SELECT structure_id FROM personne_structures WHERE personne_id = ?)
+        ORDER BY nom COLLATE NOCASE');
+    $stmt->execute([$personneId]);
+    return $stmt->fetchAll();
+}
+
+// Les données d'une fiche en création : les mêmes clés que
+// personne_donnees_vue(), toutes vides — la vue n'a qu'un seul jeu de noms à lire.
+function personne_vierge_vue(array $saisie = [], ?string $err = null): array
+{
+    $p = ['id' => 0, 'desinscrit' => 0, 'notes' => (string) ($saisie['notes'] ?? '')];
+    foreach (PERSONNE_CHAMPS as $c) {
+        $p[$c] = (string) ($saisie[$c] ?? '');
+    }
+    return ['p' => $p, 'structures' => [], 'employes' => [], 'utilisateurs' => [], 'pieces' => [],
+            'ok' => false, 'err' => $err];
+}
+
 function route_personne_enregistrer(): void
 {
     require_login();
     check_csrf();
     $id = (int) ($_POST['id'] ?? 0);
-    if (!$id || !personne_charger($id)) {
+    if ($id && !personne_charger($id)) {
         redirect('personnes');
     }
     $champs = [];
     foreach (PERSONNE_CHAMPS as $c) {
         $champs[$c] = trim((string) ($_POST[$c] ?? ''));
     }
-    personne_enregistrer($id, $champs);
+    if (!$id) {
+        // Une personne se reconnaît à son nom OU à son adresse : sans aucun
+        // des trois, il n'y aurait rien à afficher dans la liste.
+        if ($champs['prenom'] === '' && $champs['nom'] === '' && $champs['email'] === '') {
+            render('personne', personne_vierge_vue($_POST, 'Indiquez au moins un nom ou une adresse électronique.'), 'Nouvelle personne');
+            return;
+        }
+        $id = personne_creer($champs);
+    } else {
+        personne_enregistrer($id, $champs);
+    }
     // La désinscription est une propriété de la personne, et elle se retire
     // ici — c'est le seul endroit d'où l'on peut rendre quelqu'un joignable.
     db()->prepare('UPDATE personnes SET desinscrit = ?, notes = ? WHERE id = ?')
@@ -193,4 +235,63 @@ function route_personnes_fusionner(): void
     // Retour à l'outil d'où l'on vient, et à SA section : la page de reprise
     // en compte cinq, et revenir en haut obligerait à redescendre.
     redirect('incoherences', ['section' => 'doublons-personnes'] + ($n ? ['ok' => 'personnes', 'np' => $n] : []));
+}
+
+
+// Rattacher une personne à une structure, depuis SA fiche (?p=personne). Le
+// lien est celui de la fiche structure — personne_structures, avec un rôle —,
+// vu de l'autre bout. Un même lien ne se pose pas deux fois : la personne
+// déjà rattachée garde le sien, rôle compris.
+//
+// Ajout en arrière-plan (docs/UI.md § 5) : la route renvoie la ligne rendue
+// par le MÊME partiel que la fiche. Sans script, retour à la fiche.
+function route_personne_structure_lier(): void
+{
+    require_login();
+    check_csrf();
+    $personneId  = (int) ($_POST['personne_id'] ?? 0);
+    $structureId = (int) ($_POST['structure_id'] ?? 0);
+    $existe = db()->prepare('SELECT 1 FROM structures WHERE id = ?');
+    $existe->execute([$structureId]);
+    if (!personne_charger($personneId) || !$existe->fetchColumn()) {
+        redirect('personnes');
+    }
+    $deja = db()->prepare('SELECT id FROM personne_structures WHERE personne_id = ? AND structure_id = ?');
+    $deja->execute([$personneId, $structureId]);
+    $lienId = (int) $deja->fetchColumn();
+    if (!$lienId) {
+        $lienId = contact_creer($structureId, ['role' => trim((string) ($_POST['role'] ?? ''))], $personneId);
+        journaliser('structure', $structureId, 'edition',
+            'Contact ajouté : ' . personne_nom(personne_charger($personneId)), null, $personneId);
+    }
+    if (($_POST['retour'] ?? '') === 'json') {
+        $ligne = array_values(array_filter(personne_structures($personneId), fn ($l) => (int) $l['id'] === $lienId));
+        reponse_ajout_json(null, rendre_fragment('_personne_structure_ligne', [
+            'st' => $ligne[0] ?? [], 'pid' => $personneId, 'peutLier' => true,
+        ]));
+        return;
+    }
+    redirect('personne', ['id' => $personneId]);
+}
+
+// Défaire ce lien. ⚠️ PAS contact_supprimer() : celle-ci efface aussi la
+// personne quand plus rien ne la retient — juste sur la fiche d'une structure,
+// où un contact orphelin n'a plus d'écran ; absurde ici, où l'on est SUR sa
+// fiche. Seul le lien s'en va.
+function route_personne_structure_delier(): void
+{
+    require_login();
+    check_csrf();
+    $personneId = (int) ($_POST['personne_id'] ?? 0);
+    $lienId     = (int) ($_POST['lien_id'] ?? 0);
+    $lien = db()->prepare('SELECT structure_id FROM personne_structures WHERE id = ? AND personne_id = ?');
+    $lien->execute([$lienId, $personneId]);
+    $structureId = (int) $lien->fetchColumn();
+    if ($structureId) {
+        db()->prepare('DELETE FROM personne_structures WHERE id = ?')->execute([$lienId]);
+        $p = personne_charger($personneId);
+        journaliser('structure', $structureId, 'edition',
+            'Contact supprimé : ' . ($p ? personne_nom($p) : 'contact'), null, $personneId);
+    }
+    redirect('personne', ['id' => $personneId]);
 }

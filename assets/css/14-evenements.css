@@ -1,0 +1,399 @@
+/* ============================================================
+   Mini-fiches de structure (carte « Organisation » de ?p=evenement)
+   ============================================================
+   Même vocabulaire que les fiches de ?p=structures sur téléphone — statut porté
+   par un repère coloré, nom, ville avec drapeau et canton, catégorie et les deux
+   dates à droite — mais un composant à part : là-bas ce sont des <td> replacés
+   en grille, ici une simple liste de liens, et la mise en cartes de la liste ne
+   vaut que sous 700px. Les valeurs de statut sont les mêmes que
+   STRUCTURE_STATUTS_CLASSES_ICONE (lib/booking.php). */
+.mini-structures { list-style: none; margin: 0; padding: 0; }
+.mini-structure + .mini-structure { border-top: 1px solid var(--line); }
+.mini-structure.inactif { opacity: .62; }
+.ms-lien {
+    display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 0 11px; padding: 10px 0; color: inherit; text-decoration: none;
+}
+.ms-lien:hover .ms-nom { text-decoration: underline; }
+/* Un nombre suivi de son unité sur la même ligne (« 30 jours sans
+   sauvegarde », ?p=sauvegardes) : le champ garde la largeur de quelques chiffres. */
+.champ-unite { display: flex; align-items: center; gap: 8px; }
+.form .champ-unite input { width: 6em; flex: none; }
+
+/* Un bouton à côté de la mini-fiche (« Délier » sur ?p=personne, en mode
+   modification) : la fiche garde toute la largeur restante. */
+.mini-structure:has(> .ms-action) { display: flex; align-items: center; gap: 8px; }
+.mini-structure > .ms-lien { flex: 1; min-width: 0; }
+/* Le statut est porté par son ICÔNE, pas par un carré bordé : dans la liste,
+   c'est la case à cocher qui prend la couleur, mais il n'y a rien à cocher ici
+   — un carré y aurait faussement l'air d'une case. Icône et couleurs de
+   structure_statut_icone() / _classe() (lib/booking.php), comme la colonne
+   « Statut » du tableau. Hauteur calée sur la ligne du nom (15px × 1.3) et
+   line-height:1 sur le porteur, sinon l'icône se pose sous le milieu du texte. */
+.ms-puce {
+    display: flex; align-items: center; height: calc(15px * 1.3); line-height: 1;
+}
+.ms-puce .ico { width: 16px; height: 16px; }
+.ms-corps { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.ms-nom {
+    font-size: var(--fs-large); font-weight: 600; line-height: 1.3;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ms-lieu {
+    font-size: var(--fs-small); line-height: 1.45;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ms-lieu .tiny { font-size: var(--fs-tiny); }
+/* Ce que la RELATION ajoute, sous la ville : le rôle d'une personne dans cette
+   structure. Même corps que la ville, mais à l'encre — la ville dit où est la
+   structure, le rôle dit pourquoi elle est sur cette fiche, et c'est lui qu'on
+   y cherche. */
+.ms-role {
+    font-size: var(--fs-small); line-height: 1.45; color: var(--ink);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ms-cote {
+    display: flex; flex-direction: column; align-items: flex-end; text-align: right;
+    max-width: 136px; min-width: 0;
+}
+.ms-cat {
+    font-size: var(--fs-tiny); line-height: 1.4; color: var(--muted); max-width: 100%;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ms-dates {
+    display: flex; flex-direction: column; align-items: flex-end;
+    font-size: var(--fs-tiny); line-height: 1.4; color: var(--muted);
+    font-variant-numeric: tabular-nums;
+}
+/* Crayon = dernière modification, enveloppe = dernier contact, en masque comme
+   dans la liste : la couleur suit le texte, donc le thème sombre aussi. */
+.ms-maj::before, .ms-vu::before {
+    content: ""; display: inline-block; vertical-align: -1px;
+    width: 11px; height: 11px; margin-right: 3px;
+    background-color: currentColor;
+    -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+    -webkit-mask-size: contain; mask-size: contain;
+}
+/* Les étiquettes prennent toute la largeur de la mini-fiche, sous les deux
+   colonnes — comme dans les fiches de la liste. */
+.ms-tags {
+    grid-column: 1 / -1; grid-row: 2;
+    display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px;
+}
+.ms-tags .badge { margin-left: 0; font-size: var(--fs-tiny); }
+.ms-maj::before { -webkit-mask-image: var(--ico-crayon); mask-image: var(--ico-crayon); }
+/* Repli sur la date de création : le crayon dirait « modifiée », ce qui est faux. */
+.ms-maj.est-creation { font-style: italic; }
+.ms-maj.est-creation::before { -webkit-mask-image: var(--ico-creation); mask-image: var(--ico-creation); }
+.ms-vu::before { -webkit-mask-image: var(--ico-enveloppe); mask-image: var(--ico-enveloppe); }
+
+/* ---------------------------------------------------------------------------
+   ?p=postes — les lignes du décompte de salaire.
+   Une ligne y est plus haute qu'ailleurs (libellé + description sur deux
+   niveaux, champ de taux) : les interrupteurs et le champ de taux se centrent
+   donc explicitement sur la hauteur utile de la ligne, le vertical-align de la
+   cellule ne suffit pas quand son contenu est un formulaire.
+--------------------------------------------------------------------------- */
+/* inline-flex pour le formulaire d'interrupteur : en flex (bloc), il passait
+   sous la poignée qui ouvre désormais la cellule. */
+.postes-table .toggle-cell { display: inline-flex; align-items: center; min-height: 30px; vertical-align: middle; }
+.postes-table .taux-form { display: flex; align-items: center; min-height: 30px; }
+.postes-table .taux-form .pct-input { margin: 0; }
+/* En édition, les deux taux de la LAA se replient plutôt que de se comprimer :
+   la colonne est dimensionnée par la lecture, plus courte. */
+.postes-table .taux-form { gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
+.postes-table .taux-form .pct-input { flex: 0 0 auto; max-width: 8rem; }
+.postes-table .taux-form .pct-input input { min-width: 4rem; }
+.postes-table .td-taux { white-space: nowrap; }
+/* Mode édition : la ligne porte beaucoup de champs — ils passent à la ligne
+   plutôt que d'élargir le tableau au-delà de l'écran. Chaque champ garde sa
+   largeur naturelle (les champs de formulaire font 100 % par défaut, ce qui
+   mettrait chacun sur sa propre ligne). */
+.postes-table .plan-edit { flex-wrap: wrap; row-gap: 6px; }
+.postes-table .plan-edit > select { width: auto; max-width: 14rem; }
+.postes-table .plan-edit > input[name="libelle"] { flex: 1 1 12rem; min-width: 10rem; }
+.postes-table .plan-edit > input[name="groupe_compta"] { width: auto; }
+/* Le taux, « masquer à 0 » et la suppression ne s'ouvrent qu'en mode édition :
+   en lecture, la ligne se lit et ne se modifie pas par inadvertance. Même
+   bascule que .plan-nom / .plan-edit, pilotée par .editing. */
+.dnd-on .cell-edition { display: none; }
+.dnd-on .plan-row.editing .cell-edition { display: inline-flex; }
+.dnd-on .plan-row.editing .cell-lecture { display: none; }
+/* « Masquer à 0 » vit dans l'édition de la ligne : un interrupteur avec son
+   libellé, pas une colonne de plus à lire sur chaque ligne. */
+.edit-toggle { gap: 7px; font-size: var(--fs-small); color: var(--muted); font-weight: 600; white-space: nowrap; }
+.edit-usage { white-space: nowrap; }
+/* Paliers d'âge, édités dans la ligne à laquelle ils appartiennent. */
+.bareme-bloc { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; width: 100%; padding: 4px 0; }
+.bareme-note { flex: 1 0 100%; }
+.bareme-palier { display: inline-flex; align-items: center; gap: 4px; }
+.bareme-palier input[type="number"] { width: 4rem; }
+.bareme-bloc .pct-input { max-width: 6.5rem; }
+
+/* Jauge d'avancement d'une campagne de contact : la barre dit d'un coup d'œil
+   ce qui reste, le compte donne le chiffre exact. Verte une fois complète. */
+
+/* Menu à cocher vivant dans un formulaire (choix_coches_html()) : même
+   apparence que les filtres de colonne, sans le bouton « Appliquer » — la
+   sélection part avec le formulaire qui l'entoure. */
+.choix-coches .col-filter-menu { padding-bottom: 8px; }
+/* Le bouton nomme ce qui est coché : un nom de projet, ou deux, peuvent être
+   longs — ils sont coupés plutôt que de déborder du champ qui les contient. */
+.choix-coches > .col-filter-btn-nomme { max-width: 100%; }
+.choix-coches .col-filter-lib { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+/* … et la chaîne des min-width:0 jusqu'à la colonne de grille. Sans elle, le
+   libellé en white-space:nowrap impose sa largeur intrinsèque comme minimum :
+   le champ débordait sur son voisin de droite au lieu d'être coupé. */
+.choix-coches { min-width: 0; }
+.form label:has(.choix-coches) { min-width: 0; }
+
+/* Page d'une campagne : l'en-tête en paires libellé/valeur sur une rangée, et
+   les structures déjà contactées en retrait — la ligne se lit alors comme
+   « faite », sans avoir à chercher une colonne d'état. */
+.kv-inline { display: flex; flex-wrap: wrap; gap: 10px 32px; margin: 0; }
+.kv-inline > div { display: flex; flex-direction: column; gap: 2px; }
+.kv-inline dt { font-size: var(--fs-tiny); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 700; }
+.kv-inline dd { margin: 0; }
+
+/* ============================================================
+   Feuille de route d'un événement (?p=evenement, carte « Feuille de route »)
+   ============================================================
+   Une liste d'éléments de types différents, dans l'ordre de la journée. Chaque
+   ligne : son icône de type à gauche, son contenu au milieu, ses boutons de
+   déplacement et de suppression à droite. Tout le dépliage — modifier une
+   ligne, ajouter un élément — passe par <details>, donc sans JavaScript. */
+.feuille-liste { list-style: none; margin: 0 0 18px; padding: 0; }
+/* Trois zones : la poignée de glisser-déposer à gauche, la ligne au milieu, les
+   actions à droite — le crayon en tête, comme dans les autres listes
+   ordonnables (voir docs/UI.md §2d et §4). */
+.feuille-item {
+    display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 0 8px; align-items: center;
+    padding: 5px 0; border-top: 1px solid var(--line);
+}
+/* Le libellé de lecture reprend les règles communes (.plan-nom, masqué tant que
+   le script n'a pas posé .dnd-on) mais pas son corps : une ligne de déroulé se
+   lit au corps du texte, pas en grand. */
+.feuille-item .plan-nom { font-size: inherit; }
+.feuille-item .plan-nom, .feuille-item .plan-edit { min-width: 0; }
+/* Le formulaire d'édition passe sous la ligne, sur toute la largeur restante :
+   dans la colonne du milieu il aurait la largeur du texte. */
+.dnd-on .feuille-item.editing { grid-template-columns: auto minmax(0, 1fr) auto; }
+.feuille-item .plan-edit { grid-column: 1 / -1; }
+.feuille-liste > .feuille-item:first-child { border-top: 0; }
+/* L'élément tient sur UNE ligne : icône, intitulé, détail, crayon. Le détail
+   passe à la ligne de lui-même quand il déborde, sans décrocher de l'intitulé. */
+.feuille-sommaire { display: flex; align-items: center; gap: 9px; min-width: 0; padding: 3px 0; }
+/* L'icône dit le type sans un mot : une liste où chaque ligne répéterait
+   « Horaire », « Adresse », « Contact » se lirait deux fois plus lentement. */
+.feuille-ico { color: var(--muted); display: flex; flex: 0 0 auto; }
+.feuille-ico .ico { width: 17px; height: 17px; }
+.feuille-corps { min-width: 0; line-height: 1.4; }
+.feuille-titre { font-weight: 600; }
+.feuille-detail { font-size: var(--fs-small); }
+/* Le crayon vit au bout de la ligne, contre les autres boutons : c'est un
+   bouton d'action de plus, et ils se tiennent tous à droite, comme partout
+   ailleurs dans l'application. Un <span> et non un <button> : un <summary> ne
+   peut pas contenir d'élément interactif. */
+/* Les boutons de la ligne restent discrets tant qu'on ne survole pas : ils sont
+   là pour le geste occasionnel, pas pour attirer l'œil à chaque ligne. */
+/* Largeur réservée aux boutons de droite, qu'ils soient deux ou trois : sans
+   elle, la première et la dernière ligne — privées d'une flèche — décalaient le
+   crayon qui les précède, et la colonne des crayons ondulait d'une ligne à
+   l'autre. C'est la largeur de trois boutons d'icône serrés. */
+.feuille-actions {
+    display: flex; gap: 2px; align-items: center; justify-content: flex-end;
+    padding: 3px 0; min-width: 127px;
+}
+.feuille-actions .btn { opacity: .55; }
+.feuille-item:hover .feuille-actions .btn,
+.feuille-actions .btn:focus-visible { opacity: 1; }
+
+
+/* Les champs en RANGÉE, et non empilés : un horaire tient en quatre champs
+   courts — intitulé, début, fin, remarque — qui occupaient quatre lignes pour
+   rien. Chacun dit sa largeur souhaitée par sa classe et passe à la ligne quand
+   la place manque, sans point de rupture codé en dur : c'est la largeur de la
+   carte qui décide, pas celle de l'écran. */
+/* .champs-rangee est le MÊME mécanisme sous un nom qui ne parle plus d'une
+   feuille de route : le dépôt d'une pièce pose les quatre mêmes sortes de
+   champs courts. Les deux sélecteurs partagent la règle plutôt que de la
+   recopier — c'est un seul geste, pas deux (docs/UI.md § 10). */
+.feuille-form, .champs-rangee { display: flex; flex-wrap: wrap; gap: 0 12px; align-items: flex-end; margin-top: 10px; }
+.fr-champ, .champs-rangee > label { display: block; margin-bottom: 12px; min-width: 0; }
+.fr-champ input, .fr-champ select,
+.champs-rangee > label input, .champs-rangee > label select { width: 100%; }
+.fr-libelle  { flex: 2 1 170px; }
+.fr-heure    { flex: 0 0 108px; }
+.fr-adresse  { flex: 3 1 220px; }
+.fr-nom      { flex: 1 1 130px; }
+.fr-tel      { flex: 1 1 150px; }
+.fr-email    { flex: 2 1 190px; }
+.fr-remarque { flex: 3 1 190px; }
+/* Le carnet d'adresses est large — ses options portent nom, rôle et structure —
+   mais pas au point de monopoliser une ligne : à 100%, il laissait l'intitulé
+   seul sur la sienne. Le sélecteur de fichier tient dans la rangée comme les
+   autres ; il lui faut seulement de la place, sa largeur étant celle que le
+   navigateur donne à son bouton « Choisir un fichier » plus le nom du fichier. */
+.fr-carnet  { flex: 2 1 260px; }
+.fr-fichier { flex: 3 1 300px; }
+/* La mention des formats accompagne l'intitulé du champ sans peser autant que
+   lui : un sélecteur de fichier n'accepte pas de texte indicatif, c'est le seul
+   endroit où écrire la contrainte. */
+.fr-fichier .fr-precision { font-weight: 400; font-size: var(--fs-tiny); }
+
+/* Les boutons d'ajout vivent à droite de la ligne de titre ; le formulaire
+   qu'ils ouvrent, lui, est rendu sous la liste, où il a toute la largeur. */
+.feuille-head { align-items: center; }
+/* Le bouton d'envoi termine la rangée quand il y reste de la place, et passe à
+   la ligne sinon — comme n'importe quel champ. */
+.feuille-form .form-actions { display: flex; gap: 8px; margin: 0 0 12px auto; }
+
+/* Le menu d'ajout : un « + » qui déplie la liste des types, comme les
+   entonnoirs des colonnes de liste. Cinq boutons alignés encombraient l'en-tête
+   d'une carte qui n'en demandait qu'un. */
+.feuille-ajout { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-start; justify-content: flex-end; }
+/* Le MENU DÉROULANT de l'application (menu_deroulant_html(), lib/helpers.php) :
+   un bouton qui déplie une courte liste de gestes voisins. Trois écrans
+   l'emploient — le « + » du déroulé d'une date, « Charger un modèle » de la
+   fenêtre Contacter, « Synchroniser » sur la liste des projets (docs/UI.md
+   § 6). Un quatrième s'y branche, il ne redessine pas le sien à côté. */
+/* inline-flex et non le display:block d'un <details> : le menu se pose au fil
+   d'une rangée de boutons — une cellule « actions » de tableau, une barre
+   d'outils — où un bloc prendrait une ligne à lui seul.
+   Alignement laissé sur la ligne de base, comme les .btn qui l'entourent : avec
+   « middle », le menu descendait de 5px et cassait la rangée d'icônes. */
+.menu-deroulant { position: relative; display: inline-flex; }
+.menu-deroulant > summary { display: inline-flex; cursor: pointer; list-style: none; }
+.menu-deroulant > summary::-webkit-details-marker { display: none; }
+/* Aligné à DROITE du bouton, qui est d'ordinaire en bout de ligne : à gauche, le
+   panneau sortirait de la carte. .menu-deroulant-gauche pour le cas inverse. */
+.menu-deroulant-panneau {
+    position: absolute; top: calc(100% + 4px); right: 0; z-index: 20;
+    display: flex; flex-direction: column; gap: 2px; min-width: 190px;
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-sm);
+    box-shadow: var(--shadow); padding: 6px;
+}
+.menu-deroulant-gauche > .menu-deroulant-panneau { right: auto; left: 0; }
+/* Liens ou boutons selon ce que l'entrée fait : une adresse à suivre (déroulé
+   d'une date) ou un choix traité sur place (modèles de message, copie d'un lien
+   de synchronisation). Même dessin dans les deux cas. */
+.menu-deroulant-panneau a, .menu-deroulant-panneau button {
+    display: flex; align-items: center; gap: 8px; padding: 7px 10px; width: 100%;
+    /* justify-content : la règle générale des <button> centre leur contenu, ce
+       qui centrait le nom du modèle au milieu du menu. */
+    background: none; border: 0; box-shadow: none; text-align: left; cursor: pointer;
+    justify-content: flex-start;
+    border-radius: var(--radius-sm); color: var(--ink); font-size: var(--fs-basic); font-weight: 500;
+    min-height: 0;
+    /* Une entrée ne se replie pas sur deux lignes : le panneau s'élargit. */
+    white-space: nowrap;
+}
+.menu-deroulant-panneau a:hover, .menu-deroulant-panneau button:hover { background: var(--primary-tint); color: var(--primary-d); text-decoration: none; }
+.menu-deroulant-panneau .ico { width: 16px; height: 16px; color: var(--muted); flex: 0 0 auto; }
+.menu-deroulant-panneau a:hover .ico, .menu-deroulant-panneau button:hover .ico { color: inherit; }
+/* Le formulaire d'ajout, sous la liste : séparé d'un filet, il se distingue des
+   éléments déjà posés sans avoir l'air d'en être un. */
+.feuille-form-ajout { border-top: 1px solid var(--line); padding-top: 14px; margin-top: 14px; }
+
+@media (max-width: 700px) {
+    /* Les boutons passent sous le contenu : à trois colonnes sur un téléphone,
+       le titre d'un élément n'avait plus que quelques caractères de large. */
+    /* Sur téléphone, la ligne garde ses trois zones : renvoyer les actions à la
+       rangée suivante coûtait une ligne par élément — souvent pour le seul
+       crayon, alors que la place était là. Ce qui se réserve pour aligner les
+       colonnes sur grand écran est simplement rendu au texte. */
+    /* DEUX pistes, et non trois : la poignée de glisser-déposer est masquée sur
+       téléphone (plus bas), donc retirée de la grille. Les deux éléments
+       restants se rangeaient alors dans les deux PREMIÈRES pistes — le texte
+       dans la piste « auto », qui s'étire à son contenu, et les boutons dans le
+       « 1fr » qui n'avait plus rien à leur donner. Une ligne un peu longue
+       poussait ainsi les icônes hors de la carte. */
+    .feuille-item { grid-template-columns: minmax(0, 1fr) auto; gap: 0 4px; }
+    /* max-content, et non 0 : à 0 la colonne d'actions se réduisait à rien et
+       ses boutons débordaient PAR-DESSUS le texte de la ligne — spectaculaire
+       en édition, où ils sont cinq. Elle réserve donc exactement ce que ses
+       boutons occupent, ni les 127px du grand écran, ni rien. */
+    .feuille-actions { min-width: max-content; }
+    .feuille-sommaire { gap: 7px; }
+    .feuille-actions .btn { opacity: 1; }
+    /* En édition, les boutons prennent leur propre rangée sous le formulaire :
+       cinq boutons et des champs ne tiennent pas côte à côte sur 285px, et
+       c'est le formulaire qu'il faut servir en premier. En lecture la ligne
+       garde ses deux zones — il n'y a là que des icônes. */
+    .dnd-on .feuille-item.editing { grid-template-columns: minmax(0, 1fr); }
+    .dnd-on .feuille-item.editing .feuille-sommaire,
+    .dnd-on .feuille-item.editing .feuille-actions { grid-column: 1 / -1; }
+    .dnd-on .feuille-item.editing .feuille-actions { padding-top: 6px; }
+    /* « Enregistrer » perd son libellé : il reste mis en évidence par son fond
+       plein, et la rangée tient alors en cinq icônes. Il n'est pas .icon-only
+       pour autant — il a un libellé sur grand écran —, et sans ces deux règles
+       il gardait l'icône de 16px et le remplissage d'un bouton à texte : plus
+       petite que celles de ses voisins, dans une boîte plus large. */
+    .feuille-actions .lbl { display: none; }
+    .feuille-actions .btn-sm:not(.icon-only) { padding: 0 6px; min-height: var(--action-height-sm); }
+    .feuille-actions .btn-sm .ico { width: 17px; height: 17px; }
+    /* Les flèches rejoignent la corbeille : visibles seulement sur la ligne
+       ouverte en modification. Deux boutons de 41px prenaient 84px des 285
+       disponibles, et le texte, réduit à 128px, passait à la ligne alors qu'il
+       tenait largement. Réordonner est de toute façon un geste d'édition. */
+    /* La poignée disparaît sur téléphone, et les flèches de repli reprennent la
+       main : le glisser-déposer au doigt dans une page qui défile est un combat
+       perdu, et l'API HTML5 que lassoOrdreListe() emploie (dragstart/dragover/
+       drop) n'est de toute façon jamais déclenchée par un doigt — ni sur iOS ni
+       sur Android. Sans cette règle, .dnd-on retirait les flèches en échange
+       d'une poignée qui ne fait rien : réordonner devenait impossible.
+       Vaut pour les SIX listes réordonnables (tableau de bord, lignes du
+       décompte, plan comptable, pays, catégories, feuille de route) et non pour
+       la seule qui l'avait obtenue la première. */
+    .dnd-on .plan-grip { display: none; }
+    .dnd-on .plan-fallback { display: inline-flex; }
+    /* …et le point revient avec, puisque c'est la poignée qui l'avait remplacé. */
+    .dnd-on .plan-puce-feuille { display: inline-flex; }
+    .menu-deroulant-panneau { min-width: 170px; }
+}
+
+/* Feuille de route imprimable (?p=evenement_feuille_imprimer) : un document
+   d'une page, sans bouton ni formulaire, qu'on emporte le jour même. */
+/* Une feuille de route se lit en marchant, pas assise : elle tient en une page,
+   serrée. D'où un corps un cran sous celui de l'application et des interlignes
+   resserrés — c'est un document de travail, pas un écran de lecture. */
+.fr-print { font-size: var(--fs-basic); line-height: 1.4; }
+.sheet-feuille { padding: 34px 38px; }
+/* En-tête d'une feuille de route : la DATE, puis OÙ et dans quelle VILLE. Ce
+   sont les trois choses qu'on cherche des yeux en l'ouvrant — le projet et
+   l'horaire, on les sait déjà : ils passent en sous-titre. */
+.fr-print-head { margin-bottom: 18px; }
+.fr-print-date { font-size: var(--fs-bigger); font-weight: 700; line-height: 1.1; letter-spacing: -.01em; }
+.fr-print-ou { font-size: var(--fs-big); margin: 3px 0 2px; font-weight: 600; text-wrap: balance; }
+/* La ville se distingue du lieu sans le concurrencer : même ligne, encre plus
+   claire — « Le Mirage Monthey » se lit alors comme un lieu et sa ville. */
+.fr-print-ville { color: var(--muted); font-weight: 500; }
+.fr-print-titre { font-size: var(--fs-basic); margin: 20px 0 8px; letter-spacing: .02em; text-transform: uppercase; }
+/* Le déroulé, détaché par un filet : c'est la partie qu'on relit dix fois dans
+   la journée. Un fond plein l'aurait alourdi à l'impression ; une bordure fine
+   suffit à en faire un bloc. Les filets du tableau s'arrêtent aux bords du
+   cadre — deux traits superposés en haut feraient une double ligne. */
+.fr-print-cadre {
+    border: 1px solid var(--line); border-radius: var(--radius-sm);
+    padding: 4px 14px 10px; margin: 0 0 18px;
+}
+.fr-print-cadre .fr-print-table tr:first-child th,
+.fr-print-cadre .fr-print-table tr:first-child td { border-top: 0; }
+.fr-print-sub { color: var(--muted); font-size: var(--fs-small); }
+/* Le logo signe la feuille, en pied : il est là pour signer, pas pour ouvrir. */
+.fr-print-logo { height: 18px; width: auto; vertical-align: -4px; margin-right: 8px; opacity: .75; }
+/* Deux colonnes : l'intitulé à gauche, ce qu'il recouvre à droite — c'est ainsi
+   qu'on cherche une information sur une feuille, par son nom. */
+.fr-print-table { width: 100%; border-collapse: collapse; }
+.fr-print-table th {
+    width: 165px; text-align: left; vertical-align: top; font-weight: 600;
+    padding: 6px 12px 6px 0; border-top: 1px solid var(--line);
+}
+.fr-print-table td { vertical-align: top; padding: 6px 0; border-top: 1px solid var(--line); }
+.fr-print-table tr:first-child th, .fr-print-table tr:first-child td { border-top: 0; }
+.fr-print-pied { margin-top: 20px; color: var(--muted); font-size: var(--fs-small); }
+/* « organisateur de … » sous le nom d'une structure mère : un rappel de son
+   rôle, pas un second nom — d'où un corps plus petit et le poids normal. */
+.fr-print-via { font-weight: 400; font-size: var(--fs-small); }
+

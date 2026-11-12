@@ -136,7 +136,7 @@
     <?php $adresse = trim($emp['rue'] . ($emp['rue'] && $emp['npa_localite'] ? ', ' : '') . $emp['npa_localite']); ?>
     <dl class="info-grid info-grid-4">
         <div><dt>Date de naissance</dt><dd><?= trim((string) ($emp['date_naissance'] ?? '')) !== '' ? e(date('d.m.Y', strtotime($emp['date_naissance']))) : '—' ?></dd></div>
-        <div><dt>Numéro AVS</dt><dd><?= e($emp['numero_avs']) ?: '—' ?></dd></div>
+        <div><dt>Numéro AVS</dt><dd><?= e(avs_affiche($emp['numero_avs'])) ?: '—' ?></dd></div>
         <div><dt>E-mail</dt><dd><?= $emp['email'] ? '<a href="mailto:' . e($emp['email']) . '">' . e($emp['email']) . '</a>' : '—' ?></dd></div>
         <div><dt>Adresse</dt><dd><?= $adresse !== '' ? e($adresse) : '—' ?></dd></div>
         <div><dt>Canton</dt><dd><?= e($emp['canton']) ?: '—' ?></dd></div>
@@ -161,20 +161,22 @@
 <?php if (!$fiches): ?>
     <p class="muted">Aucune fiche de salaire pour cet employé.</p>
 <?php else: ?>
+<?php // Sur téléphone, les mêmes cartes que la liste des fiches (.cartes-fiches),
+      // sans la ligne de l'employé : c'est la page. ?>
 <div class="table-scroll">
-<table class="list list-wide">
+<table class="list list-wide liste-cartes cartes-fiches cartes-fiches-employe">
     <thead>
         <tr><th>Mois</th><th class="num">Brut</th><th class="num">Net</th><th>Paiement</th><th class="num">Coût employeur</th><th class="center">Envoyée</th></tr>
     </thead>
     <tbody>
     <?php foreach ($fiches as $f): $apayer = trim((string) $f['date_paiement']) === '' && !fiche_a_venir($f); ?>
         <tr class="row-link" tabindex="0" role="link" data-href="?p=fiche&id=<?= (int) $f['id'] ?>&depuis=employe:<?= (int) $emp['id'] ?>">
-            <td><?= e(mois_nom((int) $f['mois'])) ?> <?= (int) $f['annee'] ?></td>
+            <td class="col-date"><?= e(mois_nom((int) $f['mois'])) ?> <?= (int) $f['annee'] ?></td>
             <td class="num col-brut"><?= chf((float) $f['salaire_brut']) ?></td>
-            <td class="num strong <?= $apayer ? 'net-apayer' : (fiche_a_venir($f) ? 'net-avenir' : '') ?>"><?= chf((float) $f['salaire_net']) ?></td>
-            <td><?= badge_paiement($f) ?></td>
+            <td class="num strong col-net <?= $apayer ? 'net-apayer' : (fiche_a_venir($f) ? 'net-avenir' : '') ?>"><?= chf((float) $f['salaire_net']) ?></td>
+            <td class="col-paiement"><?= badge_paiement($f) ?></td>
             <td class="num col-cout"><?= cout_emp_affiche($f) ?></td>
-            <td class="center"><?php if (trim((string) ($f['email_envoye_le'] ?? '')) !== ''): ?><span class="mail-sent" title="Envoyée le <?= e(date('d.m.Y', strtotime((string) $f['email_envoye_le']))) ?>"><?= icon('check') ?></span><?php endif; ?></td>
+            <td class="center col-envoyee"><?php if (trim((string) ($f['email_envoye_le'] ?? '')) !== ''): ?><span class="mail-sent" title="Envoyée le <?= e(horodatage($f['email_envoye_le'], 'd.m.Y')) ?>"><?= icon('check') ?></span><?php endif; ?></td>
         </tr>
     <?php endforeach; ?>
     </tbody>

@@ -29,7 +29,10 @@ function check(string $label, $attendu, $obtenu): void
     printf("  FAIL  %s\n        attendu %s\n        obtenu  %s\n", $label, var_export($attendu, true), var_export($obtenu, true));
 }
 
-$css = (string) file_get_contents($racine . '/assets/app.css');
+require_once __DIR__ . '/../lib/config.php';
+require_once __DIR__ . '/../lib/helpers.php';
+// La feuille entière, ses fichiers bout à bout dans l'ordre de la cascade.
+$css = css_source();
 $lignes = explode("\n", $css);
 
 // Surfaces légitimement blanches quel que soit le thème :

@@ -742,7 +742,7 @@ function feuille_contact_ligne(array $c): string
 // sombre donnerait sinon au document les couleurs du thème, sur fond blanc.
 function feuille_email_html(array $evenement, array $elements, array $organisateurs): string
 {
-    $css = @file_get_contents(__DIR__ . '/../assets/app.css') ?: '';
+    $css = css_source();
     ob_start();
     require __DIR__ . '/../views/_evenement_feuille_corps.php';
     $corps = ob_get_clean();

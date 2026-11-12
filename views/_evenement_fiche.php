@@ -517,7 +517,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
     <?php else: ?>
         <?php $colspanMsg = 4 + ($axes ? 1 : 0); ?>
         <div class="table-scroll">
-        <table class="list evenement-employes">
+        <table class="list evenement-employes cartes-chiffres cartes-ev-employes">
             <?php // Les classes de colonne sont posées à la main, jamais par
                   // :nth-child : la colonne « Axe » n'existe que si le module
                   // analytique est actif, et tout décompte de position se
@@ -620,8 +620,11 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
     </div>
     <?php // Le tableau est rendu même vide, et c'est une LIGNE qui porte le
           // « aucune facture » : une facture liée en arrière-plan s'insère alors
-          // dans un <tbody> qui existe déjà (docs/UI.md § 5). ?>
-    <table class="list">
+          // dans un <tbody> qui existe déjà (docs/UI.md § 5). Dans son cadre
+          // défilant, comme le tableau des employés : à 375px, cinq colonnes
+          // ne tiennent pas. ?>
+    <div class="table-scroll">
+    <table class="list cartes-chiffres cartes-ev-factures">
         <thead><tr><th>Numéro</th><th>Structure</th><th class="num">Montant</th><th>Statut</th><th></th></tr></thead>
         <tbody id="factures-liees">
         <?php if (!$factures): ?>
@@ -632,6 +635,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
         <?php endforeach; ?>
         </tbody>
     </table>
+    </div>
     <?php if (module_actif('facturation') && $facturesDispo && $peutEcrireEv): ?>
         <form method="post" action="?p=evenement_facture_lier<?= $depuisQs ?>" class="linked-add mt-18"
               data-ajout="#factures-liees" data-ajout-vide="#factures-liees-vide" data-ajout-message="Facture liée.">

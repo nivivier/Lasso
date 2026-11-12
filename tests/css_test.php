@@ -6,7 +6,7 @@
 //    devait se masquer par-dessus un display déjà forcé). Un seul est légitime,
 //    [hidden] { display: none !important }, qui garantit que l'attribut HTML
 //    l'emporte sur tout display: flex/grid. Pour gagner contre une règle plus
-//    spécifique, on répète sa spécificité (voir .seg-picker dans app.css).
+//    spécifique, on répète sa spécificité (voir .seg-picker dans assets/css/).
 //
 // 2. Couleurs écrites en dur hors des tokens (--…: dans :root et les thèmes).
 //    Celles qui restent sont pour l'essentiel voulues FIXES : blanc sur un fond
@@ -31,7 +31,19 @@ function check(string $label, $attendu, $obtenu): void
 
 const COULEURS_EN_DUR_MAX = 63;
 
-$css = (string) file_get_contents("$racine/assets/app.css");
+require_once __DIR__ . '/../lib/config.php';
+require_once __DIR__ . '/../lib/helpers.php';
+// La feuille entière, ses fichiers mis bout à bout dans l'ordre de la cascade
+// (CSS_FICHIERS, lib/helpers.php).
+$css = css_source();
+// Le dossier et la liste disent la même chose : un fichier déposé dans
+// assets/css/ sans être inscrit dans CSS_FICHIERS ne serait jamais chargé, et
+// rien ne le signalerait. Leur ordre alphabétique est aussi celui de la
+// cascade (préfixes 01-, 02-…) : on le lit d'un coup d'œil dans le dossier.
+$dossier = array_map(fn ($f) => 'assets/css/' . basename($f), glob("$racine/assets/css/*.css") ?: []);
+sort($dossier);
+check('assets/css/ et CSS_FICHIERS listent les mêmes fichiers, dans le même ordre', $dossier, CSS_FICHIERS);
+check('plus de feuille d\'un seul tenant (assets/app' . '.css)', false, is_file("$racine/assets/app" . '.css'));
 // Les commentaires sont effacés en gardant leurs sauts de ligne : ils parlent
 // de !important et citent des couleurs, et les numéros de ligne restent justes.
 $code = preg_replace_callback('#/\*.*?\*/#s', fn ($m) => str_repeat("\n", substr_count($m[0], "\n")), $css);

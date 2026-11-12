@@ -159,6 +159,15 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
         </div>
         <?php endif; ?>
     </div>
+
+    <?php // Exercices clôturés (lib/compta.php § Clôture d'exercice) : dit
+          // AVANT qu'on essaie, plutôt qu'après un refus. Seulement quand la
+          // liste en montre — toutes années, ou l'une des années cochées. ?>
+    <?php $clotureAnnee = $clotureAnnee ?? null;
+    $anneesVues = array_map('intval', (array) ($annee ?? []));
+    if ($clotureAnnee !== null && (!$anneesVues || min($anneesVues) <= $clotureAnnee)): ?>
+    <p class="muted small mb-8"><?= icon('lock') ?> Exercices clôturés jusqu'à <?= (int) $clotureAnnee ?> : leurs écritures ne se modifient plus.</p>
+    <?php endif; ?>
     <?php if ($rules !== null): ?><p class="ok flash"><?= (int) $rules ?> écriture(s) lettrée(s) par les règles.</p><?php endif; ?>
 
 <?php if (peut_ecrire('compta')): ?>
@@ -266,7 +275,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
 <div class="table-scroll">
 <?php // Sur téléphone (ou dans toute colonne de moins de 700 px), la liste se
       // relit en cartes : mêmes cellules, replacées (.cartes-ecritures,
-      // assets/app.css). Le <thead> disparaît alors, et ses entonnoirs avec
+      // assets/css/). Le <thead> disparaît alors, et ses entonnoirs avec
       // lui : ils sont repris par le panneau « Filtres » de la barre d'outils. ?>
 <table class="list compta-lettrage liste-cartes cartes-ecritures<?= peut_ecrire('compta') ? ' avec-check' : '' ?>">
     <?php // 7 = case + Date + Contre-partie + Texte + Montant + Catégorie + actions ?>
@@ -345,6 +354,11 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
         </tr>
     </thead>
     <tbody>
+    <?php // Le corps fait l'essentiel du poids de la page (toutes les lignes en
+          // mode client) : tamponné et compacté avant l'envoi, comme la liste
+          // des structures (compacter_cellules(), lib/helpers.php). Aucun
+          // <textarea> ni texte préformaté ici — la condition de la fonction. ?>
+    <?php ob_start(); ?>
     <?php if (!$ecritures): ?>
         <tr><td colspan="<?= $nbCols ?>" class="muted">Aucune écriture pour ce filtre.</td></tr>
     <?php else: ?>
@@ -590,6 +604,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
         </tr>
     <?php endforeach; ?>
     <?php endif; ?>
+    <?= compacter_cellules((string) ob_get_clean()) ?>
     </tbody>
 </table>
 </div>

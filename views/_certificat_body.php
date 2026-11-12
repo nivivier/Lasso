@@ -51,7 +51,7 @@ $m = fn($v) => ((float) $v) != 0.0 ? chf((float) $v) : '';
             <?= e($emp['npa_localite']) ?>
         </div>
         <div class="cert-id-meta">
-            <div><span class="cert-lbl">N° AVS</span><?= e($emp['numero_avs']) ?: '—' ?></div>
+            <div><span class="cert-lbl">N° AVS</span><?= e(avs_affiche($emp['numero_avs'])) ?: '—' ?></div>
             <div><span class="cert-lbl">Date de naissance</span><?= trim((string) ($emp['date_naissance'] ?? '')) !== '' ? e(date('d.m.Y', strtotime($emp['date_naissance']))) : '—' ?></div>
             <div><span class="cert-lbl">Année</span><?= (int) $annee ?></div>
             <div><span class="cert-lbl">Période</span>du <?= e($debut) ?> au <?= e($fin) ?></div>

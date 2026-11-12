@@ -53,12 +53,34 @@ check('fichier quelconque intact', true, is_file($dossier . '/notes.txt'));
 check('sous le plafond : rien à supprimer', 0, sauvegardes_auto_purger());
 
 echo "\n2) Rappel de sauvegarde\n";
-$maintenant = strtotime('2026-11-11 10:00:00');
+// La date enregistrée est en UTC, comme tout horodatage de la base
+// (lib/horodatage.php) : « maintenant » s'exprime donc en UTC lui aussi.
+$maintenant = strtotime('2026-11-11 10:00:00 UTC');
 check('jamais téléchargée → rappel', ['jours' => null], sauvegarde_rappel('', $maintenant));
 check('date illisible → rappel', ['jours' => null], sauvegarde_rappel('n\'importe quoi', $maintenant));
 check('hier → pas de rappel', null, sauvegarde_rappel('2026-11-10 09:00:00', $maintenant));
 check('pile 30 jours → pas encore', null, sauvegarde_rappel('2026-10-12 10:00:00', $maintenant));
 check('45 jours → rappel', ['jours' => 45], sauvegarde_rappel('2026-09-27 10:00:00', $maintenant));
+// Le délai réglé sur ?p=sauvegardes remplace la constante.
+check('délai réglé à 7 : 10 jours → rappel', ['jours' => 10], sauvegarde_rappel('2026-11-01 10:00:00', $maintenant, 7));
+check('délai réglé à 60 : 45 jours → pas encore', null, sauvegarde_rappel('2026-09-27 10:00:00', $maintenant, 60));
+
+echo "\n3) Copies listées et supprimées depuis ?p=sauvegardes\n";
+// L'état laissé par la rotation : les trois copies gardées de CETTE base.
+$copies = sauvegardes_serveur();
+check('la liste ne montre que les copies de cette base', 3, count($copies));
+check('… la plus récente d\'abord', 'database_etape6_20260106_120000.sqlite.bak', $copies[0]['nom'] ?? '');
+check('libellé d\'une étiquette inconnue', 'Etape6', $copies[0]['libelle'] ?? '');
+check('libellé : clôture', 'Clôture 2025', sauvegarde_serveur_libelle('cloture_2025'));
+check('libellé : avant restauration', 'Avant une restauration', sauvegarde_serveur_libelle('avant_restauration_a1b2c3'));
+check('libellé : manuelle', 'Sauvegarde manuelle', sauvegarde_serveur_libelle('manuelle'));
+// Le nom vient d'un formulaire : rien hors de la liste ne doit pouvoir partir.
+check('refuse la base elle-même', false, sauvegarde_serveur_supprimer('database.sqlite'));
+check('refuse un chemin', false, sauvegarde_serveur_supprimer('../' . basename($dossier) . '/database.sqlite'));
+check('refuse la copie d\'une autre base', false, sauvegarde_serveur_supprimer('autre_import_20200101_000000.sqlite.bak'));
+check('… qui sont toutes intactes', [true, true], [is_file(APP_DB_PATH), is_file($dossier . '/autre_import_20200101_000000.sqlite.bak')]);
+check('supprime une copie de la liste', true, sauvegarde_serveur_supprimer($copies[2]['nom']));
+check('… qui n\'y est plus', 2, count(sauvegardes_serveur()));
 
 foreach (glob($dossier . '/*') as $f) {
     unlink($f);

@@ -135,7 +135,7 @@ foreach ($comptes as [$email, $prenom, $nom, $droits]) {
         'mot_de_passe' => password_hash(DEMO_MDP, PASSWORD_BCRYPT, ['cost' => BCRYPT_COST]),
         'prenom'       => $prenom,
         'nom'          => $nom,
-        'derniere_connexion_le' => date('Y-m-d H:i:s', strtotime('-' . mt_rand(1, 20) . ' days')),
+        'derniere_connexion_le' => gmdate('Y-m-d H:i:s', strtotime('-' . mt_rand(1, 20) . ' days')),
     ]);
     enregistrer_permissions_utilisateur($uid, $droits);
     $utilisateurs[] = $uid;
@@ -245,7 +245,7 @@ foreach ($structuresSrc as $i => $s) {
         'notes'             => $i % 5 === 0 ? "Scène correcte, régie sur place.\nPrévoir le repas d'équipe." : '',
         'mois_debut'        => $cat === 'organisateur' ? 9 : null,
         'mois_fin'          => $cat === 'organisateur' ? 5 : null,
-        'cree_le'           => date('Y-m-d H:i:s', strtotime('-' . (400 - $i * 11) . ' days')),
+        'cree_le'           => gmdate('Y-m-d H:i:s', strtotime('-' . (400 - $i * 11) . ' days')),
     ]);
     $structures[] = $id;
     // Une à trois étiquettes, et un lien avec deux à trois personnes du carnet.
@@ -321,7 +321,7 @@ foreach ($employesSrc as $e) {
     [$rang, $avs, $procedure, $vacances, $impot, $tarif] = $e;
     $employes[] = ['id' => $ins('employes', [
         'personne_id'         => $personnes[$rang],
-        'numero_avs'          => $avs,
+        'numero_avs'          => avs_stocker($avs),
         'canton'              => 'Genève',
         'procedure'           => $procedure,
         'salaire_horaire'     => $tarif,
@@ -753,7 +753,7 @@ foreach ([['Saison ' . $annee . '–' . ($annee + 1) . ' — Romandie', ($annee)
             ->execute([$cid, $sid, $reponse]);
         if ($k % 4 !== 0) {
             journaliser('structure', $sid, 'mailing', 'Présentation de la saison envoyée.',
-                date('Y-m-d H:i:s', strtotime($c[1] . ' +' . ($k * 3) . ' days')));
+                gmdate('Y-m-d H:i:s', strtotime($c[1] . ' +' . ($k * 3) . ' days')));
         }
     }
 }
@@ -769,10 +769,10 @@ $notes = [
 foreach (array_slice($structures, 0, 14) as $i => $sid) {
     $ins('structure_notes', ['structure_id' => $sid, 'contenu' => $notes[$i % count($notes)],
         'utilisateur_id' => $utilisateurs[0],
-        'cree_le' => date('Y-m-d H:i:s', strtotime('-' . mt_rand(10, 300) . ' days'))]);
+        'cree_le' => gmdate('Y-m-d H:i:s', strtotime('-' . mt_rand(10, 300) . ' days'))]);
     if ($i % 3 === 0) {
         journaliser('structure', $sid, 'dernier_concert', 'Concert joué dans cette salle.',
-            date('Y-m-d H:i:s', strtotime('-' . mt_rand(60, 500) . ' days')));
+            gmdate('Y-m-d H:i:s', strtotime('-' . mt_rand(60, 500) . ' days')));
         $pdo->prepare('UPDATE structures SET dernier_concert_le = ? WHERE id = ?')
             ->execute([date('Y-m-d', strtotime('-' . mt_rand(60, 500) . ' days')), $sid]);
     }

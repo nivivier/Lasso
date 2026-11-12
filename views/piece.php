@@ -162,15 +162,6 @@ $estImage  = str_starts_with((string) $p['mime'], 'image/');
             <?php if ((string) $p['mode_paiement'] === 'hors_compte'): ?>
                 <p class="muted small mt-16">Réglée hors du compte suivi : aucune écriture ne viendra, la pièce est classée.</p>
             <?php endif; ?>
-            <?php if ($peutEcrire): ?>
-            <form method="post" action="?p=piece_payee" class="d-inline mt-16">
-                <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-                <input type="hidden" name="id" value="<?= $id ?>">
-                <input type="hidden" name="section" value="annuler">
-                <button type="submit" class="btn ghost btn-sm"
-                        data-confirm="Marquer cette pièce comme non payée ? Son rattachement à une écriture sera défait."><?= icon('x') ?> Pas encore payée</button>
-            </form>
-            <?php endif; ?>
         <?php endif; ?>
     </div>
 

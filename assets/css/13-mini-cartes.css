@@ -1,0 +1,919 @@
+/* ============================================================
+   ?p=structures en mini-cartes (mobile)
+   ============================================================
+   Sous 700px, le tableau des structures — douze colonnes — se relit en
+   cartes : une par structure, six champs réagencés. Aucune duplication de
+   balisage, ce sont les MÊMES <td> repositionnés en grille (les classes
+   col-* de views/structures.php ne servent qu'à ça) ; à 4000 lignes
+   possibles en mode client, un second gabarit aurait pesé plus que la page
+   entière.
+
+   Composition, calquée sur la maquette validée :
+
+       [x] [statut] Nom de la structure            Ville
+                                                   🇨🇭 GE
+           ✎ 12.03.24  ✉ 28.01.24            Salle de concert
+           [étiquette] [étiquette] [+]
+
+   Grille à quatre colonnes : case à cocher | contenu | contenu | bloc de
+   droite. Le nom couvre les colonnes 2 et 3 et se superpose à l'icône de
+   statut, qu'il dégage par un padding fixe — c'est ce qui permet aux dates
+   de la rangée 2 de commencer exactement au même bord gauche que l'icône,
+   sans que la largeur des dates ne repousse le nom.
+
+   ⚠️ Un <tr> passé en display:grid perd sa sémantique de tableau pour les
+   lecteurs d'écran. Compromis assumé et limité au mobile : le <thead> y est
+   de toute façon masqué (les filtres passent par le bouton « Filtres »), et
+   la vue bureau — celle qui porte les en-têtes de colonne — n'est pas
+   touchée. */
+@media (max-width: 700px) {
+
+    /* Un seul bouton de filtres en mobile : « Filtres » reprend les entonnoirs
+       du <thead> masqué ET les champs jauge/mois, ce qui rend l'entonnoir
+       « Plus de filtres » de la toolbar redondant. */
+    .filtres-mobile { display: inline-block; }
+    .toolbar > form > .filters-more { display: none; }
+    /* Une seule ligne : recherche, bouton « Filtres », boutons d'action. C'est
+       le champ de recherche qui cède la place — sans min-width:0 il refuse de
+       descendre sous sa largeur intrinsèque et rejette les icônes d'action à la
+       ligne suivante. */
+    .toolbar { position: relative; gap: 10px 8px; }
+    /* flex-basis à 0, et non auto : avec flex-wrap, le navigateur répartit les
+       éléments sur les lignes d'après leur base AVANT de rétrécir quoi que ce
+       soit. Une base « auto » vaut ici la largeur intrinsèque du champ de
+       recherche (278px mesurés), ce qui suffit à rejeter les boutons d'action
+       à la ligne suivante alors même que le champ était rétrécissable. */
+    .toolbar > form.filters { flex: 1 1 0; min-width: 0; }
+    .toolbar > form.filters .search-label { min-width: 0; flex: 1 1 0; }
+    .toolbar > form.filters .search-label input { min-width: 0; }
+    .toolbar .head-actions { flex: 0 0 auto; margin-left: 0; }
+}
+
+/* ── Listes en cartes — requête de CONTENEUR et non de fenêtre ──────────────
+   Ces règles valent partout où la liste est À L'ÉTROIT, pas seulement sur un
+   téléphone : la colonne de gauche de la vue deux colonnes (.duo-liste) fait
+   300px sur un écran de 1500, et elle doit y montrer exactement les mêmes
+   cartes. Le conteneur est .table-scroll, qui enveloppe le tableau dans les
+   deux cas — et non .module-content-inner, qui contiendrait aussi la carte
+   des lieux (position: fixed, qu'un conteneur casserait).
+   C'est la raison d'être du découpage : le reste du bloc téléphone (barre
+   d'outils, filtres) dépend bien de la fenêtre et est resté en @media. */
+@container liste (max-width: 700px) {
+    /* Tout ce bloc est cloisonné derrière .liste-cartes, classe posée
+       explicitement par la vue. Ciblé sur .list-wide, il emportait aussi les
+       listes salaires / employés / événements / factures, qui partagent cette
+       classe : leurs lignes passaient en grille sans avoir la moindre classe
+       col-*, et leurs cellules se chevauchaient. */
+    .liste-cartes thead { display: none; }
+    .liste-cartes,
+    .liste-cartes tbody { display: block; }
+    /* .liste-cartes impose min-width:680px pour défiler horizontalement en vue
+       liste ; en cartes, cette largeur pousserait le bloc de droite hors de
+       l'écran. */
+    .liste-cartes { min-width: 0; }
+    /* Le tableau garde sa pleine largeur (marge négative héritée de
+       .module-content-inner .table-scroll) : c'est ce qui permet aux filets de
+       séparation d'aller d'un bord à l'autre de l'écran. Le contenu des fiches
+       reste aligné sur le reste de la page grâce au padding horizontal posé sur
+       la ligne, plus bas. Les paddings de première et dernière cellule, eux,
+       n'ont plus lieu d'être : en grille, « première » et « dernière » ne
+       correspondent plus à gauche et à droite. */
+    /* Remise à zéro réservée aux listes en cartes : là, c'est la grille de la
+       fiche qui pose le retrait, pas la cellule. Appliquée à toutes les listes,
+       elle collait au bord de l'écran la première colonne des tableaux restés
+       des tableaux — la comptabilité, notamment. Les lignes de séparation en
+       sont exclues : leur libellé n'est pas placé par la grille. */
+    .module-content-inner .table-scroll .liste-cartes tr:not(.mois-sep):not(.fiche-mois-sep):not(.ecr-mois-sep) > :first-child,
+    .module-content-inner .table-scroll .liste-cartes tr:not(.mois-sep):not(.fiche-mois-sep):not(.ecr-mois-sep) > :last-child { padding-left: 0; padding-right: 0; }
+    /* Rien ici sur .table-scroll : ce conteneur porte le défilement horizontal
+       de TOUS les tableaux, y compris ceux qui restent des tableaux sur
+       téléphone — la comptabilité en particulier. Une règle globale
+       « overflow-x: visible » leur retirait ce défilement. Les listes en cartes
+       n'en ont pas besoin : leurs lignes sont en min-width:0 et tiennent dans
+       la largeur, donc le conteneur ne défile pas de lui-même. */
+    /* Le cadre du tableau (fond, bordure, ombre) n'a plus d'objet quand chaque
+       ligne porte le sien : ses bordures haute et basse tiraient un trait entre
+       la barre d'action et la première carte. */
+    .module-content-inner .table-scroll .liste-cartes,
+    .liste-cartes { border: 0; background: none; box-shadow: none; }
+
+    .liste-cartes tbody tr {
+        display: grid;
+        /* Trois colonnes : case à cocher | nom et ville | catégorie et dates.
+           La 1re est réservée à la case et n'existe que s'il y en a une (classe
+           posée par la vue selon le droit d'écriture). La 3e se dimensionne sur
+           la CATÉGORIE, restée dans le flux : une largeur figée réservait 136px
+           même à « Autres », et le nom se tronquait alors qu'il restait 60px de
+           libre à côté. Plancher à la largeur d'une date, parce que les deux
+           dates sont posées hors flux et ne participent pas au calcul —
+           en dessous, elles déborderaient sur le nom. */
+        grid-template-columns: var(--carte-check, 0px) minmax(0, 1fr) minmax(var(--carte-date), auto);
+        column-gap: 8px;
+        align-items: start;
+        /* Repère de positionnement du bloc de droite, posé hors flux. */
+        position: relative;
+        /* Séparateur plutôt que cadre : les fiches se suivent, séparées d'un
+           filet, au lieu d'être chacune dans sa boîte. Le filet court d'un bord
+           à l'autre de l'écran ; c'est le padding horizontal — celui du reste
+           de la page — qui garde le contenu aligné. */
+        padding: 12px var(--content-pad);
+        border-bottom: 1px solid var(--line);
+        /* De quoi loger la colonne de droite, qui ne pousse plus rien : ses
+           trois lignes plus les marges hautes et basses. */
+        min-height: calc(24px + var(--carte-l-cat) + 2 * var(--carte-l-date));
+    }
+    .liste-cartes tbody tr:last-child { border-bottom: 0; }
+    .liste-cartes tbody tr.inactif { opacity: .62; }
+    /* Une cellule qui ne porte qu'un tiret disparaît de la carte. Dans un
+       TABLEAU le tiret tient la colonne alignée et dit « rien ici » ; sur une
+       carte il n'y a plus de colonne à tenir, et « Échéance — » se lit comme
+       une information alors que c'est une absence. La vue pose la classe, elle
+       seule sait si la cellule est vide. */
+    .liste-cartes tbody td.carte-vide { display: none; }
+    /* Les bordures de cellule du tableau n'ont plus de sens en carte. */
+    .liste-cartes tbody td {
+        border: 0;
+        padding: 0;
+        line-height: 1.4;
+    }
+
+    /* Case à cocher en haut à gauche, sur la première rangée seulement : à
+       cheval sur toutes les rangées elle se centrait verticalement, loin du nom
+       auquel elle se rapporte. Les rangées suivantes (dates, étiquettes)
+       repartent donc de la colonne 1, au bord gauche du contenu. */
+    /* Colonne 1 réservée à la case à cocher, et seulement quand il y en a une
+       (classe posée par la vue selon le droit d'écriture) — sinon les cartes
+       porteraient une gouttière vide à gauche. */
+    .liste-cartes.avec-check tbody tr { --carte-check: 22px; }
+    /* Pas vertical de la colonne de gauche, et hauteurs de ligne du bloc de
+       droite. Ces deux dernières sont en pixels et non en multiple de la taille
+       de police : elles servent à CALCULER la position de la catégorie, posée
+       hors flux — un interligne relatif rendrait ce calcul faux. */
+    .liste-cartes tbody tr {
+        --carte-date: 78px;
+        /* Interlignes de la colonne de droite, en pixels : ils servent à
+           CALCULER la position de chaque ligne, celle-ci étant posée hors flux
+           (voir plus bas) — un interligne relatif rendrait le calcul faux. */
+        --carte-l-cat: 14px;
+        --carte-l-date: 13px;
+        /* Plafonné en vw pour les écrans étroits : à 320px, une réserve figée à
+           136px ne laisserait plus de place au nom. */
+        --carte-droite: min(136px, 40vw);
+    }
+
+    /* --- Colonne de gauche : la case à cocher, et elle seule --- */
+    /* L'icône de statut quitte la carte : c'est la BORDURE de la case qui porte
+       désormais le statut (règles plus bas). La cellule reste dans le document,
+       simplement sortie du champ visuel, pour que son libellé — « Contact
+       privilégié », « Inactif »… — continue d'exister pour les lecteurs
+       d'écran ; display:none l'aurait retirée de l'arbre d'accessibilité, et le
+       statut ne serait plus annoncé nulle part. */
+    .liste-cartes td.col-statut {
+        position: absolute; width: 1px; height: 1px;
+        overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+    }
+    /* text-align:left : la colonne de cases est centrée en vue tableau, ce qui
+       décalait la case de 9px vers la droite par rapport aux étiquettes en
+       dessous. display:flex : dans un bloc, la case est un élément en ligne
+       posé sur la ligne de base de sa boîte de ligne, ce qui la faisait
+       descendre de 3,5px sous le bord du contenu. */
+    .liste-cartes td.col-check {
+        grid-column: 1; grid-row: 1; align-self: start; padding-top: 0;
+        text-align: left; display: flex;
+    }
+    /* La case est redessinée (appearance:none) : une case native n'accepte pas
+       de couleur de bordure, or c'est elle qui porte le statut ici. Le crochet
+       de l'état coché est donc à redessiner aussi, en masque — sans quoi cocher
+       ne se verrait plus. Les 3px du haut sont un décalage optique : la case
+       fait 15px et se pose en haut d'une ligne de 19px, elle paraît sinon plus
+       haute que le nom. Les autres marges natives sautent. */
+    .liste-cartes td.col-check input {
+        appearance: none; -webkit-appearance: none;
+        width: 15px; height: 15px; margin: 3px 0 0;
+        border: 2px solid var(--line); border-radius: 4px;
+        background: var(--card); cursor: pointer;
+    }
+    /* Crochet en image de fond, et non en ::before/::after : un <input> est un
+       élément remplacé, ses pseudo-éléments ne sont pas rendus — la coche
+       n'aurait jamais été visible. Tracé blanc sur le fond primary, donc lisible
+       dans les deux thèmes. */
+    .liste-cartes td.col-check input:checked {
+        background-color: var(--primary); border-color: var(--primary);
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12.5 4.5 4.5L19 7'/%3E%3C/svg%3E");
+        background-repeat: no-repeat; background-position: center; background-size: 10px;
+    }
+    /* Le statut, porté par la bordure. Mêmes couleurs que
+       STRUCTURE_STATUTS_CLASSES_ICONE (lib/booking.php) : ico-pink, ico-ok,
+       ico-danger, muted. Les deux statuts qui disent de laisser la structure
+       tranquille passent en pointillés — sans quoi la couleur porterait seule
+       tout le sens, et rien ne resterait pour qui la distingue mal.
+       Ces règles sont plus spécifiques que celle de l'état coché ci-dessus :
+       c'est VOULU. La bordure garde donc la couleur du statut quand la ligne
+       est sélectionnée, seul le fond passe au primary — sans quoi cocher une
+       ligne effacerait son statut. */
+    .liste-cartes tbody tr[data-statut="contact_privilegie"] td.col-check input { border-color: var(--rose); }
+    .liste-cartes tbody tr[data-statut="actif"] td.col-check input { border-color: var(--ok); }
+    .liste-cartes tbody tr[data-statut="a_verifier"] td.col-check input { border-color: var(--amber); }
+    .liste-cartes tbody tr[data-statut="ne_pas_contacter"] td.col-check input {
+        border-color: var(--danger); border-style: dashed;
+    }
+    .liste-cartes tbody tr[data-statut="inactif"] td.col-check input {
+        border-color: var(--muted); border-style: dashed;
+    }
+
+    /* --- Colonne du milieu : le nom, puis la ville --- */
+    .liste-cartes td.col-nom {
+        grid-column: 2; grid-row: 1;
+        min-width: 0; font-size: var(--fs-large); line-height: 1.3;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    /* Le marquage rapide (étoile / cœur) sort de la carte : deux icônes de plus
+       devant le nom sur un écran de 375px, pour un critère qui reste filtrable
+       depuis « Filtres ». Il revient tel quel au-delà de 700px. */
+    /* L'étoile de marquage a rejoint la colonne « Tags » — même
+       traitement qu'avant : masquée en mini-cartes, où la place manque. */
+    .liste-cartes td.col-ville {
+        grid-column: 2; grid-row: 2;
+        min-width: 0; font-size: var(--fs-small); line-height: 1.45;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    /* Ville, drapeau et canton restent sur une seule ligne — le canton au même
+       corps que la catégorie, pour qu'il se lise comme un repère et non comme
+       le nom du lieu. */
+    .liste-cartes td.col-ville .tiny { font-size: var(--fs-tiny); }
+    /* La carte a son propre corps pour la ville : la remonter d'un cran ici la
+       mettrait au niveau du nom de la structure, juste au-dessus. */
+    .liste-cartes td.col-ville strong { font-size: var(--fs-small); }
+
+    /* --- Colonne de droite : catégorie, puis les deux dates --- */
+    .liste-cartes td.col-categorie,
+    .liste-cartes td.col-maj-le,
+    .liste-cartes td.col-contact-le {
+        text-align: right; max-width: var(--carte-droite);
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    /* La catégorie reste DANS le flux : c'est elle qui donne sa largeur à la
+       piste de droite, et donc au nom le reste. */
+    .liste-cartes td.col-categorie {
+        grid-column: 3; grid-row: 1; justify-self: end; line-height: var(--carte-l-cat);
+    }
+    /* Les deux dates, elles, sont posées HORS FLUX. Dans la grille, la hauteur
+       de leur rangée était dictée par la colonne de GAUCHE — ville 17px — et
+       c'est elle qui les écartait l'une de l'autre. Détachées, elles suivent
+       leur propre pas, calé sur la ligne de la catégorie qui les précède. */
+    .liste-cartes td.col-maj-le,
+    .liste-cartes td.col-contact-le { position: absolute; right: var(--content-pad); }
+    .liste-cartes td.col-categorie,
+    .liste-cartes td.col-categorie .row-field-txt { font-size: var(--fs-tiny); color: var(--muted); }
+    /* La catégorie ne garde que sa feuille : le préfixe (catégorie parente)
+       ferait une deuxième ligne pour une information redondante ici. */
+    .liste-cartes td.col-categorie .row-field-prefix { display: none; }
+    /* La troncature doit être posée sur l'élément qui porte le texte :
+       .row-field-txt est un conteneur flex en overflow:hidden dont l'enfant est
+       en overflow:visible (voir § champs de ligne), si bien que le texte est
+       coupé net, sans points de suspension. Le préfixe est exclu : il est lui
+       aussi un enfant direct, et la règle le rendrait plus spécifique que le
+       display:none ci-dessus, donc de nouveau visible. */
+    .liste-cartes td.col-categorie .row-field-txt > span:not(.row-field-prefix) {
+        display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        /* Répété ici parce que la règle de la vue tableau vise le même élément
+           avec une spécificité supérieure à celle qui fixe --fs-tiny sur .row-field-txt
+           juste au-dessus — sans cette ligne, la carte hériterait du corps du
+           tableau. */
+        font-size: var(--fs-tiny);
+    }
+    .liste-cartes td.col-maj-le,
+    .liste-cartes td.col-contact-le {
+        font-size: var(--fs-tiny); line-height: var(--carte-l-date); font-variant-numeric: tabular-nums;
+    }
+    /* Contacté d'abord, modifié ensuite : c'est la date de contact qui décide
+       d'une relance, celle de modification n'est qu'un repère de fraîcheur de
+       la fiche. L'ordre du tableau, lui, est fixé par les colonnes. */
+    .liste-cartes td.col-contact-le { top: calc(12px + var(--carte-l-cat)); }
+    .liste-cartes td.col-maj-le { top: calc(12px + var(--carte-l-cat) + var(--carte-l-date)); }
+    /* Crayon = dernière modification, enveloppe = dernier contact. Posés en
+       CSS et non dans le balisage : deux icônes par ligne sur 4000 lignes
+       pèsent, celles-ci ne coûtent rien. Le masque prend la couleur du texte,
+       donc suit le thème sombre sans seconde déclaration. */
+    /* Les trois masques sont déclarés hors de ce bloc — ils valent à toutes
+       les largeurs depuis que les colonnes affichent des durées. Ne restent ici
+       que les réglages propres à la mini-carte : icône un peu plus serrée
+       contre son texte, et calage vertical d'un pixel différent (10px de corps
+       ici contre 9 en tableau). */
+    .liste-cartes td.col-maj-le.a-date::before,
+    .liste-cartes td.col-contact-le.a-date::before {
+        vertical-align: -1px; margin-right: 3px;
+    }
+
+    /* --- Dernière rangée : les étiquettes, sur toute la largeur --- */
+    /* Chacune sa rangée : posées toutes deux sur la troisième, elles se
+       recouvraient — la seconde masquait la première. */
+    .liste-cartes :is(td.col-tags, td.col-campagnes) {
+        grid-column: 1 / -1;
+        margin-top: 6px;
+        display: flex; flex-wrap: wrap; gap: 4px; align-items: center;
+    }
+    .liste-cartes td.col-tags { grid-row: 3; }
+    .liste-cartes td.col-campagnes { grid-row: 4; }
+    .liste-cartes :is(td.col-tags, td.col-campagnes) .badge { margin-left: 0; font-size: var(--fs-tiny); }
+    /* Pas de croix de retrait au doigt : à 11px dans une étiquette de 9px, la
+       cible est trop petite pour être visée sans erreur — et se tromper retire
+       une étiquette. Le retrait se fait depuis la fiche, où il y a la place. */
+    .liste-cartes :is(td.col-tags, td.col-campagnes) .btn-tag-x { display: none; }
+
+    /* Sans place sur un téléphone : elles restent dans la vue bureau. La
+       première n'est plus une colonne mais une ligne sous le nom (.nom-liees,
+       déplacée dans la cellule « Nom ») — d'où le sélecteur d'élément et non
+       de cellule. */
+    .liste-cartes .nom-liees,
+    .liste-cartes td.col-factures,
+    .liste-cartes td.col-nb-evenements { display: none; }
+    /* La colonne « Suivi » du démarchage (?p=booking_campagne) : la grille de la carte
+       ne connaît que les colonnes de ?p=structures, et sans place assignée elle
+       se rangerait d'elle-même dans la première case libre — par-dessus le nom. */
+    .liste-cartes td.col-suivi:empty { display: none; margin: 0; }
+
+    /* Le suivi d'une campagne, sur téléphone : la piste de droite change de
+       locataire. Le type de structure et les deux dates (dernier contact,
+       dernière modification) en sortent — sur cet écran on démarche, et ces
+       trois-là ne décident de rien —, et les boutons prennent leur place, à
+       portée de pouce en bout de ligne plutôt qu'à la ligne suivante.
+       Une seule des deux cellules est remplie à la fois : une structure
+       contactée n'a plus d'actions, une structure à contacter n'a pas encore de
+       réponse. Elles peuvent donc viser la même case. */
+    .campagne-structures.liste-cartes td.col-categorie,
+    .campagne-structures.liste-cartes td.col-maj-le { display: none; }
+    /* La piste de droite porte deux blocs l'un sous l'autre — les boutons, puis
+       la date du dernier contact — pour 61px, quand le nom et la ville n'en
+       font que 38 en vis-à-vis. Elle est donc posée HORS FLUX, comme les dates
+       qu'elle remplace : en flux, elle étirait les rangées de la grille et son
+       surplus retombait à gauche, en blanc — 22px entre le nom et la ville, ou
+       autant avant les étiquettes selon la rangée qui l'absorbait. Détachée,
+       elle ne pousse plus rien : la colonne de gauche garde son pas, et les
+       étiquettes reprennent juste sous la ville, à côté de la date. */
+    .campagne-structures.liste-cartes tbody tr {
+        /* La piste de droite n'a plus rien en flux pour lui donner sa largeur :
+           sans ce plancher elle retomberait à la largeur d'une date et les
+           boutons recouvriraient le nom. C'est la largeur que le sélecteur de
+           réponse prenait de lui-même — rien ne bouge à l'écran. */
+        --carte-date: 140px;
+        /* Hauteur du bloc de boutons. En pixels et non en multiple de la taille
+           de police : elle sert à CALCULER la position de la date, posée hors
+           flux, comme --carte-l-cat et --carte-l-date plus haut. */
+        --carte-l-suivi: 43px;
+    }
+    .campagne-structures.liste-cartes td.col-suivi {
+        position: absolute; top: 12px; right: var(--content-pad);
+        margin-top: 0; max-width: none;
+    }
+    /* En mini-carte, la cellule n'est plus une cellule de tableau : c'est elle
+       qui porte l'alignement, l'enveloppe se contente de suivre. */
+    .campagne-structures.liste-cartes td.col-suivi .suivi-cell {
+        display: flex; justify-content: flex-end; align-items: center;
+        /* Les deux blocs possibles n'ont pas la même hauteur — le sélecteur de
+           réponse 43px, les deux boutons 37 — et la date qui suit se posait donc
+           6px plus haut d'une carte à l'autre. Une hauteur commune, celle du
+           plus grand, les aligne toutes. */
+        min-height: var(--carte-l-suivi);
+    }
+    /* La date de dernier contact reste, elle : c'est elle qui décide d'une
+       relance, et le bouton qui la déclenche est juste au-dessus — d'où les 5px
+       qui les séparent, sans quoi les deux blocs se touchaient et se lisaient
+       comme un seul. La règle générale la cale sur une ligne de catégorie qui
+       n'existe plus sur cet écran. */
+    .campagne-structures.liste-cartes td.col-contact-le {
+        top: calc(12px + var(--carte-l-suivi) + 5px);
+        max-width: none;
+    }
+    /* Les étiquettes s'arrêtent avant la piste de droite au lieu de courir d'un
+       bord à l'autre : elles longent la date du dernier contact, qui occupe la
+       même hauteur. Sur toute la largeur, elles seraient passées dessous. */
+    .campagne-structures.liste-cartes td.col-tags { grid-column: 1 / 3; }
+
+    /* ============================================================
+       ?p=fiches (salaires) en mini-cartes
+       ============================================================
+       Six champs sur deux rangées : l'employé et le mois en tête, puis brut,
+       net, paiement et l'accusé d'envoi. Les colonnes qui ne tiennent pas sur
+       un téléphone — axes, déductions, impôt à la source, charges patronales,
+       coût employeur — restent dans la vue bureau. Brut et net sont étiquetés
+       en CSS : leurs en-têtes de colonne sont masqués, sans quoi deux montants
+       nus se ressembleraient. */
+    .cartes-fiches tbody tr {
+        grid-template-columns: auto auto minmax(0, 1fr) auto;
+    }
+    .cartes-fiches td.col-employe {
+        grid-column: 1 / 4; grid-row: 1;
+        min-width: 0; font-size: var(--fs-large); line-height: 1.3; font-weight: 600;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .cartes-fiches td.col-date {
+        grid-column: 4; grid-row: 1; justify-self: end;
+        font-size: var(--fs-large); line-height: 1.3; color: var(--muted); white-space: nowrap;
+    }
+    .cartes-fiches td.col-brut,
+    .cartes-fiches td.col-net {
+        grid-row: 2; font-size: var(--fs-small); white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+    }
+    .cartes-fiches td.col-brut { grid-column: 1; }
+    .cartes-fiches td.col-net { grid-column: 2; padding-left: 12px; }
+    /* Étiquettes portées par le CSS : rien à ajouter au balisage, et donc rien
+       à payer sur chaque ligne. */
+    .cartes-fiches td.col-brut::before,
+    .cartes-fiches td.col-net::before { color: var(--muted); font-weight: 400; }
+    .cartes-fiches td.col-brut::before { content: "Brut "; }
+    .cartes-fiches td.col-net::before { content: "Net "; }
+    /* Le paiement occupe la DERNIÈRE colonne, sous la date : il se cale ainsi
+       contre le bord droit de la carte. L'accusé d'envoi passe juste avant lui.
+       text-align en plus de justify-self : sans lui, la cellule occupe toute sa
+       piste et la pastille se pose à gauche de celle-ci. */
+    .cartes-fiches td.col-paiement {
+        grid-column: 4; grid-row: 2; justify-self: end; text-align: right;
+    }
+    .cartes-fiches td.col-envoyee {
+        grid-column: 3; grid-row: 2; justify-self: end; text-align: right;
+    }
+    /* Tout le reste sort de la carte. Exprimé en exclusion : ajouter une
+       colonne au tableau la masquera d'office en mobile, plutôt que de la
+       laisser apparaître au milieu de la carte sans qu'on l'ait voulu. */
+    /* La ligne de séparation d'année est exclue de la règle : sa cellule ne
+       porte aucune classe col-*, elle était donc masquée avec les autres — et
+       les repères « 2027 », « 2026 » disparaissaient de la liste. */
+    .cartes-fiches tbody tr:not(.fiche-mois-sep) td:not(.col-date):not(.col-employe):not(.col-brut):not(.col-net):not(.col-paiement):not(.col-envoyee) {
+        display: none;
+    }
+    /* Séparateurs d'année : ce ne sont pas des fiches, ils reprennent une
+       disposition de bloc simple. display:table-row ne convenait pas — dans un
+       tbody lui-même passé en block, ils disparaissaient purement et
+       simplement. */
+    .cartes-fiches tbody tr.fiche-mois-sep {
+        display: block; padding: 0; border-bottom: 0; min-height: 0;
+    }
+    /* Même retrait horizontal que les fiches : le tableau va d'un bord à
+       l'autre de l'écran, et la règle qui annule le padding de première cellule
+       collait « 2027 » contre le bord. */
+    .cartes-fiches tbody tr.fiche-mois-sep td {
+        display: block; padding-left: var(--content-pad); padding-right: var(--content-pad);
+    }
+    /* La même carte sur la fiche d'un employé (_employe_fiche.php) : pas de
+       ligne d'employé — c'est la page —, le mois prend sa place, à gauche et
+       à l'encre. */
+    .cartes-fiches-employe td.col-date {
+        grid-column: 1 / 4; justify-self: start; color: var(--ink); font-weight: 600;
+    }
+
+    /* ============================================================
+       ?p=employes, ?p=evenements, ?p=factures en mini-cartes
+       ============================================================
+       Même principe que les deux listes ci-dessus : les MÊMES <td> replacés en
+       grille, les colonnes qui ne tiennent pas sur un téléphone restant dans la
+       vue bureau. Chaque liste garde ses propres champs, ceux que vous avez
+       retenus, et son propre gabarit de grille — seule la mécanique est
+       partagée. Les règles de masquage sont écrites en EXCLUSION : une colonne
+       ajoutée un jour au tableau sera masquée d'office en mobile, plutôt que
+       d'apparaître au milieu d'une carte sans qu'on l'ait voulu. */
+
+    /* --- Employés : le nom, et la dernière fiche en dessous --- */
+    /* Deux rangées et non deux colonnes : la cellule « dernière fiche » ne
+       contient pas qu'un mois, elle porte aussi le brut et le net, et sur une
+       même ligne elle écrasait le nom. */
+    .cartes-employes tbody tr { grid-template-columns: minmax(0, 1fr); }
+    .cartes-employes td.col-nom-emp {
+        grid-column: 1; grid-row: 1; min-width: 0;
+        font-size: var(--fs-large); line-height: 1.3;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .cartes-employes td.col-derniere {
+        grid-column: 1; grid-row: 2; min-width: 0;
+        font-size: var(--fs-small); line-height: 1.45;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .cartes-employes td.col-derniere::before { content: "Dernière fiche : "; color: var(--muted); }
+    .cartes-employes tbody tr td:not(.col-nom-emp):not(.col-derniere) { display: none; }
+
+    /* --- Personnes : le nom, ce qui la retient, puis son adresse --- */
+    /* Trois rangées et non trois colonnes : les rattachements sont des liens
+       nommés (une ou plusieurs structures), ils ne tiennent pas sur la même
+       ligne que le nom. Le téléphone reste hors de la carte : il ne sert pas à
+       reconnaître quelqu'un dans une liste. */
+    .cartes-personnes tbody tr { grid-template-columns: minmax(0, 1fr); }
+    .cartes-personnes td.col-nom-personne {
+        grid-column: 1; grid-row: 1; min-width: 0;
+        font-size: var(--fs-large); line-height: 1.3;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .cartes-personnes td.col-rattachements {
+        grid-column: 1; grid-row: 2; min-width: 0;
+        font-size: var(--fs-small); line-height: 1.45;
+    }
+    .cartes-personnes td.col-email-personne {
+        grid-column: 1; grid-row: 3; min-width: 0;
+        font-size: var(--fs-small); line-height: 1.45;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .cartes-personnes tbody tr td:not(.col-nom-personne):not(.col-rattachements):not(.col-email-personne) { display: none; }
+
+    /* --- Événements : la mini-ligne partagée, et rien d'autre --- */
+    /* La liste ne se recompose plus cellule par cellule ici : elle montre la
+       même mini-ligne que la carte d'une structure et le tableau de bord
+       (evenement_mini_html()). Reste la case à cocher, qui n'existe que sur cet
+       écran — elle se range à gauche de la pastille de date. */
+    .cartes-evenements tbody tr {
+        grid-template-columns: var(--carte-check, 0px) minmax(0, 1fr);
+        align-items: center;
+        min-height: 0;
+    }
+    .cartes-evenements.avec-check tbody tr { --carte-check: 22px; }
+    .cartes-evenements td.col-check {
+        grid-column: 1; align-self: center;
+        display: flex; text-align: left; padding-top: 0;
+    }
+    .cartes-evenements td.col-check input { margin: 0; }
+    .cartes-evenements td.col-mini { grid-column: 2; display: block; min-width: 0; }
+    /* La mini-ligne porte déjà le filet de séparation entre deux lignes d'une
+       même carte ; ici c'est la ligne du tableau qui l'a, il ne faut pas les
+       deux. */
+    .cartes-evenements td.col-mini .evt-mini { border-top: 0; }
+    .cartes-evenements td.col-mini .evt-mini-lien { padding: 0; }
+    .cartes-evenements tbody tr:not(.mois-sep) td:not(.col-check):not(.col-mini) {
+        display: none;
+    }
+
+    /* --- Pièces : l'intitulé et le montant, puis le tiers, l'échéance et
+       l'état. Même découpe que les factures, qui répondent aux mêmes
+       questions : de quoi s'agit-il, combien, pour quand, où ça en est.
+       ⚠️ TOUTE cellule doit trouver sa place ici : une cellule sans
+       grid-column se range par-dessus le nom (docs/UI.md § 9). La dernière
+       règle du bloc masque donc tout ce qui n'a pas été placé, plutôt que de
+       le laisser flotter — c'est ce qui rend l'oubli visible au lieu de le
+       rendre laid. */
+    .cartes-pieces tbody tr {
+        grid-template-columns: auto minmax(0, 1fr) auto;
+    }
+    .cartes-pieces td.col-nom {
+        grid-column: 1 / 3; grid-row: 1; min-width: 0;
+        font-size: var(--fs-large); line-height: 1.3;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    /* La catégorie présumée, posée sous l'intitulé par .row-field-txt, n'a pas
+       sa place sur une carte : elle doublerait la hauteur de chaque ligne pour
+       une information de rangement. */
+    .cartes-pieces td.col-nom .row-field-txt { display: none; }
+    .cartes-pieces td.col-montant {
+        grid-column: 3; grid-row: 1; justify-self: end; text-align: right;
+        font-size: var(--fs-big); line-height: 1.2; white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+    }
+    .cartes-pieces td.col-tiers {
+        grid-column: 1; grid-row: 2; justify-self: start;
+        font-size: var(--fs-small); color: var(--muted); white-space: nowrap;
+        overflow: hidden; text-overflow: ellipsis; max-width: 40vw;
+    }
+    .cartes-pieces td.col-echeance {
+        grid-column: 2; grid-row: 2; justify-self: start; padding-left: 12px;
+        font-size: var(--fs-small); white-space: nowrap; font-variant-numeric: tabular-nums;
+    }
+    /* Le mot devant la date : sans en-tête de colonne, « 31.10.2026 » tout
+       seul ne dit pas de quelle date il s'agit. */
+    .cartes-pieces td.col-echeance::before { content: "Échéance "; color: var(--muted); }
+    .cartes-pieces td.col-etat {
+        grid-column: 3; grid-row: 2; justify-self: end; text-align: right;
+    }
+    /* La DATE de la pièce ne paraît pas : le séparateur de mois la dit déjà,
+       et l'échéance est celle qui appelle un geste. */
+    .cartes-pieces tbody tr:not(.mois-sep) td:not(.col-nom):not(.col-tiers):not(.col-echeance):not(.col-montant):not(.col-etat) {
+        display: none;
+    }
+
+    /* --- Factures : structure et numéro, puis échéance, montant et paiement --- */
+    .cartes-factures tbody tr {
+        grid-template-columns: auto minmax(0, 1fr) auto;
+    }
+    .cartes-factures td.col-structure {
+        grid-column: 1 / 3; grid-row: 1; min-width: 0;
+        font-size: var(--fs-large); line-height: 1.3;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    /* Le numéro passe SOUS la structure, à sa gauche : c'est une référence, pas
+       un titre. Le montant prend sa place à droite, en grand. */
+    .cartes-factures td.col-numero {
+        grid-column: 1; grid-row: 2; justify-self: start;
+        font-size: var(--fs-small); color: var(--muted); white-space: nowrap;
+    }
+    .cartes-factures td.col-montant {
+        grid-column: 3; grid-row: 1; justify-self: end; text-align: right;
+        font-size: var(--fs-big); line-height: 1.2; white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+    }
+    .cartes-factures td.col-echeance {
+        grid-column: 2; grid-row: 2; justify-self: start; padding-left: 12px;
+        font-size: var(--fs-small); white-space: nowrap; font-variant-numeric: tabular-nums;
+    }
+    .cartes-factures td.col-echeance::before { content: "Échéance "; color: var(--muted); }
+    .cartes-factures td.col-paiement {
+        grid-column: 3; grid-row: 2; justify-self: end; text-align: right;
+    }
+    .cartes-factures tbody tr:not(.mois-sep) td:not(.col-numero):not(.col-structure):not(.col-echeance):not(.col-montant):not(.col-paiement) {
+        display: none;
+    }
+
+    /* --- Écritures : qui et combien en tête, puis le libellé et la date, puis
+       ce qu'on en fait (catégorie, pièce, règle), enfin l'axe et le compte.
+       Quatre pistes : la case, le contenu, puis deux colonnes étroites à
+       droite. La 3e ne reçoit que l'icône de pièce : le nom du compte, posé
+       là, l'élargissait au détriment de la catégorie.
+       ⚠️ Les cellules qui portent un champ — catégorie, axe, et en édition
+       d'une écriture manuelle la date, le compte, le texte et le montant —
+       sont PLACÉES, jamais masquées : une cellule masquée emporterait son
+       champ (docs/UI.md § 4). Seule la dernière règle masque, et elle ne
+       vise que ce qui n'aurait pas été placé ici. */
+    .cartes-ecritures tbody tr {
+        grid-template-columns: var(--carte-check, 0px) minmax(0, 1fr) auto auto;
+        row-gap: 4px;
+        align-items: center;
+        min-height: 0;
+    }
+    .cartes-ecritures.avec-check tbody tr { --carte-check: 22px; }
+    .cartes-ecritures td.col-check {
+        grid-column: 1; grid-row: 1; display: flex; padding-top: 0;
+    }
+    .cartes-ecritures td.col-check input { margin: 0; }
+    /* Le fond de la ligne (écriture manuelle, à lettrer, ignorée) est porté
+       par les CELLULES dans le tableau ; en carte elles ne se touchent plus et
+       dessinaient autant de pavés. Il passe donc sur la ligne. */
+    .cartes-ecritures.compta-lettrage tbody tr td,
+    .cartes-ecritures.compta-lettrage tbody tr:not(.ecr-mois-sep):hover td { background: none; }
+    .cartes-ecritures tbody tr.ecr-manuelle { background: var(--row-manuelle); }
+    .cartes-ecritures tbody tr.non-lettre { background: var(--row-attention); }
+    .cartes-ecritures tbody tr.ecr-ignore { background: var(--row-ignore); }
+    .cartes-ecritures td.tiers-cell {
+        grid-column: 2 / 4; grid-row: 1; max-width: none; min-width: 0;
+        font-size: var(--fs-basic); font-weight: 600; color: var(--ink);
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .cartes-ecritures td.ecr-c-montant {
+        grid-column: 4; grid-row: 1; justify-self: end; text-align: right;
+        font-weight: 600; white-space: nowrap;
+    }
+    .cartes-ecritures td.ecr-c-texte {
+        grid-column: 2 / 4; grid-row: 2; max-width: none; min-width: 0;
+    }
+    .cartes-ecritures td.ecr-c-compte {
+        grid-column: 3 / 5; grid-row: 4; justify-self: end; text-align: right; white-space: nowrap;
+    }
+    .cartes-ecritures td.ecr-c-date {
+        grid-column: 4; grid-row: 2; justify-self: end; text-align: right;
+        width: auto; color: var(--muted);
+    }
+    .cartes-ecritures td.cat-cell { grid-column: 2; grid-row: 3; min-width: 0; }
+    .cartes-ecritures td.cat-cell select { width: 100%; max-width: none; }
+    .cartes-ecritures td.piece-cell { grid-column: 3; grid-row: 3; justify-self: end; }
+    .cartes-ecritures td.actions { grid-column: 4; grid-row: 3; justify-self: end; }
+    .cartes-ecritures td.axe-cell { grid-column: 2; grid-row: 4; min-width: 0; }
+    /* Le menu d'axe vide se remplit au chargement ; sans largeur propre il se
+       réduisait à une pastille, faute de colonne pour la lui donner. */
+    .cartes-ecritures td.axe-cell .axe-inline-sel { min-width: 140px; max-width: 100%; }
+    .cartes-ecritures tbody tr:not(.ecr-mois-sep) td:not(.col-check):not(.tiers-cell):not(.ecr-c-montant):not(.ecr-c-texte):not(.ecr-c-compte):not(.ecr-c-date):not(.cat-cell):not(.piece-cell):not(.actions):not(.axe-cell) {
+        display: none;
+    }
+
+    /* Séparateurs de mois (factures, événements, écritures) : ce ne sont pas
+       des fiches. */
+    .liste-cartes tbody tr:is(.mois-sep, .ecr-mois-sep) {
+        display: block; padding: 0; border-bottom: 0; min-height: 0;
+    }
+    .liste-cartes tbody tr:is(.mois-sep, .ecr-mois-sep) td {
+        display: block; padding-left: var(--content-pad); padding-right: var(--content-pad);
+    }
+
+}
+
+/* --- Tableaux de CHIFFRES en cartes (.cartes-chiffres) : un intitulé, puis
+   des montants ou des comptes qui, sans en-tête de colonne, reprennent leur
+   libellé (data-libelle, posé par la vue sur la cellule). Neuf tableaux : les
+   projets, les lignes du décompte, l'analyse par axe, les lignes d'une
+   facture, les copies du serveur, les cotisations, les campagnes d'une
+   structure, les factures et les employés d'un événement. Ils défilaient de biais sur téléphone, et l'on ne voyait pas le
+   chiffre qu'on était venu chercher.
+
+   Même procédé que .liste-cartes (en-têtes masqués, lignes en grille, une
+   grille écrite par tableau — docs/UI.md § 9), mais PAS cette classe, et
+   c'est voulu : son seuil de 700px est calé sur la liste des structures et
+   ses huit colonnes. Ces tableaux-ci en ont trois à cinq, courtes : ils
+   tiennent en tableau bien en dessous, et à 700px la carte des lignes du
+   décompte — exactement cette largeur sur un écran de 1024 — passait en
+   cartes clairsemées sans raison. Ils basculent donc à 560px, sur le même
+   conteneur (.table-scroll). Le pied de tableau (un total) suit la même
+   règle : il est une carte de plus, pas une rangée orpheline.
+   ⚠️ Le sélecteur des cellules double la classe à dessein : les filets et
+   retraits d'un tableau à fleur de page ou de carte (« .module-content-inner
+   .table-scroll .list … td ») l'emportaient sinon, et chaque cellule de la
+   dernière carte portait un trait. */
+@container liste (max-width: 560px) {
+    .cartes-chiffres thead { display: none; }
+    .cartes-chiffres,
+    .cartes-chiffres :is(tbody, tfoot) { display: block; min-width: 0; }
+    .module-content-inner .table-scroll .cartes-chiffres,
+    .cartes-chiffres { border: 0; background: none; box-shadow: none; }
+    .cartes-chiffres :is(tbody, tfoot) tr {
+        display: grid;
+        column-gap: 10px;
+        row-gap: 4px;
+        align-items: baseline;
+        padding: 12px var(--content-pad);
+        border-bottom: 1px solid var(--line);
+    }
+    /* La dernière carte ne trace pas de filet : le bord de la page ou du
+       cadre ferme la liste. */
+    .cartes-chiffres > :last-child > tr:last-child { border-bottom: 0; }
+    /* Dans une carte, le tableau est à fleur de cadre (docs/UI.md § 9) :
+       c'est la ligne qui rend la gouttière, celle de la carte. */
+    .card .cartes-chiffres :is(tbody, tfoot) tr { padding-left: var(--card-pad); padding-right: var(--card-pad); }
+    .table-scroll .cartes-chiffres.cartes-chiffres.list :is(tbody, tfoot) > tr > td { border: 0; padding: 0; line-height: 1.4; background: none; }
+    .table-scroll .cartes-chiffres.cartes-chiffres.list > :last-child > tr:last-child > td { border-bottom: 0; }
+    /* Un total porte son fond sur la CARTE, pas sur chaque cellule : posé
+       cellule par cellule, il dessinait des pavés séparés par la gouttière. */
+    .cartes-chiffres tfoot tr:not(.cr-note) { background: var(--surface); }
+    .cartes-chiffres :is(tbody, tfoot) td:empty { display: none; }
+    /* .cartes-chiffres.list et non seul : « .list .num » aligne à droite, à
+       spécificité égale et plus bas dans la feuille. Hors colonne, il n'y a
+       plus rien à aligner. */
+    .cartes-chiffres.list td.num { text-align: left; }
+    .cartes-chiffres td[data-libelle]::before {
+        content: attr(data-libelle);
+        display: block;
+        color: var(--muted); font-weight: 400; font-size: var(--fs-tiny);
+        letter-spacing: .03em; text-transform: uppercase;
+    }
+
+    /* Projets : le nom et ses boutons, puis les trois comptes de dates. */
+    .cartes-projets :is(tbody, tfoot) tr {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-areas: "nom nom actions" "confirme option annule";
+    }
+    .cartes-projets td.col-projet { grid-area: nom; min-width: 0; }
+    .cartes-projets td.col-confirme { grid-area: confirme; }
+    .cartes-projets td.col-option { grid-area: option; }
+    .cartes-projets td.col-annule { grid-area: annule; }
+    .cartes-projets td.actions { grid-area: actions; justify-self: end; align-self: center; }
+    /* Ouverte en édition, la ligne donne toute la largeur au champ du nom ;
+       les boutons (enregistrer, supprimer, annuler) passent dessous. */
+    .cartes-projets tr.editing { grid-template-areas: "nom nom nom" "actions actions actions"; }
+    .cartes-projets tr.editing :is(.col-confirme, .col-option, .col-annule) { display: none; }
+
+    /* Lignes du décompte : l'interrupteur et le libellé, qui a toute la
+       largeur (son détail est long) ; le taux et les boutons dessous. En
+       édition, le formulaire prend toute la largeur. */
+    .cartes-postes :is(tbody, tfoot) tr {
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        grid-template-areas: "bascule nom nom" "bascule taux actions";
+    }
+    .cartes-postes td.td-toggle { grid-area: bascule; align-self: start; }
+    .cartes-postes td.col-ligne { grid-area: nom; min-width: 0; }
+    .cartes-postes td.td-taux { grid-area: taux; }
+    .cartes-postes td.actions { grid-area: actions; justify-self: end; align-self: end; }
+    .cartes-postes tr.editing {
+        grid-template-areas: "bascule . actions" "nom nom nom" "taux taux taux";
+    }
+    .cartes-postes tr.editing td.actions { white-space: normal; text-align: right; }
+
+    /* Analyse par axe : l'axe et son code, puis recettes, dépenses, résultat. */
+    .cartes-analyse :is(tbody, tfoot) tr {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-areas: "axe axe code" "recettes depenses resultat";
+    }
+    .cartes-analyse td.col-axe { grid-area: axe; min-width: 0; }
+    .cartes-analyse td.col-code { grid-area: code; justify-self: end; }
+    .cartes-analyse td.col-recettes { grid-area: recettes; }
+    .cartes-analyse td.col-depenses { grid-area: depenses; }
+    .cartes-analyse td.col-resultat { grid-area: resultat; }
+
+    /* Lignes d'une facture : la description et son montant, puis quantité,
+       prix unitaire et axe. Le total, en pied, garde le montant à droite. */
+    .cartes-facture-lignes tbody tr {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-areas: "desc desc montant" "qte prix axe";
+    }
+    .cartes-facture-lignes td.col-desc { grid-area: desc; min-width: 0; }
+    .cartes-facture-lignes td.col-qte { grid-area: qte; }
+    .cartes-facture-lignes td.col-prix { grid-area: prix; }
+    .cartes-facture-lignes td.col-montant { grid-area: montant; justify-self: end; text-align: right; white-space: nowrap; }
+    .cartes-facture-lignes td.col-axe-facture { grid-area: axe; min-width: 0; }
+    .cartes-facture-lignes td.col-axe-facture select { width: 100%; }
+    .cartes-facture-lignes tfoot tr { grid-template-columns: minmax(0, 1fr) auto; }
+    .cartes-facture-lignes.list tfoot td.num:first-child { text-align: left; }
+
+    /* Copies du serveur : le motif et son bouton « Restaurer », puis la date
+       et la taille. Sans cela, le bouton — l'usage même d'une copie — était
+       hors de l'écran, au bout d'un défilement de biais. */
+    .cartes-copies tbody tr {
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas: "motif actions" "quand actions";
+        align-items: center;
+    }
+    .cartes-copies td.col-motif { grid-area: motif; min-width: 0; }
+    .cartes-copies td.col-quand { grid-area: quand; color: var(--muted); font-size: var(--fs-tiny); }
+    .cartes-copies td.col-taille { display: none; }
+    .cartes-copies .copie-taille-carte { display: inline; }
+
+    /* Cotisations : la période en titre, puis chaque montant sous son
+       libellé, deux par rangée. Les totaux (pied, sous-totaux) sont des
+       cartes de plus, sur fond. */
+    .cartes-cotisations :is(tbody, tfoot) tr { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .cartes-cotisations td.col-periode { grid-column: 1 / -1; font-weight: 600; }
+    .cartes-cotisations tbody tr:is(.total-row, .subtotal-row) { background: var(--surface); }
+
+    /* Campagnes d'une structure : la campagne et sa période, la réponse et
+       le crayon à droite. L'intertitre « Structures liées » reste une bande. */
+    .cartes-campagnes-fiche tbody tr {
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        grid-template-areas: "camp reponse actions" "periode reponse actions";
+        align-items: center;
+    }
+    .cartes-campagnes-fiche td.col-camp { grid-area: camp; min-width: 0; }
+    .cartes-campagnes-fiche td.col-periode { grid-area: periode; }
+    .cartes-campagnes-fiche td.col-reponse { grid-area: reponse; justify-self: end; }
+    .cartes-campagnes-fiche td.actions { grid-area: actions; justify-self: end; }
+    .cartes-campagnes-fiche tbody tr.mois-sep { display: block; }
+    .cartes-campagnes-fiche tbody tr.mois-sep td { display: block; }
+
+    /* Factures liées à un événement : numéro et montant, puis la structure
+       et le statut ; la croix qui délie, à droite, sur les deux rangées. */
+    .cartes-ev-factures tbody tr {
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        grid-template-areas: "numero montant actions" "structure statut actions";
+        align-items: center;
+    }
+    .cartes-ev-factures td.col-numero { grid-area: numero; font-weight: 600; }
+    .cartes-ev-factures td.col-structure { grid-area: structure; min-width: 0; }
+    .cartes-ev-factures td.col-montant { grid-area: montant; justify-self: end; }
+    .cartes-ev-factures td.col-statut { grid-area: statut; justify-self: end; }
+    .cartes-ev-factures td.actions { grid-area: actions; }
+
+    /* Employés d'un événement : le nom et ses boutons, la fiche et le total,
+       puis l'axe et la durée sur toute la largeur — en édition, ce sont des
+       champs, qui ont besoin de la place. */
+    .cartes-ev-employes tbody tr {
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas: "nom actions" "fiche total" "axe axe" "duree duree";
+    }
+    .cartes-ev-employes td.col-nom { grid-area: nom; font-weight: 600; align-self: center; }
+    .cartes-ev-employes td.epf-actions-cell { grid-area: actions; width: auto; }
+    .cartes-ev-employes td.col-fiche { grid-area: fiche; width: auto; }
+    .cartes-ev-employes td.col-total { grid-area: total; justify-self: end; text-align: right; width: auto; }
+    .cartes-ev-employes td.col-axe { grid-area: axe; width: auto; }
+    .cartes-ev-employes td.col-duree { grid-area: duree; }
+    .cartes-ev-employes td.col-message { grid-column: 1 / -1; }
+    .cartes-copies td.actions { grid-area: actions; justify-self: end; }
+}
+
+/* Sources des deux icônes de date de la vue en cartes (Lucide « pencil » et
+   « mail », mêmes tracés que icone_chemins() dans lib/helpers.php). Déclarées
+   sur :root pour rester lisibles au milieu des règles qui les emploient. */
+:root {
+    --ico-crayon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 20h9'/%3E%3Cpath d='M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z'/%3E%3C/svg%3E");
+    --ico-enveloppe: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='20' height='16' x='2' y='4' rx='2'/%3E%3Cpath d='m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7'/%3E%3C/svg%3E");
+    /* Icônes de LIGNE de ?p=structures — statut et marquage. Elles y étaient
+       rendues 5928 fois (deux par ligne, 2959 lignes) en <svg><use>, soit
+       439 Ko de HTML et 11 856 nœuds pour deux dessins qui ne varient jamais.
+       En masque, le balisage n'en porte plus rien : l'état est DÉJÀ déclaré
+       (data-statut sur la ligne), le CSS n'a qu'à
+       choisir le tracé. Mêmes tracés que icone_chemins() (lib/helpers.php).
+       Les variantes « pleines » ne diffèrent que par fill : un masque ne garde
+       que l'alpha du dessin, un contour donnerait un contour. */
+    /* « circle-dot » et non « circle-check » : la coche dit un geste accompli —
+       un envoi, une confirmation —, pas un état (docs/UI.md § 12). Le point
+       plein se remplit (fill) : un masque ne garde que l'alpha du dessin, et
+       un cercle de rayon 1 en contour seul serait invisible. */
+    --ico-m-actif: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Ccircle cx='12' cy='12' r='1' fill='%23000'/%3E%3C/svg%3E");
+    --ico-m-privilegie: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5'/%3E%3C/svg%3E");
+    /* Le point d'interrogation dit un DOUTE sur ce qu'on a de la structure, pas
+       un manque de champs (voir STRUCTURE_STATUTS_ICONES, lib/booking.php). */
+    --ico-m-a-verifier: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3'/%3E%3Cpath d='M12 17h.01'/%3E%3C/svg%3E");
+    --ico-m-ne-pas-contacter: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='m15 9-6 6'/%3E%3Cpath d='m9 9 6 6'/%3E%3C/svg%3E");
+    --ico-m-inactif: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10.1 2.182a10 10 0 0 1 3.8 0'/%3E%3Cpath d='M13.9 21.818a10 10 0 0 1-3.8 0'/%3E%3Cpath d='M17.609 3.721a10 10 0 0 1 2.69 2.7'/%3E%3Cpath d='M2.182 13.9a10 10 0 0 1 0-3.8'/%3E%3Cpath d='M20.279 17.609a10 10 0 0 1-2.7 2.69'/%3E%3Cpath d='M21.818 10.1a10 10 0 0 1 0 3.8'/%3E%3Cpath d='M3.721 6.391a10 10 0 0 1 2.7-2.69'/%3E%3Cpath d='M6.391 20.279a10 10 0 0 1-2.69-2.7'/%3E%3C/svg%3E");
+    /* Lucide « circle-plus » — la fiche a été créée, pas modifiée. */
+    --ico-creation: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M8 12h8'/%3E%3Cpath d='M12 8v8'/%3E%3C/svg%3E");
+}
+
+/* Fonds de carte OpenStreetMap en thème sombre. Les tuiles sont des images
+   servies par tile.openstreetmap.org, en clair par nature : une carte blanche
+   au milieu d'une interface sombre éblouit. Plutôt que d'ajouter un second
+   fournisseur de tuiles — un hôte externe de plus, une ligne de CSP de plus, un
+   fournisseur de plus à suivre — on inverse les tuiles à l'affichage.
+   hue-rotate(180deg) rattrape l'inversion des teintes : sans lui, la végétation
+   vire au rose et l'eau à l'orange. Le filtre ne porte QUE sur le calque des
+   tuiles : marqueurs, tracés et infobulles gardent leurs couleurs, qui sont
+   déjà celles de l'application.
+   Dupliqué pour les deux modes, comme le reste du fichier : une media query et
+   un attribut ne se combinent pas dans un même sélecteur. */
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="clair"]) .leaflet-tile-pane {
+        filter: invert(1) hue-rotate(180deg) brightness(.92) contrast(.92) saturate(.85);
+    }
+}
+:root[data-theme="sombre"] .leaflet-tile-pane {
+    filter: invert(1) hue-rotate(180deg) brightness(.92) contrast(.92) saturate(.85);
+}
+

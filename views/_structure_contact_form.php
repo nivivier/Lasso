@@ -6,7 +6,7 @@
 // un tiers de largeur).
 //
 // La classe .form n'est pas décorative : sans elle, aucun <label> de la carte
-// Contacts n'hérite du style de champ du site (« .form label », app.css) — ni
+// Contacts n'hérite du style de champ du site (« .form label », assets/css/) — ni
 // colonne, ni libellé en gris, ni marge basse — et les rangées se collaient.
 //
 // Variables attendues (préfixe « cf », comme « pt »/« nt » ailleurs : render()

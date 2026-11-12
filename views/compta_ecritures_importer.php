@@ -46,7 +46,7 @@
         <tbody>
         <?php foreach ($imports as $i): ?>
             <tr>
-                <td><?= e(date('d.m.Y H:i', strtotime((string) $i['importe_le']))) ?></td>
+                <td><?= e(horodatage($i['importe_le'], 'd.m.Y H:i')) ?></td>
                 <td><?= e($i['compte_libelle']) ?></td>
                 <td class="muted small"><?= e($i['nom_fichier']) ?></td>
                 <td class="small"><?= e($i['date_debut']) ?> → <?= e($i['date_fin']) ?></td>

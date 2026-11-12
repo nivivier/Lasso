@@ -129,7 +129,7 @@ function historique_date_stockee(string $saisie, string $reference = ''): ?strin
         return null;
     }
     if ($reference === '') {
-        return $saisie . ' ' . date('H:i:s');
+        return $saisie . ' ' . gmdate('H:i:s');
     }
     return strlen($reference) > 10 ? $saisie . substr($reference, 10) : $saisie;
 }
@@ -1141,7 +1141,7 @@ function route_mailing(): void
         'traiterUrl' => peut_ecrire('booking') ? '?p=mailing_traiter&token=' . mailing_traiter_token() : '',
         'campagnes' => $campagnes,
         'ok' => $_GET['ok'] ?? null,
-    ], 'Envois groupés — Suivi');
+    ], 'Envois groupés');
 }
 
 // Onglet « Nouvelle campagne » : ciblage + message + prévisualisation + test.
@@ -1253,7 +1253,7 @@ function route_mailing_campagne(): void
         'expediteurs' => mailing_expediteurs(),
         'expediteurDefaut' => mailing_expediteur_defaut_libelle(),
         'msg' => $_GET['msg'] ?? null,
-    ], 'Mailing — Nouvelle campagne');
+    ], 'Envois groupés — Nouvel envoi');
 }
 
 // Onglet « Modèles » : modèles de message réutilisables (sujet + corps).
@@ -1313,7 +1313,7 @@ function route_mailing_modeles(): void
         'expediteurDefaut' => mailing_expediteur_defaut_libelle(),
         'saved' => isset($_GET['ok']),
         'err' => $_GET['err'] ?? null,
-    ], 'Mailing — Modèles');
+    ], 'Booking — Modèles');
 }
 
 // Critères de ciblage d'un mailing, depuis $_GET (prévisualisation) ou $_POST
@@ -1459,12 +1459,15 @@ function route_mailing_envoyer(): void
     db()->prepare('INSERT INTO mailing_campagnes (sujet, corps, criteres, nb_destinataires, expediteur_id) VALUES (?, ?, ?, ?, ?)')
         ->execute([$sujet, $corps, json_encode(mailing_criteres_vers_url($criteres), JSON_UNESCAPED_UNICODE), count($destinataires), $expediteurId]);
     $campagneId = (int) db()->lastInsertId();
-    $ins = db()->prepare('INSERT INTO mailing_file_attente (structure_id, contact_id, sujet, corps, campagne_id, expediteur_id) VALUES (?, ?, ?, ?, ?, ?)');
+    // personne_id, et non plus contact_id : migration_100 a renommé la colonne
+    // (la file vise une PERSONNE ; son rôle dans la structure se relit au
+    // moment de l'envoi). tests/pages_test.php § 5 l'a trouvé.
+    $ins = db()->prepare('INSERT INTO mailing_file_attente (structure_id, personne_id, sujet, corps, campagne_id, expediteur_id) VALUES (?, ?, ?, ?, ?, ?)');
     foreach ($destinataires as $d) {
         $sujetP = mailing_personnaliser($sujet, $d['structure'], $d['contact']);
         $corpsP = mailing_personnaliser($corps, $d['structure'], $d['contact'])
             . "\n\n---\nPour ne plus recevoir ces e-mails : " . desinscription_url((int) $d['structure']['id'], $d['contact']['id'] ?? null);
-        $ins->execute([(int) $d['structure']['id'], $d['contact']['id'] ?? null, $sujetP, $corpsP, $campagneId, $expediteurId]);
+        $ins->execute([(int) $d['structure']['id'], $d['contact']['personne_id'] ?? null, $sujetP, $corpsP, $campagneId, $expediteurId]);
     }
     redirect('mailing', ['ok' => count($destinataires)]);
 }
@@ -1498,8 +1501,8 @@ function route_mailing_traiter(): void
         if (!$item) {
             break;
         }
-        $stmtC = db()->prepare('SELECT ' . CONTACT_SELECT . CONTACT_FROM . ' WHERE cs.id = ?');
-        $stmtC->execute([(int) ($item['contact_id'] ?? 0)]);
+        $stmtC = db()->prepare('SELECT ' . CONTACT_SELECT . CONTACT_FROM . ' WHERE cs.personne_id = ? AND cs.structure_id = ?');
+        $stmtC->execute([(int) ($item['personne_id'] ?? 0), (int) $item['structure_id']]);
         $contact = $stmtC->fetch() ?: null;
         // Repli quand la ligne ne vise pas un contact précis : l'adresse qui
         // représente la structure. `structures` n'a plus de colonne email
@@ -1518,9 +1521,9 @@ function route_mailing_traiter(): void
 
         db()->prepare("UPDATE mailing_file_attente SET statut = ? WHERE id = ?")
             ->execute([$ok ? 'envoye' : 'echec', $item['id']]);
-        db()->prepare('INSERT INTO mailing_envois (structure_id, contact_id, sujet, destinataire_email, succes, campagne_id, envoye_le)
+        db()->prepare('INSERT INTO mailing_envois (structure_id, personne_id, sujet, destinataire_email, succes, campagne_id, envoye_le)
                         VALUES (?, ?, ?, ?, ?, ?, datetime(\'now\'))')
-            ->execute([(int) $item['structure_id'], $item['contact_id'], $item['sujet'], $destinataire, $ok ? 1 : 0, $item['campagne_id'] ?? null]);
+            ->execute([(int) $item['structure_id'], $item['personne_id'], $item['sujet'], $destinataire, $ok ? 1 : 0, $item['campagne_id'] ?? null]);
         if ($ok) {
             structure_recalculer_dernier_contact((int) $item['structure_id']);
         }

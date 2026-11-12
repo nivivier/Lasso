@@ -106,7 +106,7 @@
         };
         ?>
         <div class="table-scroll">
-        <table class="list mb-0 campagnes-fiche">
+        <table class="list mb-0 campagnes-fiche cartes-chiffres cartes-campagnes-fiche">
             <?php // Projet et campagne tiennent une seule colonne, l'un sous
                   // l'autre : à cinq colonnes, la carte débordait de l'écran
                   // d'un téléphone. La période, elle, s'enroule sur deux lignes
@@ -128,12 +128,12 @@
                       // La route refuse elle aussi (route_booking_campagne_reponse_enregistrer()).
                       $campOuverte = campagne_ouverte((string) $c['date_debut'], $aujourdhuiCamp); ?>
                 <tr class="camp-ligne">
-                    <td>
+                    <td class="col-camp">
                         <div class="small"><?= $c['projets'] ? e(implode(' · ', $c['projets'])) : '<span class="muted">Sans projet</span>' ?></div>
                         <a href="?p=booking_campagne&id=<?= $cid ?>"><?= e((string) $c['nom']) ?></a>
                     </td>
-                    <td class="muted small"><?= $campPeriode($c) ?></td>
-                    <td class="nowrap">
+                    <td class="muted small col-periode"><?= $campPeriode($c) ?></td>
+                    <td class="nowrap col-reponse">
                         <?php // « À venir » reste visible pendant l'édition de la
                               // ligne : c'est la cellule entière qui n'a rien à
                               // modifier, pas seulement sa partie lecture. ?>
@@ -172,7 +172,7 @@
             <tr class="mois-sep"><td colspan="4">Structures liées</td></tr>
             <?php foreach ($campagnesLiees as $c): $cid = (int) $c['id']; ?>
                 <tr>
-                    <td>
+                    <td class="col-camp">
                         <div class="small"><?= $c['projets'] ? e(implode(' · ', $c['projets'])) : '<span class="muted">Sans projet</span>' ?></div>
                         <a href="?p=booking_campagne&id=<?= $cid ?>"><?= e((string) $c['nom']) ?></a>
                         <div class="muted small">
@@ -180,8 +180,8 @@
                             <a href="<?= url_avec_retour('?p=structure&id=' . (int) $c['structure_id'], 'structure', $sid) ?>"><?= e((string) $c['structure_nom']) ?></a>
                         </div>
                     </td>
-                    <td class="muted small"><?= $campPeriode($c) ?></td>
-                    <td class="nowrap"><?= $campReponseLecture($c) ?></td>
+                    <td class="muted small col-periode"><?= $campPeriode($c) ?></td>
+                    <td class="nowrap col-reponse"><?= $campReponseLecture($c) ?></td>
                     <td></td>
                 </tr>
             <?php endforeach; ?>

@@ -45,9 +45,9 @@ $axeSelect  = $axeSelect  ?? function (string $name, string $class, int $selecte
                 $totalBrut = $ligne ? (float) $ligne['heures_unite'] * (float) $ligne['quantite'] * (float) $ligne['taux_horaire'] : 0;
             ?>
                 <tr>
-                    <td class="epf-col-serre"><?= e($emp['prenom'] . ' ' . $emp['nom']) ?></td>
+                    <td class="epf-col-serre col-nom"><?= e($emp['prenom'] . ' ' . $emp['nom']) ?></td>
                     <?php if (!$unites || !$tauxHoraires): ?>
-                        <td colspan="<?= $colspanMsg ?>" class="muted small">
+                        <td colspan="<?= $colspanMsg ?>" class="muted small col-message">
                             Configurez au moins une unité de temps et un taux horaire (Paramètres &gt; Employeur) pour ajouter une prestation.
                         </td>
                     <?php else:
@@ -61,7 +61,7 @@ $axeSelect  = $axeSelect  ?? function (string $name, string $class, int $selecte
                             $tauxSel = $match ?? 'autre';
                         }
                     ?>
-                        <td class="epf-col-sm epf-col-serre">
+                        <td class="epf-col-sm epf-col-serre col-fiche" data-libelle="Fiche de salaire">
                             <span class="epf-disp"><?php if ($ligne): ?><a href="<?= e(url_avec_retour('?p=fiche&id=' . (int) $ligne['fiche_id'], 'evenement', $id)) ?>"><?= e(mois_nom((int) $ligne['mois']) . ' ' . $ligne['annee']) ?></a><?php else: ?><span class="muted">—</span><?php endif; ?></span>
                             <select form="<?= e($formId) ?>" name="fiche_id" class="fiche-select-sm epf-editable" hidden>
                                 <option value="">— Créer une fiche (<?= e(mois_nom((int) substr($moisEvenement, 5, 2)) . ' ' . substr($moisEvenement, 0, 4)) ?>) —</option>
@@ -71,12 +71,12 @@ $axeSelect  = $axeSelect  ?? function (string $name, string $class, int $selecte
                             </select>
                         </td>
                         <?php if ($axes): ?>
-                        <td class="epf-col-sm epf-col-serre">
+                        <td class="epf-col-sm epf-col-serre col-axe" data-libelle="Axe">
                             <span class="epf-disp"><?= $axeLabel !== '' ? e($axeLabel) : '<span class="muted">—</span>' ?></span>
                             <?= str_replace('name="l_axe"', 'form="' . e($formId) . '" name="l_axe"', $axeSelect('l_axe', 'l-axe epf-editable', (int) ($ligne['axe_analytique_id'] ?? ($evenement['axe_projet'] ?? 0)), true)) ?>
                         </td>
                         <?php endif; ?>
-                        <td class="epf-col-sm">
+                        <td class="epf-col-sm col-duree" data-libelle="Durée et taux horaire">
                             <div class="epf-duree">
                                 <span class="epf-disp"><?= $ligne ? e($ligne['libelle'] . ' × ' . nombre_court((float) $ligne['quantite']) . ' — ' . chf((float) $ligne['taux_horaire']) . ' CHF/h') : '<span class="muted">Aucune prestation</span>' ?></span>
                                 <select form="<?= e($formId) ?>" name="l_unite" class="l-unite epf-editable" hidden><?= preselectionner_option($uniteOpts, $huSel) ?></select>
@@ -85,7 +85,7 @@ $axeSelect  = $axeSelect  ?? function (string $name, string $class, int $selecte
                                 <input form="<?= e($formId) ?>" name="l_taux_manuel" class="l-taux-manuel epf-editable" type="text" inputmode="decimal" placeholder="CHF/h" value="<?= ($ligne && $tauxSel === 'autre') ? e(nombre_court((float) $ligne['taux_horaire'])) : '' ?>" hidden>
                             </div>
                         </td>
-                        <td class="num epf-col-serre"><span class="epf-total-live"><?= $totalBrut > 0 ? chf($totalBrut) . ' CHF' : '—' ?></span></td>
+                        <td class="num epf-col-serre col-total" data-libelle="Total brut"><span class="epf-total-live"><?= $totalBrut > 0 ? chf($totalBrut) . ' CHF' : '—' ?></span></td>
                         <td class="epf-actions-cell epf-col-serre">
                             <?php if ($peutEcrireEv): ?>
                             <form id="<?= e($formId) ?>" method="post" action="?p=evenement_ligne_ajouter<?= $depuisQs ?>">

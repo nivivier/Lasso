@@ -84,26 +84,6 @@
             bloc: '.contact-row', lecture: '.contact-read', edition: '.contact-edit-form',
             ouvrir: '.contact-edit-btn', annuler: '.contact-cancel-btn',
         });
-
-        // Crayon d'en-tête des AUTRES sections de la fiche (structures liées) :
-        // bascule la section en mode édition — seules alors apparaissent ses
-        // commandes lier/délier (.edit-only, masquées par défaut, voir app.css).
-        // Le crayon devient une croix (annuler) tant que l'édition est ouverte.
-        // La carte Contacts, elle, n'a plus de mode global : chaque ligne porte
-        // son crayon et le formulaire d'ajout est toujours accessible.
-        var editToggleIconPencil = <?= json_encode(icon('pencil')) ?>;
-        var editToggleIconX = <?= json_encode(icon('x')) ?>;
-        document.querySelectorAll('.edit-toggle-btn').forEach(function (btn) {
-            var titreDefaut = btn.title;
-            btn.addEventListener('click', function () {
-                var sec = btn.closest('.section-editable');
-                var on = sec.classList.toggle('editing');
-                btn.classList.toggle('on', on);
-                btn.innerHTML = on ? editToggleIconX : editToggleIconPencil;
-                btn.title = on ? 'Annuler' : titreDefaut;
-                btn.setAttribute('aria-label', on ? 'Annuler' : titreDefaut);
-            });
-        });
     })();
     </script>
 </div>

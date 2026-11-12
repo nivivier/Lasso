@@ -1,0 +1,238 @@
+/* ============================================================================
+   Thème sombre — surcharges de COMPOSANTS
+
+   Séparées des tokens et placées en fin de fichier volontairement : redéfinir un
+   token vaut où qu'on soit (il est résolu à l'usage), mais une règle de composant
+   ne l'emporte qu'à partir du moment où elle vient APRÈS celle qu'elle corrige.
+   Placées en tête, ces trois règles étaient silencieusement perdues — le libellé
+   du rail actif restait à 3,6:1.
+
+   Dupliquées pour les deux modes, comme les tokens plus haut : une media query et
+   un attribut ne se combinent pas dans un même sélecteur. Le sélecteur est
+   factorisé sur chaque règle pour que les deux versions ne puissent pas diverger.
+   ========================================================================== */
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="clair"]) {
+        --theme-sombre-actif: 1;
+    }
+}
+
+/* Choix explicite « sombre ». */
+    /* Les deux seules règles où une variante « -d » sert de FOND de survol. Elle est
+       désormais claire (voir couleurs_derivees()), parce que ses quatorze autres
+       usages en font une couleur de texte : la garder comme fond donnerait ici un
+       aplat clair sous un texte blanc. On éclaircit donc l'accent lui-même. */
+    :root[data-theme="sombre"] button:hover, :root[data-theme="sombre"] .btn:hover { background: var(--highlight); border-color: var(--highlight); filter: brightness(1.18); }
+    :root[data-theme="sombre"] .col-filter-apply:hover { background: var(--primary); filter: brightness(1.18); }
+    /* Rien à reprendre ici pour le rail : les teintes de module sont des
+       pastels à encre profonde (MODULE_COULEURS, lib/modules.php), et ce
+       couple se tient aussi bien sur le crème que sur l'encre. */
+
+/* Mode « automatique » : mêmes règles, sous la media query. */
+@media (prefers-color-scheme: dark) {
+    /* Les deux seules règles où une variante « -d » sert de FOND de survol. Elle est
+       désormais claire (voir couleurs_derivees()), parce que ses quatorze autres
+       usages en font une couleur de texte : la garder comme fond donnerait ici un
+       aplat clair sous un texte blanc. On éclaircit donc l'accent lui-même. */
+    :root:not([data-theme="clair"]) button:hover, :root:not([data-theme="clair"]) .btn:hover { background: var(--highlight); border-color: var(--highlight); filter: brightness(1.18); }
+    :root:not([data-theme="clair"]) .col-filter-apply:hover { background: var(--primary); filter: brightness(1.18); }
+    /* Rien à reprendre ici pour le rail : les teintes de module sont des
+       pastels à encre profonde (MODULE_COULEURS, lib/modules.php), et ce
+       couple se tient aussi bien sur le crème que sur l'encre. */
+}
+
+/* Logo du rail : une variante par thème, rendues toutes les deux (voir
+   views/layout.php). Par défaut on montre celle pour fond clair. */
+.side-logo-sombre { display: none; }
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="clair"]) .side-logo-clair  { display: none; }
+    :root:not([data-theme="clair"]) .side-logo-sombre { display: inline; }
+}
+:root[data-theme="sombre"] .side-logo-clair  { display: none; }
+:root[data-theme="sombre"] .side-logo-sombre { display: inline; }
+
+/* Même chose pour le logo en tête d'une facture À L'ÉCRAN (?p=facture) — et
+   seulement à l'écran : le PDF est composé côté serveur sur une feuille
+   blanche, il garde donc la variante pour fond clair. */
+.ps-logo-sombre { display: none; }
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="clair"]) .ps-logo-clair  { display: none; }
+    :root:not([data-theme="clair"]) .ps-logo-sombre { display: block; }
+}
+:root[data-theme="sombre"] .ps-logo-clair  { display: none; }
+:root[data-theme="sombre"] .ps-logo-sombre { display: block; }
+
+/* Même chose pour le logo de la page de connexion (views/layout.php) : son
+   fond suit le thème, le logo aussi. display:block et non inline — l'image est
+   un élément flex de .auth-wrap. */
+.auth-logo-sombre { display: none; }
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="clair"]) .auth-logo-clair  { display: none; }
+    :root:not([data-theme="clair"]) .auth-logo-sombre { display: block; }
+}
+:root[data-theme="sombre"] .auth-logo-clair  { display: none; }
+:root[data-theme="sombre"] .auth-logo-sombre { display: block; }
+
+/* Formulaire d'ajout d'étiquette (?p=structures) : il s'ouvre au milieu d'une
+   cellule dense, entre des badges hauts de 17px. Son gabarit est désormais
+   celui, commun, d'une rangée de liaison posée dans une ligne
+   (.linked-add-ligne, plus haut) — champ et boutons à --action-height-sm. Ne
+   reste ici que ce qui est propre à ce champ-ci : sa liste de suggestions, qui
+   n'existe pas ailleurs. */
+.tag-ajouter-ligne .cat-search-list li { padding: 4px 8px; font-size: var(--fs-small); }
+
+/* Barre d'actions groupées sur petit écran : elle était en flex-wrap:nowrap,
+   si bien que sur un téléphone tout se comprimait sur une seule ligne — le
+   champ de saisie (nom d'étiquette, ville…) se retrouvait réduit à quelques
+   pixels, inutilisable. On autorise le retour à la ligne et on donne au champ
+   une largeur plancher, pour qu'il occupe sa propre ligne plutôt que de se
+   faire écraser. */
+@media (max-width: 800px) {
+    /* La barre est une pastille flottante centrée (position:fixed, left:50% +
+       translateX). Sa largeur suivait son contenu : sur un téléphone, tout se
+       tassait sur une ligne unique et le champ de saisie tombait à quelques
+       pixels. On l'ancre sur les deux bords — elle occupe alors la largeur
+       disponible — et on autorise le retour à la ligne (white-space compris,
+       sans quoi nowrap continuerait de l'empêcher). */
+    .bulk-bar {
+        left: 12px; right: 12px; transform: none;
+        flex-wrap: wrap; gap: 10px; white-space: normal;
+    }
+    .bulk-bar form { flex-wrap: wrap; width: 100%; }
+    /* Le champ prend sa propre ligne plutôt que de se faire écraser. */
+    .bulk-bar .bulk-field { flex: 1 1 100%; }
+    .bulk-bar .bulk-field input,
+    .bulk-bar .bulk-field select,
+    .bulk-bar .bulk-field .cat-search { width: 100%; min-width: 0; }
+    .bulk-bar #bulk-action { flex: 1 1 auto; min-width: 0; }
+}
+
+/* Liste de suggestions retournée vers le haut (classe posée en JS quand il n'y
+   a pas la place en dessous — voir lassoInitTagSuggest()). Indispensable dans la
+   barre d'actions groupées, fixée en bas de l'écran : la liste s'y ouvrait hors
+   du champ de vision. */
+.cat-search-list.vers-le-haut { top: auto; bottom: 100%; margin-bottom: 4px; }
+
+/* Colonne de nom d'un widget du tableau de bord (employé, structure) : c'est la
+   seule dont la longueur est libre, donc la seule qui puisse pousser le tableau
+   au-delà de sa carte. Elle absorbe la place restante et se tronque au besoin.
+
+   Mesuré : le tableau « Factures émises » réclamait 400,7px de largeur minimale
+   dans une carte qui n'en offre que 398 — le nom de structure ne pouvant pas
+   rétrécir, la mise en page automatique élargissait le tableau au-delà du cadre.
+
+   La troncature est posée ICI et non sur toutes les cellules : appliquée
+   largement, elle rognait aussi « Voir », « Janvier 2024 » ou le badge « En
+   retard », que rien n'obligeait à rétrécir. */
+.dash-card table.list td.dash-nom {
+    max-width: 1px; width: 100%;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* La pastille d'identité devant un nom qui se tronque : la cellule reste un
+   BLOC — c'est son overflow qui coupe —, et la pastille s'y range comme un
+   caractère. En faire une cellule flex (.col-employe, liste des fiches) rend
+   le text-overflow inopérant : le nom se coupe alors net, sans points de
+   suite. Un peu plus petite qu'ailleurs, à la mesure de ces lignes-ci. */
+.dash-card table.list td.dash-nom .avatar-ini {
+    width: 22px; height: 22px; margin-right: 7px; vertical-align: -7px;
+}
+/* Nom et date empilés dans la même cellule ($dashIdent, tableau_bord.php) :
+   la pastille à gauche, centrée sur les deux lignes ; chaque ligne se tronque
+   pour son compte. Le flex est sur un span INTÉRIEUR, pas sur la cellule —
+   une cellule flex rendrait le text-overflow inopérant (voir ci-dessus). */
+.dash-ident { display: flex; align-items: center; min-width: 0; }
+.dash-card table.list td.dash-nom .dash-ident .avatar-ini { flex: none; vertical-align: 0; margin-right: 9px; }
+.dash-ident-texte { display: flex; flex-direction: column; min-width: 0; }
+.dash-ident-nom, .dash-ident-sous { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dash-ident-sous { font-size: var(--fs-tiny); color: var(--muted); line-height: 1.35; }
+.dash-card .dash-ident-sous.facture-retard { color: var(--amber); }
+.dash-card .dash-ident-sous.facture-retard-long { color: var(--danger); }
+
+/* Widgets du tableau de bord sur petit écran : les marges généreuses des
+   cellules (26px sur les extrêmes, --row-pad ailleurs) suffisaient à faire
+   déborder le tableau de sa carte — mesuré à 52px de trop sur « Factures
+   émises » à 400px de large, alors même que le nom se tronque déjà. On les
+   resserre ici seulement ; la géométrie du plein cadre (width + marges
+   négatives) reste inchangée, seul l'espacement intérieur diminue. */
+@media (max-width: 800px) {
+    .dash-card table.list tr > :first-child { padding-left: 12px; }
+    .dash-card table.list tr > :last-child { padding-right: 12px; }
+    .dash-card table.list td,
+    .dash-card table.list th { padding-left: 6px; padding-right: 6px; }
+}
+
+/* Colonne « Dernière modification » repliée sur la date de création (aucune
+   modification enregistrée) : mise en italique pour qu'une création ne se lise
+   pas comme une modification. Le libellé complet est au survol. */
+.list-wide td.col-maj-le.est-creation { font-style: italic; }
+
+/* Le bouton « Filtres » n'existe qu'en mobile : au-delà, chaque filtre est
+   accroché à son en-tête de colonne, et le doublon prêterait à confusion. */
+/* Le bouton « Filtres » et son panneau. Deux situations l'emploient : la vue
+   liste sur téléphone, où le <thead> est masqué, et la vue carte à toute
+   largeur, qui n'a pas de tableau du tout. Le panneau lui-même est donc défini
+   ici, hors de toute media query ; seule la visibilité du bouton est
+   conditionnelle (voir .filtres-carte juste en dessous, et @media 700px). */
+.filtres-mobile { display: none; }
+/* Vue carte : le bouton s'affiche quelle que soit la largeur — les filtres n'y
+   ont aucun en-tête de colonne où se poser. */
+.filtres-carte { display: inline-block; }
+/* Un seul bouton de filtres dans ce cas aussi : le panneau porte déjà les
+   champs jauge/mois, l'entonnoir « Plus de filtres » ferait doublon. */
+.toolbar-carte > form > .filters-more { display: none; }
+/* La toolbar ancre le panneau, qui se détache sous elle. */
+.toolbar { position: relative; }
+
+/* Panneau fermé mais des filtres actifs : le bouton le dit, fond teinté et
+   nombre de valeurs, comme un filtre nommé (.col-filter-btn-nomme.on). Sans
+   cela, la bande des filtres actifs vivant DANS le panneau, une liste filtrée
+   se lisait comme une liste complète et incomplète. Restreint à l'état fermé :
+   panneau ouvert, .filters-more[open] > summary reprend la main — c'est
+   l'ouverture qui compte alors, et elle est déclarée plus haut. */
+.filtres-mobile:not([open]) > summary.on {
+    background: var(--primary-tint); border-color: var(--primary); color: var(--primary-d);
+}
+.filtres-mobile > summary { gap: 6px; }
+
+/* Le panneau se détache sous la toolbar au lieu de pousser les icônes
+   d'action à la ligne : il flotte par-dessus les cartes, d'où le fond
+   plein. Un seul conteneur ancré (.filtres-mobile-panneau) ; ses deux
+   moitiés coulent normalement à l'intérieur. */
+.filtres-mobile-panneau {
+    display: none; position: absolute; left: 0; right: 0; top: calc(100% + 6px);
+    z-index: 30; padding: 14px;
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: var(--radius); box-shadow: var(--shadow-sm);
+    max-height: 70vh; overflow-y: auto;
+}
+.filtres-mobile[open] .filtres-mobile-panneau { display: block; }
+/* .filters-more-body est en position:fixed par défaut — une carte flottante
+   repositionnée par JS, taillée pour un entonnoir de colonne. Dans ce
+   panneau, c'est le conteneur qui flotte ; les deux moitiés reprennent le
+   flux et s'empilent. */
+/* Rangée de boutons qui s'enroule — même disposition que le ciblage de
+   ?p=mailing_campagne, pour que les deux zones de filtres se lisent pareil.
+   Un bouton par ligne pleine largeur, comme avant, faisait dix lignes pour
+   dix filtres et repoussait la liste des filtres actifs hors de l'écran. */
+.filtres-mobile .filters-more-body {
+    display: flex; position: static; width: auto; max-width: none;
+    flex-flow: row wrap; align-items: flex-start; gap: 8px;
+    /* .filters est stylé en carte (fond, bordure, ombre, padding 16/26) :
+       juste dans une toolbar, hors sujet dans un panneau qui a déjà les
+       siens — sans cette remise à plat, le panneau se lisait comme deux
+       cartes empilées séparées par la bande des filtres actifs. */
+    background: none; border: 0; box-shadow: none; padding: 0; margin: 0;
+}
+.filtres-mobile .filters-more-body + .filters-more-body {
+    margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line);
+}
+/* Marge négative de .filtres-ciblage-actifs annulée : elle sert à remonter
+   la bande sous une toolbar, pas dans un panneau. */
+.filtres-mobile-panneau .filtres-ciblage-actifs {
+    margin: 0; padding-top: 12px; border-top: 1px solid var(--line);
+}
+.filtres-mobile .filters-more-body:last-of-type { margin-bottom: 12px; }
+
+
+

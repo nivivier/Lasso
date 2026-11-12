@@ -40,7 +40,7 @@
     <?php foreach ($emails as $x): ?>
         <tr>
             <td><?= e($x['email']) ?></td>
-            <td class="muted small"><?= e(date('d.m.Y', strtotime($x['cree_le']))) ?></td>
+            <td class="muted small"><?= e(horodatage($x['cree_le'], 'd.m.Y')) ?></td>
             <td class="actions">
                 <?php if (peut_ecrire('booking')): ?>
                 <form method="post" action="?p=mailing_exclusions" class="d-inline" data-confirm="Retirer cette adresse de la liste d'exclusion ?">

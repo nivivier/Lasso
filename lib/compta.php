@@ -1115,7 +1115,15 @@ function compta_inserer_ecritures(array $compte, array $parse, string $nomFichie
     $estCamt = ($parse['source'] ?? '') === 'camt053';
     $banqueReleve = trim((string) ($parse['banque'] ?? ''));
     $banqueCompte = trim((string) ($compte['banque'] ?? ''));
+    // Une ligne d'un exercice clos est écartée, pas insérée : le relevé d'un
+    // mois de décembre réimporté en janvier ne doit pas rouvrir les comptes.
+    // Elle compte avec les doublons — elle existe déjà, dans des comptes
+    // approuvés.
+    $cloture = compta_cloture_annee();
     foreach ($parse['lignes'] as $i => $l) {
+        if ($cloture !== null && (int) substr((string) $l['date_op'], 0, 4) <= $cloture) {
+            continue;
+        }
         [$tiers, $tiersSource, $communication] =
             contrepartie_ligne($l, $estCamt, $banqueReleve, $banqueCompte);
         $ins->execute([$compteId, $importId, $l['date_op'], $l['texte'], $tiers, $tiersSource, $communication,
@@ -1160,4 +1168,84 @@ function compta_previsualiser_import(array $parse): array
         'nouvelles'    => $total - $nbDoublons,
         'doublons'     => $nbDoublons,
     ];
+}
+
+// ---------------------------------------------------------------------------
+// Clôture d'exercice
+//
+// Un exercice dont les comptes ont été approuvés ne bouge plus : ses écritures
+// ne s'ajoutent, ne se modifient (date, montant, compte, catégorie, axe) ni ne
+// se suppriment. La clôture est un seuil — « tout jusqu'à l'année N » — tenu
+// dans parametres.compta_cloture_annee ; clôturer N clôt aussi ce qui précède.
+//
+// ⚠️ Le verrou vit DANS LA BASE (déclencheurs posés par migration_104,
+// compta_cloture_declencheurs_sql()), pas dans les routes : une quinzaine de
+// requêtes écrivent sur les écritures, certaines par cascade (supprimer une
+// catégorie, un axe, un compte bancaire), et une route oubliée aurait suffi.
+// Les routes qui parcourent large (lettrage par règles, import) écartent
+// d'elles-mêmes les années closes avec compta_ouvert_sql() ; une écriture
+// isolée qu'on tente de modifier lève COMPTA_EXERCICE_CLOS, que index.php
+// transforme en message. Le lettrage avec une facture ou une fiche
+// (facture_id, fiche_id), la contre-partie et la dispense de justificatif
+// restent libres : ils ne changent aucun montant des comptes annuels.
+
+const COMPTA_EXERCICE_CLOS = 'LASSO_EXERCICE_CLOS';
+
+// Dernière année close, null si aucune. Lue en base à chaque appel, pas par
+// param() : celui-ci garde sa lecture pour toute la requête, et la route qui
+// clôture relit la valeur juste après l'avoir écrite.
+function compta_cloture_annee(): ?int
+{
+    $stmt = db()->prepare("SELECT valeur FROM parametres WHERE cle = 'compta_cloture_annee'");
+    $stmt->execute();
+    $v = trim((string) $stmt->fetchColumn());
+    return $v !== '' && ctype_digit($v) ? (int) $v : null;
+}
+
+function compta_annee_close(int $annee): bool
+{
+    $c = compta_cloture_annee();
+    return $c !== null && $annee <= $c;
+}
+
+// Condition SQL « l'écriture est dans un exercice ouvert », sur la colonne de
+// date donnée. Sans clôture, toujours vraie.
+function compta_ouvert_sql(string $colonneDate = 'date_op'): string
+{
+    $c = compta_cloture_annee();
+    return $c === null ? '1' : "CAST(substr($colonneDate, 1, 4) AS INTEGER) > " . $c;
+}
+
+// Les déclencheurs qui tiennent le verrou. Repris tels quels par migration_104 ;
+// à rejouer après toute migration qui RECRÉE la table ecritures ou
+// ecritures_ventilations (un DROP TABLE emporte ses déclencheurs).
+function compta_cloture_declencheurs_sql(): array
+{
+    $seuil = "(SELECT CAST(valeur AS INTEGER) FROM parametres WHERE cle = 'compta_cloture_annee' AND trim(valeur) <> '')";
+    $an = fn (string $expr) => "CAST(substr($expr, 1, 4) AS INTEGER)";
+    $leve = "BEGIN SELECT RAISE(ABORT, '" . COMPTA_EXERCICE_CLOS . "'); END";
+    $ventil = fn (string $ligne) => "(SELECT substr(date_op, 1, 4) FROM ecritures WHERE id = $ligne.ecriture_id)";
+    return [
+        "CREATE TRIGGER IF NOT EXISTS ecritures_cloture_insert BEFORE INSERT ON ecritures
+            WHEN {$an('NEW.date_op')} <= $seuil $leve",
+        "CREATE TRIGGER IF NOT EXISTS ecritures_cloture_update
+            BEFORE UPDATE OF date_op, montant, compte_bancaire_id, plan_compte_id, axe_analytique_id ON ecritures
+            WHEN ({$an('OLD.date_op')} <= $seuil OR {$an('NEW.date_op')} <= $seuil)
+             AND (OLD.date_op IS NOT NEW.date_op OR OLD.montant IS NOT NEW.montant
+                  OR OLD.compte_bancaire_id IS NOT NEW.compte_bancaire_id
+                  OR OLD.plan_compte_id IS NOT NEW.plan_compte_id
+                  OR OLD.axe_analytique_id IS NOT NEW.axe_analytique_id) $leve",
+        "CREATE TRIGGER IF NOT EXISTS ecritures_cloture_delete BEFORE DELETE ON ecritures
+            WHEN {$an('OLD.date_op')} <= $seuil $leve",
+        "CREATE TRIGGER IF NOT EXISTS ventilations_cloture_insert BEFORE INSERT ON ecritures_ventilations
+            WHEN CAST({$ventil('NEW')} AS INTEGER) <= $seuil $leve",
+        "CREATE TRIGGER IF NOT EXISTS ventilations_cloture_delete BEFORE DELETE ON ecritures_ventilations
+            WHEN CAST({$ventil('OLD')} AS INTEGER) <= $seuil $leve",
+    ];
+}
+
+// Vrai si l'exception vient du verrou de clôture.
+function compta_est_erreur_cloture(Throwable $e): bool
+{
+    return str_contains($e->getMessage(), COMPTA_EXERCICE_CLOS);
 }

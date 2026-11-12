@@ -1,0 +1,798 @@
+/* =================== Headings / page head =================== */
+/* Le lien de retour d'une fiche EST son fil d'Ariane : il se lit donc comme
+   celui d'une liste (.page-head-sur) — petites capitales espacées, discrètes,
+   posées au-dessus du titre. Avant, l'un était une phrase grise et l'autre une
+   ligne de capitales, pour dire la même chose au même endroit. */
+/* ⚠️ Même boîte que le surtitre d'une liste (.page-head-sur) : même corps,
+   même hauteur de ligne, et une flèche qui ne grandit pas la ligne. Sans cela
+   la boîte du retour faisait 18px contre 13, et le titre d'une fiche tombait
+   cinq pixels plus bas que celui d'une liste. */
+.back-link { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: var(--fs-small); font-weight: 700; line-height: 1.2; letter-spacing: .2em; text-transform: uppercase; margin-bottom: 12px; }
+/* Retour + bouton Supprimer sur la même ligne (?p=evenement, édition) : sans
+   cette remise à zéro, la marge basse du lien décale l'alignement vertical
+   avec le bouton dans le même .page-head. */
+.page-head > .back-link { margin-bottom: 0; }
+.back-link:hover { color: var(--highlight-d); text-decoration: none; }
+/* La flèche déborde dans la gouttière : c'est le TEXTE du fil d'Ariane qui
+   doit s'aligner sur le titre en dessous, pas la flèche qui le précède. Sur
+   une liste, le surtitre n'en a pas et commence à la même abscisse. */
+.back-link .ico { width: 13px; height: 13px; flex: 0 0 13px; margin-left: -19px; }
+.page-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; gap: 16px; flex-wrap: wrap; }
+/* Le titre d'une page est de l'ENCRE, pas un dégradé de marque : la couleur du
+   module vit dans le rail, et un titre teinté la faisait déborder sur chaque
+   écran — en plus de changer de teinte d'une page à l'autre, ce qu'un titre ne
+   doit pas faire. Le dégradé de h1 reste pour les pages hors session. */
+.page-head h1 {
+    font-size: var(--fs-huge); margin: 0; font-weight: 800; letter-spacing: -.02em; line-height: 1.2;
+    color: var(--ink); background: none; -webkit-text-fill-color: currentColor;
+}
+.page-head-sub { flex-direction: column; align-items: flex-start; gap: 4px; }
+.head-actions { display: flex; gap: 12px; align-items: center; }
+.lbl-m { display: none; } /* texte mobile uniquement (inverse de .lbl) */
+.head-actions label.inline { font-size: var(--fs-basic); font-weight: 500; color: var(--muted); gap: 6px; }
+.label-hint { font-weight: 400; }
+.input-code { max-width: 120px; }
+/* Un champ dont la valeur est courte — une date — n'a pas besoin de toute la
+   largeur de sa carte. Sur la première carte d'une date (?p=evenement), il
+   dégage au passage les boutons flottants (.card-actions-overlay), qui se
+   posaient dessus. min-width : en dessous, le sélecteur natif du navigateur
+   tronque son propre gabarit. */
+.form label.champ-court { max-width: 50%; min-width: 155px; }
+/* La cellule de tête d'une liste qui se glisse ET qui s'allume : la poignée
+   d'abord, l'interrupteur ensuite (?p=postes, ?p=compta_regles). Les deux sur
+   une ligne, alignés au centre — sans quoi la poignée se posait sur la ligne de
+   base de l'interrupteur, deux pixels trop bas. */
+.td-toggle { padding: 0 0 0 12px; white-space: nowrap; }
+.td-toggle .plan-grip { vertical-align: middle; margin-right: 4px; }
+.td-toggle .regle-toggle { display: inline-flex; vertical-align: middle; }
+.page-head-title { display: flex; align-items: center; gap: 12px; }
+/* Surtitre du bandeau : le module, au-dessus du nom de la page (voir
+   views/_page_head_band.php). Le titre et lui forment un seul bloc, d'où la
+   colonne et l'interligne serré — c'est le même niveau de titre que le libellé
+   du module dans le rail, posé en haut au lieu de l'être à gauche. */
+/* Scopé à .page-head-titre-page (posée par le partiel quand il y a un
+   surtitre) et non à .page-head-band .page-head-title : les Paramètres rendent
+   le même bandeau par _param_tabs.php, sans surtitre, et certaines vues posent
+   des contrôles à côté de leur titre — eux doivent rester en ligne. */
+.page-head-titre-page { flex-direction: row; align-items: center; gap: 20px; }
+.page-head-titre-page > .page-head-actions { margin-left: auto; }
+.page-head-sur { font-size: var(--fs-small); font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); }
+
+.titre-read { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.titre-read h1 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Sur téléphone, un nom de structure long passe à la ligne au lieu d'être
+   tronqué : la fiche est la page qui doit le donner en entier, et la largeur
+   manque pour l'y tenir sur une ligne. overflow-wrap:anywhere en plus de
+   white-space:normal — un nom d'un seul tenant sans espace (ou une URL) ne se
+   couperait pas autrement et déborderait quand même.
+   align-items passe à flex-start : sur deux lignes, le marque-page et le crayon
+   se centraient sur la hauteur du bloc au lieu de rester sur la première. */
+@media (max-width: 800px) {
+    .titre-read { align-items: flex-start; }
+    .titre-read h1 {
+        overflow: visible; text-overflow: clip;
+        white-space: normal; overflow-wrap: anywhere;
+    }
+    .page-head h1 { overflow-wrap: anywhere; }
+    /* Les actions d'une CARTE (pas celles du bandeau, que le gabarit remonte
+       ailleurs) passent à la ligne plutôt que de pousser la carte hors de
+       l'écran : « Production externe » et le choix d'un employé ne tiennent
+       pas côte à côte sur 375px. */
+    .card .head-actions { flex-wrap: wrap; max-width: 100%; min-width: 0; }
+    /* Même règle pour l'en-tête de carte qui porte plusieurs boutons
+       (« Liste d'exclusion » et « Nouvelle boîte », ?p=emails). */
+    .card-head-row { flex-wrap: wrap; }
+    .card-head-row .exp-tete-actions { flex: 1 1 auto; flex-wrap: wrap; justify-content: flex-end; min-width: 0; }
+    /* Un tableau clé-valeur à 375px : l'intitulé passe à la ligne au lieu
+       d'écraser la valeur, et une valeur sans espace (une adresse web) se
+       coupe plutôt que de pousser la page. */
+    .kv-table th { white-space: normal; width: 40%; }
+    .kv-table td { overflow-wrap: anywhere; }
+    .card .head-actions .linked-add { flex: 1 1 100%; min-width: 0; }
+    .linked-add select { min-width: 0; }
+}
+.titre-edit-form { display: flex; align-items: center; gap: 8px; flex: 1; max-width: 480px; }
+.titre-edit-form .input-titre { flex: 1; }
+
+/* Bandeau d'en-tête sticky pleine largeur (Fiches de salaire, Écritures,
+   Factures, Paramètres) — fond translucide flouté (.blur-glass ci-dessus),
+   pas un fond plein, pour laisser transparaître l'image de fond de
+   l'application derrière lui. Le contenu (.page-head à l'intérieur) garde
+   exactement la position/largeur qu'il aurait eue dans .content : seul le
+   fond du bandeau déborde jusqu'aux bords de l'écran, sous la sidebar. */
+/* Plus de fond, plus de filet, plus de sticky : l'en-tête appartient à la page
+   et défile avec elle. Tant qu'il était une barre translucide collée en haut,
+   il fallait un fond pour que le contenu ne lui passe pas au travers — et ce
+   fond en faisait un objet de plus, posé entre le rail et la liste. Le filet de
+   3px en --primary disparaît avec : c'était le dernier endroit où la teinte du
+   module débordait dans le contenu, alors qu'elle ne doit vivre que dans le
+   rail. Exception : la vue carte, où le bandeau flotte réellement au-dessus
+   d'une carte en position fixe (.carte-header). */
+.page-head-band {
+    position: static;
+    /* calc(100% + …) plutôt que 100vw : 100vw compte la largeur de la fenêtre
+       SANS la barre de défilement verticale, donc plus large que la zone
+       visible dès qu'une scrollbar non-overlay est présente — ça créait un
+       débordement horizontal de quelques pixels sur toute page assez haute
+       pour scroller. 100% (de .content, jamais plus large que la zone
+       visible) + la même marge négative à gauche reproduit le même
+       débordement jusqu'au bord de l'écran, sans le bug — mais la largeur
+       doit elle aussi compenser les DEUX paddings de .content (gauche et
+       droite) en plus du rail : 100% (base) exclut déjà les deux paddings,
+       contrairement à la marge qui n'en déplace qu'un côté. */
+    width: calc(100% + var(--rail-width) + 2 * var(--content-pad));
+    margin: -40px 0 0px calc(-1 * (var(--rail-width) + var(--content-pad)));
+}
+.page-head-band.carte-header { position: sticky; top: 0; z-index: 20; }
+/* ⚠️ Retrait BAS à zéro, qu'il y ait des onglets ou non : c'est le titre qui
+   porte l'air sous lui (.page-head-title, padding-bottom: 10px), et le
+   bandeau doit faire la même hauteur partout. Un retrait de 20px ici ne
+   s'appliquait qu'aux modules SANS onglets — ils étaient alors plus hauts de
+   vingt pixels que leurs voisins, ce qui se voit en passant de l'un à l'autre
+   (mesuré : 94px contre 74px). Zéro est aussi ce dont la rangée d'onglets a
+   besoin pour coller au filet qu'elle recouvre. */
+/* ⚠️ Pas de max-width : le bandeau doit finir à la MÊME abscisse que la barre
+   d'outils et le tableau en dessous, sinon le bouton d'action s'arrête quelques
+   pixels avant eux et la colonne de droite de l'écran ondule. */
+.page-head-band .page-head {
+    margin: 0 0 0 var(--rail-width); /* replique le décalage de .content après le rail */
+    /* Retrait SYMÉTRIQUE : le bouton d'action est à la même distance du bord
+       droit que le fil d'Ariane l'est du bord gauche. C'est l'axe de lecture de
+       l'écran — le tableau en dessous déborde jusqu'à la fenêtre, mais c'est
+       son affaire à lui, pas la mesure sur laquelle l'en-tête se règle. */
+    padding: 20px var(--content-pad) 0;
+}
+/* La rangée d'onglets se range À DROITE DU TITRE quand elle y tient, et ne
+   descend sur sa propre ligne que si elle n'y tient pas : le bandeau fait
+   alors une hauteur au lieu de deux, et c'est autant de contenu gagné sur
+   chaque écran.
+   (La rangée d'onglets qui partageait cette ligne avec le titre n'existe
+   plus : le rail la porte. Restent le titre, les outils et les actions.) */
+/* Le bandeau empile trois bandes : la ligne haute (module + actions), le titre,
+   puis la rangée d'onglets (masquée dès que le rail est à l'écran). Chaque bande
+   n'a qu'UN bloc aligné à droite — la ligne haute a les actions, le titre n'a
+   rien. Les trois grappes qui se disputaient l'angle droit, c'était le défaut du
+   bandeau précédent. */
+.page-head-band .page-head { flex-direction: column; align-items: stretch; justify-content: flex-start; column-gap: 0; }
+/* Le fil d'Ariane n'est qu'une étiquette : sa rangée fait sa hauteur, pas celle
+   d'un bouton. Les actions sont descendues sur la ligne du titre, où elles sont
+   à portée de ce qu'elles concernent — et le titre n'est plus séparé de son
+   surtitre par quarante pixels de vide. */
+.page-head-haut { display: flex; align-items: center; gap: 12px; }
+.page-head-haut .page-head-sur { line-height: 1.2; }
+/* Les actions remontées par le script de layout.php. :empty — la grande
+   majorité des écrans n'en a pas, et une boîte vide décalerait le titre. */
+.page-head-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.page-head-actions:empty { display: none; }
+/* Le menu des actions secondaires suit les actions, en bout de ligne. Son
+   panneau redresse ce que les boutons déplacés amènent avec eux : un
+   formulaire d'une seule action devient une ligne de menu comme les autres. */
+.page-head-plus[hidden] { display: none; }
+.page-head-plus > summary { width: var(--action-height); height: var(--action-height); padding: 0; }
+.menu-deroulant-panneau form { margin: 0; display: contents; }
+.menu-deroulant-panneau .lbl { white-space: nowrap; }
+/* En colonne, align-self règle l'alignement HORIZONTAL : sans cette reprise, la
+   rangée d'onglets (visible sous 800px) irait se coller à droite. */
+/* Un peu d'air sous le titre et entre lui et les onglets : sur une seule
+   hauteur, les trois se touchaient presque. Le retrait est posé sur le TITRE
+   et non en bas du bandeau — celui-ci doit rester à zéro pour que les onglets
+   collent au filet qu'ils recouvrent. Le titre étant l'élément le plus haut de
+   la rangée, le grandir grandit la rangée, et les onglets descendent avec
+   elle. */
+/* Le titre se serre contre son surtitre au-dessus et contre la barre de
+   filtres en dessous : le bandeau est un bloc de trois lignes, pas trois
+   bandes séparées. La marge négative mord dans l'interligne du <h1> — à 44px
+   et 1.04 de hauteur de ligne, il porte plusieurs pixels de blanc au-dessus
+   des lettres qui ne comptent pas comme de l'air. */
+/* -14px et non -6 : l'écart au fil d'Ariane tombe alors à 2px, celui d'une
+   fiche (où la grille le fixe à row-gap: 2px). Les deux en-têtes se lisent
+   pareil — c'est la mesure qui tranche, pas l'œil : le <h1> porte dans sa
+   boîte plusieurs pixels de blanc au-dessus des lettres. */
+.page-head-band .page-head-title { margin-top: -14px; padding-bottom: 2px; }
+/* Le titre du bandeau est le mot de l'écran : un cran au-dessus des autres
+   titres, et l'interlettrage se resserre à mesure que le corps grandit — sans
+   quoi un mot de 44px paraît étalé. */
+/* Le titre d'une page, qu'il nomme une liste (bandeau) ou un enregistrement
+   (en-tête de fiche) : même cran, même interlettrage. Un écran n'a qu'un titre,
+   et il ne change pas de taille selon qu'on regarde « Structures » ou « Salle
+   des Marronniers ». */
+.page-head-band h1,
+.page-head-bande h1 { font-size: var(--fs-geant); letter-spacing: -.045em; line-height: 1.04; }
+/* Zone de contenu pleine largeur SOUS le bandeau d'onglets —
+   même mécanique de débordement que .page-head-band (largeur 100vw, marge
+   négative = largeur sidebar + padding .content), mais fond plein (pas de
+   flou/sticky), et SANS plafond de largeur comme .page-head-band .page-head
+   (1120px) : les boutons d'action, les filtres et surtout les tableaux
+   profitent de toute la largeur disponible à droite du rail. */
+/* Le fond blanc va jusqu'en bas de la page même quand le tableau est court
+   (ex. pagination désormais posée sous le cadre, voir views/_pagination.php) :
+   .content passe en colonne flex et .module-content prend tout l'espace
+   restant, plutôt que de s'arrêter juste sous le tableau.
+   max-width:none : .content est normalement plafonné à 1120px (largeur de
+   lecture) — sur un écran large, ce plafond laissait un vide non blanc entre
+   le bord droit de .module-content (calculé à partir de la largeur RÉELLE de
+   .content) et le vrai bord de la fenêtre. Pas de plafond ici : ces pages
+   utilisent déjà toute la largeur disponible par construction (voir plus
+   bas), .page-head-band .page-head garde lui son propre plafond à 1120px
+   pour le titre/les onglets.
+   padding-bottom:0 sur .content + margin-bottom:0 sur .module-content :
+   sinon ces deux valeurs (40px de padding, 24px de marge — pensées pour un
+   fond de page classique, pas un fond blanc qui doit toucher le bord) se
+   soustraient à l'espace que flex:1 attribue à .module-content et laissent
+   un filet de fond non blanc juste avant le vrai bas de la fenêtre. */
+.content:has(> .module-content) { display: flex; flex-direction: column; max-width: none; padding-bottom: 0; }
+.content:has(> .module-content) > .module-content { flex: 1; margin-bottom: 0; }
+/* Espace avant le contenu déjà fourni par le padding-top de .module-content-inner
+   (24px bureau, 16px mobile) : la marge basse de .page-head-band (0 sur
+   bureau, mais 20px en mobile — voir @media plus bas) s'ajoutait à ce
+   padding sur mobile uniquement, doublant l'espace. Neutralisée ici pour les
+   deux tailles d'écran (no-op sur bureau, où elle vaut déjà 0). */
+.content:has(> .module-content) > .page-head-band { margin-bottom: 0; }
+/* Et la même chose quand une rangée de SOUS-onglets s'intercale (?p=compta_plan,
+   ?p=compta_comptes, ?p=compta_regles) : elle porte sa marge basse de 24px pour
+   les pages de Paramètres, qui n'ont pas de bloc de contenu derrière elles.
+   Devant un .module-content, cette marge s'ajoutait au padding du bloc — 48px
+   entre les sous-onglets et la barre d'outils, deux fois ce qu'une page sans
+   sous-onglets laisse au même endroit. */
+/* Une page à BANDEAU mais sans .module-content (Paramètres, Mailing…) : elle
+   reste en cartes classiques, sans fond blanc pleine largeur. Le :not() exclut
+   les vraies pages « module » ci-dessus, qui ont déjà leur traitement. Sans ce
+   plafond retiré, le contenu restait bloqué à 1120px sous un bandeau qui, lui,
+   s'étend sur toute la largeur — écart visible sur un écran large.
+   ⚠️ Le crochet était « :has(.page-head-band .module-tabs) » du temps où ces
+   pages portaient une rangée d'onglets : rendue puis masquée, elle servait
+   encore de marqueur. La rangée partie, le marqueur l'était aussi — et ces
+   pages se seraient rétrécies sans que rien ne le dise. */
+.content:has(> .page-head-band):not(:has(> .module-content)) { max-width: none; }
+/* Sur ces mêmes pages (Paramètres, Mailing…), .page-head-band n'a pas de
+   marge basse (0, voir plus haut — pensé pour les pages « module » qui
+   enchaînent avec .module-content-inner et son propre padding-top) : sans
+   .module-content, rien ne remplaçait cet espacement et le contenu de la
+   page se retrouvait collé au bandeau d'onglets. 24px reprend la valeur du
+   padding-top de .module-content-inner, pour un espacement cohérent partout. */
+.content:has(> .page-head-band):not(:has(> .module-content)) > .page-head-band { margin-bottom: 24px; }
+/* ...plus 16px : l'air sous le bandeau de ces pages est de 40px en tout.
+   ⚠️ Il y avait ici un « rebord » (::after, aplat --card de 14px et filet)
+   censé prolonger la surface du bandeau sous lui. Le bandeau a perdu fond,
+   filet et sticky (position: static, plus haut) : le rebord, positionné en
+   absolu avec top: 100%, ne se rapportait plus à lui mais à la fenêtre, et
+   traçait une bande pleine largeur à 768px du haut de CHAQUE page de
+   paramètres — par-dessus ce qui s'y trouvait (le tableau des copies de
+   ?p=sauvegardes). Retiré ; l'espacement qu'il réservait est gardé tel quel. */
+.content:has(> .page-head-band):not(:has(> .module-content)) > .page-head-band { margin-bottom: 40px; }
+/* calc(100% + …) plutôt que 100vw : voir le commentaire sur .page-head-band
+   (même bug de scrollbar avec 100vw, même correctif, même calcul). */
+/* ⚠️ Pas d'aplat blanc sur le bloc : il est posé morceau par morceau, juste
+   en dessous. C'est ce qui permet au séparateur de groupe d'une liste (le mois,
+   l'année) de laisser voir le décor de la page au travers — un fond
+   translucide ne montre que ce qui est peint DERRIÈRE lui, et un bloc opaque
+   ne montrait que lui-même. Tout ce qui doit rester lisible porte donc son
+   propre blanc : la barre d'outils, les rangées du tableau, la pagination. */
+.module-content { width: calc(100% + var(--rail-width) + 2 * var(--content-pad)); margin: 0 0 24px calc(-1 * (var(--rail-width) + var(--content-pad))); }
+.module-content-inner { margin: 0 0 0 var(--rail-width); padding: var(--content-haut) var(--content-pad) 30px; }
+/* …sauf quand la page FINIT par sa pagination : elle se pose alors au ras du
+   bas, sans retrait sous elle. La pagination n'est pas du contenu — c'est la
+   réglette du tableau qu'elle suit, et elle se lit comme son pied de page. Lui
+   réserver de l'air en dessous la détachait du tableau et la laissait flotter
+   seule au bas de l'écran. Ses propres 14px de remplissage suffisent.
+   ⚠️ `:has(> .pagination)` et NON `> .pagination:last-child` : ?p=evenements
+   ferme son contenu par un <script> d'initialisation, qui ne s'affiche pas mais
+   compte comme dernier enfant — la règle y sautait, et cette page gardait seule
+   ses 30px. Le jour où une page poserait du contenu VISIBLE après sa
+   pagination, il faudra le dire ici ; aujourd'hui aucune ne le fait. */
+.module-content-inner:has(> .pagination) { padding-bottom: 0; }
+/* ÉTAGE 2 (docs/UI.md § 1). L'en-tête d'un écran se lit sur deux étages : le
+   bandeau dit la PAGE — où l'on est, son nom, ce qu'on peut y créer —, et cette
+   barre dit ce qu'on VOIT de son contenu : recherche, entonnoirs, compte, et la
+   bascule d'affichage en bout de ligne. Un bandeau beige arrondi, et non un
+   aplat blanc pleine largeur : il appartient à la liste qui le suit, pas à la
+   page qui le précède. */
+.module-content-inner > .toolbar {
+    background: var(--surface);
+    border-radius: var(--radius);
+    /* Même bord droit que les boutons du bandeau : les deux étages de l'en-tête
+       finissent sur la même verticale, celle du fil d'Ariane en miroir.
+       Marge HAUTE négative : .module-content-inner pose --content-haut de
+       retrait pour le contenu, et cette barre n'est pas du contenu — elle
+       appartient à l'en-tête, elle doit rester contre le titre. */
+    margin: calc(8px - var(--content-haut)) 0 18px;
+    padding: 10px 14px;
+    align-items: center;
+    gap: 10px 12px;
+}
+/* La bascule Liste/Carte ferme la barre, à l'opposé de la recherche : ce qui
+   cherche à gauche, ce qui change la vue à droite. */
+.module-content-inner > .toolbar > .seg-picker { margin-left: auto; }
+
+/* ── La barre d'outils remontée sur la ligne du titre ──────────────────────
+   Quand la ligne du titre a la place de la tenir, le script de layout.php y
+   remonte la barre entière — recherche, bouton de filtres, bascule de vue —
+   et l'en-tête perd son second étage. La place manque, elle redescend : voir
+   le script, c'est lui qui mesure (un point de rupture ne saurait pas dire si
+   « Correspondance avec les structures » laisse de l'air à côté de deux
+   boutons, « Projets » beaucoup).
+
+   Le créneau prend tout le vide entre le titre et les actions et centre la
+   barre dedans : elle se pose au milieu, ni contre le titre ni contre les
+   boutons. ⚠️ Pas de min-width:0 ici — c'est la largeur minimale de la barre
+   qui doit remonter jusqu'à la ligne du titre et la faire déborder, sans quoi
+   le script ne verrait jamais qu'elle ne tient plus. */
+.page-head-outils { flex: 1 1 auto; display: flex; justify-content: center; }
+.page-head-outils:empty { display: none; }
+/* Remontée, la barre n'est plus la bande pleine largeur de .module-content-inner
+   (le sélecteur d'enfant ci-dessus ne la vise plus) : elle redevient une
+   pastille à la taille de son contenu. Le fond et l'arrondi sont repris ici,
+   en plus serré — c'est le même objet, posé plus haut et plus petit. */
+.page-head-outils > .toolbar {
+    margin: 0; padding: 5px 8px; gap: 6px 8px;
+    flex-wrap: nowrap; align-items: center;
+    background: var(--surface); border-radius: var(--radius); max-width: 100%;
+}
+/* Le champ rétrécit : en bas il prenait toute la largeur libre, ici il partage
+   la ligne avec un titre et des boutons. --recherche-entete-l est sa largeur
+   confortable, 140px le plancher sous lequel le script préfère tout
+   redescendre. */
+.page-head-outils .search-label { flex: 0 1 var(--recherche-entete-l); min-width: 140px; }
+.page-head-outils > .toolbar > .seg-picker { margin-left: 0; }
+/* Le <form> qui enveloppe la recherche et le bouton « Plus de filtres » :
+   nowrap et sans la poussée à droite du bouton. En bas, le formulaire occupe
+   toute la largeur et le bouton va se ranger au bout ; dans une pastille de
+   sa taille, cette même poussée le rejetait sur une seconde ligne, sous le
+   champ. */
+.page-head-outils > .toolbar > form.filters { flex-wrap: nowrap; align-items: center; gap: 8px; }
+.page-head-outils .filters-more { margin-left: 0; align-self: center; }
+/* Le panneau « Filtres » s'ancre sur la barre (position:absolute, left/right:0,
+   voir .filtres-mobile-panneau) : à la taille d'une pastille il serait illisible.
+   Il se cale donc sur le bord DROIT et reprend la largeur de son contenu —
+   partir vers la gauche le garde dans le cadre, la pastille étant au milieu. */
+.page-head-outils .filtres-mobile-panneau {
+    left: auto; right: 0; width: max-content; max-width: min(640px, 60vw);
+}
+
+/* ── Vue deux colonnes (?p=structures&vue=duo) ──────────────────────────────
+   La liste en colonne étroite, la fiche à droite. Réservée au grand écran :
+   sous 1100px les deux colonnes se marchent dessus, la bascule perd sa
+   troisième position et la vue retombe sur la liste (voir la media query en
+   fin de fichier). */
+/* Un filet ferme l'en-tête et ouvre les deux volets : sans lui, la liste de
+   gauche et la fiche de droite paraissaient flotter sous le titre. Il court
+   d'un bord à l'autre du contenu, comme celui qui sépare le rail de la page. */
+.duo {
+    display: flex; gap: 18px; align-items: flex-start;
+    /* Le filet court d'un bord à l'autre, du rail au bord de la fenêtre —
+       comme le tableau d'une liste, qui déborde lui aussi des deux côtés. Le
+       remplissage repose ce que les marges négatives enlèvent, pour que le
+       contenu ne bouge pas d'un pixel. */
+    margin: 0 calc(-1 * var(--content-pad));
+    padding: 0 var(--content-pad);
+    border-top: 1px solid var(--line);
+}
+/* Le volet de gauche est COLLÉ : il touche le rail à gauche et le bas de la
+   fenêtre, et c'est son remplissage intérieur qui tient les cartes à distance
+   des bords — pas une marge, qui laisserait une bande de papier entre lui et
+   la navigation. D'où les marges négatives : elles annulent le retrait que
+   .module-content-inner pose pour le contenu, puisque ce volet n'est pas du
+   contenu posé dans la page, c'est un panneau de l'écran. */
+.duo-liste {
+    flex: 0 0 332px; box-sizing: border-box;
+    margin: 0 0 -30px calc(-1 * var(--content-pad));
+    /* Aucun retrait en haut : la liste commence AU filet. Les deux volets
+       démarrent ainsi sur la même ligne, et c'est la carte elle-même qui tient
+       son air intérieur. */
+    padding: 0 14px 16px var(--content-pad);
+    position: sticky; top: 0;
+    max-height: 100vh; overflow-y: auto;
+    border-right: 1px solid var(--line);
+}
+/* Dans le volet, le tableau ne déborde plus jusqu'aux bords de l'écran : c'est
+   le volet qui tient les marges. */
+.duo-liste .table-scroll { margin: 0; }
+/* La carte dont la fiche est ouverte à droite : lavis BLEU, celui de la
+   position active d'une bascule (.seg-btn.on) et du focus clavier. C'est la
+   règle du système — le bleu dit l'action ET la sélection (docs/UI.md § 13) —,
+   et c'est la seule marque de l'application qui veuille déjà dire « c'est
+   celui-ci ». Une surface blanche posée sur du crème, essayée avant, se
+   voyait à peine. */
+.duo-liste .liste-cartes tbody tr.ligne-active {
+    background: var(--highlight-tint);
+}
+.duo-liste .liste-cartes tbody tr.ligne-active a,
+.duo-liste .liste-cartes tbody tr.ligne-active .titre-lien { color: var(--highlight-d); }
+/* La fiche à droite est celle de la page pleine : son en-tête y perd seulement
+   ses marges négatives, qui la faisaient déborder jusqu'aux bords de l'écran. */
+/* La fiche, elle, respire sous le filet : son titre et ses boutons ne doivent
+   pas y être collés. La liste reste à zéro — ses cartes portent leur propre
+   air, et c'est la première qui doit toucher le filet. */
+.duo-fiche { flex: 1 1 auto; min-width: 0; padding-top: 14px; }
+.duo-fiche > .page-head-bande { margin: 0 0 18px; padding: 0 0 14px; }
+.duo-fiche .page-head-bande h1 { font-size: var(--fs-bigger); letter-spacing: -.03em; }
+/* Dans le volet, les cartes ne sont plus réparties en trois colonnes FIXES
+   mais coulent dans un multi-colonnes : à deux colonnes, la troisième pile
+   (Localisation, Booking, Recherche de fonds) se retrouvait empilée sous la
+   première et laissait la moitié droite vide. display:contents efface les
+   trois piles de la mise en page — ce sont les cartes elles-mêmes qui coulent
+   — et break-inside les garde entières. */
+.duo-fiche .card-columns { display: block; columns: 300px 2; column-gap: 18px; }
+.duo-fiche .card-col { display: contents; }
+.duo-fiche .card-columns .card { break-inside: avoid; margin-bottom: 22px; }
+/* ⚠️ Ce seuil vient APRÈS les règles ci-dessus, et non avec les autres media
+   queries en fin de fichier : à spécificité égale, c'est le dernier écrit qui
+   gagne, et un .duo { display: flex } déclaré plus bas annulait le repli.
+   Sous 1100px les deux colonnes se marchent dessus : la bascule perd sa
+   troisième position et la vue s'empile. */
+@media (max-width: 1099px) {
+    .duo { display: block; }
+    .duo-liste { flex: none; max-height: none; overflow: visible; position: static; }
+    .duo-fiche { margin-top: 18px; }
+}
+
+/* .toolbar-suite : la barre n'OUVRE pas le bloc, elle suit du contenu
+   (?p=booking_campagne : la carte-jauge, puis la recherche). La marge négative
+   ci-dessus annule le retrait du haut du bloc — ce qu'il faut quand la barre
+   est la première chose de la page, mais qui AVALE l'espace sous la carte qui
+   la précède et collait la bande blanche au texte. Classe explicite posée par
+   la vue, et non un :first-child : les bandeaux .flash sont des frères du
+   DOM même s'ils flottent, donc la règle aurait basculé au hasard d'un
+   « Enregistré. » sur les pages de liste. */
+.module-content-inner > .toolbar-suite { margin-top: 0; }
+/* LE HAUT D'UNE FICHE — lien de retour, titre, boutons d'action — sur le même
+   blanc que la barre d'outils d'une liste, d'un bord à l'autre, fermé par un
+   filet. C'est la même bande, pour la même raison : ce qui dit OÙ l'on est et
+   CE QU'ON PEUT FAIRE se tient ensemble, au-dessus du contenu, et se distingue
+   de lui.
+   ⚠️ La classe se pose dans la vue (.page-head-bande) et non sur tout
+   .page-head : le même balisage sert aussi d'en-tête de SECTION au milieu
+   d'une page (« Fiches de salaire », ?p=employe), qui n'a rien d'une bande.
+   Deux éléments frères forment une seule bande : le lien de retour prend le
+   retrait du haut, le bloc du titre celui du bas et le filet. Les pastilles
+   .flash qui s'intercalent entre eux sont en position fixe, donc hors du flux :
+   elles ne coupent pas la bande. */
+.module-content-inner > .back-link:has(~ .page-head-bande) {
+    display: flex;
+    margin: calc(-1 * var(--content-haut)) calc(-1 * var(--content-pad)) 0;
+    padding: var(--content-haut) var(--content-pad) 4px;
+}
+/* Ni fond ni filet : l'en-tête d'un enregistrement appartient à la page, comme
+   celui d'une liste depuis que le bandeau a perdu le sien. La bande blanche en
+   faisait une barre posée sur le contenu, et c'était le dernier endroit où
+   l'ancienne grammaire subsistait. */
+.module-content-inner > .page-head-bande {
+    margin: 0 calc(-1 * var(--content-pad)) 24px;
+    padding: 0 var(--content-pad) 18px;
+}
+/* Même forme que l'en-tête d'une liste : le lien de retour et les actions sur
+   la ligne haute, le titre seul en dessous. Le lien de retour y est entré par
+   le script de layout.php — dans le balisage c'est un frère du bloc, et un
+   <a>, donc rien ne peut s'y nicher. La grille suffit ensuite : tout ce qui
+   n'est ni le retour ni les actions passe à la ligne du dessous, quel que soit
+   ce que la vue y met (un <h1>, un titre modifiable, un sélecteur d'année). */
+/* ⚠️ Sélecteur en DEUX classes (.module-content-inner >) : la règle générale
+   .module-content-inner > .page-head-bande, juste au-dessus, pèse autant et
+   l'emporterait sur une classe seule — les marges ci-dessous n'auraient alors
+   aucun effet. */
+.module-content-inner > .page-head-bande-range {
+    /* Mêmes marges que le bandeau d'une liste, et ce n'est pas cosmétique : les
+       deux en-têtes doivent commencer à la MÊME hauteur et finir sur la MÊME
+       verticale, sinon tout l'écran se décale en passant de l'un à l'autre.
+       14px du haut (comme .page-head-band .page-head) en annulant le retrait
+       de .module-content-inner, et 12px de la droite, à l'aplomb du tableau. */
+    margin-top: calc(20px - var(--content-haut));
+    padding: 0 var(--content-pad) 14px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: 16px;
+    /* Le même écart que sur une liste entre le fil d'Ariane et le titre. */
+    row-gap: 2px;
+}
+.page-head-bande-range > .back-link { grid-column: 1 / -1; grid-row: 1; margin-bottom: 0; }
+/* Le lien de retour n'a plus la bande blanche d'avant : entré dans le bloc, il
+   n'est plus un frère et la règle qui le visait (:has(~ .page-head-bande)) ne
+   s'applique plus. Rien à neutraliser, mais la règle reste pour les vues qui
+   gardent leur retour à l'extérieur. */
+.page-head-bande-range > .head-actions { grid-column: 2; grid-row: 2; margin: 0; justify-self: end; }
+.page-head-bande-range > :not(.back-link):not(.head-actions) { grid-column: 1; grid-row: 2; }
+/* Quand le lien de retour est DANS l'en-tête (?p=evenement), la bande n'a pas
+   de frère au-dessus d'elle : elle prend elle-même le retrait du haut. */
+.module-content-inner > .page-head-bande:first-child {
+    margin-top: calc(-1 * var(--content-haut));
+    padding-top: var(--content-haut);
+}
+/* Rangé (retour + actions en haut), il commence à la même hauteur que le
+   bandeau d'une liste : 14px du haut de l'écran, et non le retrait de contenu
+   complet. ⚠️ Doit venir APRÈS la règle :first-child ci-dessus, qui pèse
+   autant et reposerait le retrait complet. */
+.module-content-inner > .page-head-bande-range:first-child {
+    /* Deux retraits à annuler pour partir du haut de l'écran comme le bandeau
+       d'une liste : celui de .content (40px, la même valeur que la marge
+       négative de .page-head-band) et celui de .module-content-inner
+       (--content-haut). Puis 14px, le retrait du bandeau. */
+    margin-top: calc(-40px - var(--content-haut));
+    padding-top: 20px;
+}
+.module-content-inner > .pagination {
+    background: var(--card);
+    margin-left: calc(-1 * var(--content-pad));
+    margin-right: calc(-1 * var(--content-pad));
+    padding-left: var(--content-pad);
+    padding-right: var(--content-pad);
+}
+/* Barre d'outils : regroupe filtres/recherche et boutons
+   d'action sur une seule ligne, posée directement sur le fond blanc de
+   .module-content-inner (pas de carte encadrée comme l'ancien .filters
+   isolé) — séparée du tableau par un simple filet. Les boutons d'action
+   (.head-actions) se poussent à droite via margin-left:auto, quel que soit
+   leur ordre dans le marquage. position:relative + z-index : sur les pages
+   avec bascule Liste/Carte, la carte plein écran (.carte-lieux-wrap,
+   position:fixed, z-index:1) est posée après la barre d'outils dans le flux
+   — sans passer la barre en positionnée elle-même, un élément fixed passe
+   toujours au-dessus d'un élément statique, quel que soit l'ordre du DOM. */
+.toolbar { position: relative; z-index: 2; display: flex; align-items: flex-end; gap: 14px 20px; flex-wrap: wrap; margin-bottom: 22px; padding-bottom: 2px; }
+/* Un menu de filtre ouvert doit passer AU-DESSUS de la ligne d'en-tête du
+   tableau, collante et posée à z-index:3 (voir plus bas, @media 1280px). La
+   barre d'outils étant elle-même un contexte d'empilement (position:relative +
+   z-index:2), le z-index:20 de .col-filter-menu ne vaut qu'À L'INTÉRIEUR
+   d'elle : le menu passait donc sous l'en-tête, quel que soit son propre
+   z-index. On relève la barre entière, et seulement tant qu'un menu y est
+   ouvert — au repos elle reprend sa place sous l'en-tête collant.
+
+   Même raison pour la liste de suggestions du champ « Ajouter une structure »
+   (?p=booking_campagne_form) : ce n'est pas un <details> mais un <ul> qu'on démasque,
+   donc le sélecteur dit les deux. Elle passait sous la rangée d'en-tête, coupée
+   en plein milieu — on lisait la première suggestion et la dernière. */
+.toolbar:has(details[open]),
+.toolbar:has(.cat-search-list:not([hidden])) { z-index: 5; }
+.toolbar > .filters { background: none; border: 0; box-shadow: none; padding: 0; margin: 0; }
+/* form.filters (pas .carte-filters, qui est un <div>) : le <form> qui
+   enveloppe .search-label doit lui-même grandir dans .toolbar pour que le
+   flex-grow:1 de .search-label (voir plus bas) ait de la place où grandir —
+   sans ça, .search-label grandit dans le <form>, mais le <form> lui-même
+   reste à sa largeur de contenu (flex-grow:0 par défaut) et rien ne bouge.
+   Sélecteur tag-qualifié (form.filters, pas juste .filters) : ne doit pas
+   s'appliquer à .carte-filters, dont le flex-grow:1 propre (voir plus bas)
+   doit rester géré uniquement par sa propre règle. */
+.toolbar > form.filters { flex-grow: 1; }
+.toolbar > .head-actions { margin-left: auto; }
+/* Champ « Ajouter une structure » de ?p=booking_campagne_form : au bout de la rangée
+   d'entonnoirs, comme les actions des autres barres d'outils. Il ne s'étire
+   pas (contrairement à .toolbar > form.filters juste au-dessus) — large et au
+   milieu d'une barre de filtres, il se lirait comme le filtre principal, alors
+   qu'il ne filtre rien : il ajoute. */
+.toolbar > form.ajout-structure { flex-grow: 0; margin-left: auto; gap: 6px; }
+.ajout-structure .cat-search { width: 260px; max-width: 100%; }
+/* Les suggestions s'alignent sur le bord DROIT du champ : il est lui-même
+   collé à droite de la barre, et une liste plus large que lui déborderait
+   sinon hors de la zone du module. */
+.ajout-structure .cat-search-list { left: auto; right: 0; }
+/* .toolbar-opaque n'existe plus : elle donnait à la barre d'outils de
+   ?p=structures et ?p=evenements un fond blanc débordant jusqu'aux bords, dont
+   la vue carte a besoin — la barre y est posée sur la carte plein écran
+   (.carte-lieux-wrap, position:fixed). Depuis que .module-content a cessé
+   d'être un aplat, .module-content-inner > .toolbar (plus haut) fait
+   exactement cela pour TOUTES les pages, avec les mêmes valeurs : la classe
+   ne distinguait plus rien. */
+/* .toolbar-carte : classe explicite posée par la vue (pas une inférence
+   :has(.carte-filters)) sur ?p=structures/?p=evenements EN VUE CARTE
+   uniquement (voir views/*_liste.php — `<?= $vue === 'carte' ? '
+   toolbar-carte' : '' ?>`). Avant cette classe, ".toolbar:has(.carte-filters)"
+   servait à cibler la même situation, mais forçait 3 règles génériques
+   (.toolbar, .search-label, form.filters) à porter chacune un cas particulier
+   pour UN seul enfant possible — cf. les 2 essais ratés documentés sur
+   .carte-filters ci-dessous. Avec la classe explicite : le HTML dit
+   directement "ceci est une toolbar en mode carte", plus besoin de le
+   redéduire en CSS à chaque règle qui a besoin de le savoir. */
+/* --carte-search-form-width : largeur du <form class="filters"> en
+   .toolbar-carte, pour que la recherche (200px) et le bouton « Plus de
+   filtres » (~41px, ?p=structures seulement) restent l'un À CÔTÉ DE l'autre
+   au lieu que ce dernier soit rejeté sur sa propre ligne DANS le formulaire
+   (mesuré : flex-basis:auto ne donnait que 247.5px, 10px trop juste pour les
+   deux côte à côte avec le gap de 16px entre eux — 200 + 41 + 16 = 257,
+   260 pour une marge de sécurité). Sans effet sur ?p=evenements
+   (recherche seule dans le formulaire, marge simplement inutilisée — le
+   <form> n'a pas de fond propre, cette largeur est invisible). Variable
+   définie dans :root (voir tout en haut du fichier), pas ici : une custom
+   property doit être déclarée dans un bloc de règle, pas en dehors. */
+.toolbar-carte .search-label,
+.toolbar-carte > form.filters { flex-grow: 0; }
+.toolbar-carte > form.filters { flex-basis: var(--carte-search-form-width); }
+/* …sauf quand les filtres sont rangés dans le panneau « Filtres » : le champ
+   n'a plus rien à céder et reprend toute la largeur disponible, comme sur les
+   autres pages. La largeur figée ci-dessus n'existait que pour laisser la place
+   aux filtres affichés à plat. */
+.toolbar-carte-panneau .search-label,
+.toolbar-carte-panneau > form.filters { flex-grow: 1; }
+.toolbar-carte-panneau > form.filters { flex-basis: auto; }
+/* Espace sous la toolbar en vue carte : son fond blanc ne couvre que sa
+   propre boîte (pas de padding-bottom propre, elle hérite du
+   padding-bottom:2px de .toolbar) — la carte plein écran (.carte-lieux-wrap,
+   position:fixed) touchait donc directement le bas de la dernière ligne de
+   filtres, sans respiration. */
+.toolbar-carte { padding-bottom: 20px; }
+/* .carte-filters (6-7 filtres de colonne repliés, voir views/evenements.php
+   / views/structures.php) : placé dans le flux ENTRE la recherche et
+   .head-actions, TOUJOURS sur la même ligne qu'eux (flex-basis:100% essayé
+   avant — .carte-filters sur sa propre ligne pleine largeur — a été refusé :
+   ça donnait 3 lignes recherche/filtres/boutons au lieu d'une seule).
+   flex-basis:0 (pas "auto") : avec flex-basis:auto, la taille hypothétique
+   utilisée par le retour à la ligne de .toolbar est la largeur intrinsèque du
+   contenu (les 7 filtres bout à bout, non enroulés) — bien plus large que la
+   ligne, ce qui bascule .carte-filters ENTIER sur une 2e ligne à lui seul, et
+   pousse .head-actions sur une 3e. flex-basis:0 : taille hypothétique nulle
+   pour la décision de retour à la ligne — recherche/.carte-filters/.head-actions
+   restent sur la ligne 1, puis flex-grow:1 distribue l'espace restant (après
+   recherche, fixée par --carte-search-form-width ci-dessus, et boutons) à
+   .carte-filters ; si cet espace est plus étroit que ses filtres mis bout à
+   bout, flex-wrap:wrap (hérité de .filters) les rejette sur une 2e ligne
+   INTERNE à .carte-filters, sans jamais toucher la position de .head-actions.
+   min-width:0 : sans ça un flex-item ne peut pas rétrécir sous la largeur
+   intrinsèque de son contenu, ce qui empêcherait ce retour à la ligne interne
+   de se déclencher. Libellés en --fs-small : ligne dense (jusqu'à 7 filtres). */
+.carte-filters { flex: 1 1 0; min-width: 0; }
+.carte-filters .col-th { font-size: var(--fs-small); }
+/* Tableaux pleine largeur : à l'intérieur de la zone blanche
+   .module-content-inner, un tableau (.table-scroll) déborde jusqu'aux bords
+   de la zone via une marge négative égale au padding horizontal du
+   conteneur — ni bordure ni coin arrondi gauche/droite, pour un tableau qui
+   se fond dans le fond blanc plutôt que de flotter dedans comme une carte.
+   Le contenu des cellules reste lui aligné sur le même padding que le reste
+   de la page (.page-head, .toolbar…) via un padding gauche/droite posé sur
+   la première/dernière cellule de chaque ligne plutôt que sur <table> (rendu
+   plus fiable entre navigateurs que le padding directement sur <table>). */
+/* Conteneur de requête : c'est la largeur de CETTE boîte qui décide si la
+   liste se montre en tableau ou en cartes (voir @container liste plus bas). */
+.table-scroll { container-type: inline-size; container-name: liste; }
+.module-content-inner .table-scroll { margin: 0 calc(-1 * var(--content-pad)); border-radius: 0; }
+/* ⚠️ Rien ici pour une CARTE qui serait elle-même la zone de défilement : ce
+   cas ne doit pas exister. La marge négative ci-dessus la tirerait bord à
+   bord, et il faudrait ensuite lui reprendre un par un ses traits latéraux,
+   ses coins arrondis et son filet du bas — trois rattrapages pour une carte
+   qui n'en est plus une. Une carte dans un bloc de module met le conteneur de
+   défilement DEDANS ; une liste bord à bord se passe de .card
+   (?p=compta_regles, ?p=projets). docs/UI.md § 9. */
+/* ⚠️ Et pas de bordure BASSE non plus : dans une liste paginée côté client,
+   toutes les rangées sont dans le document et le script cache celles des
+   autres pages — la dernière VISIBLE n'est donc pas :last-child, elle garde
+   son filet, et celui du tableau s'y ajoutait : deux pixels à la fin du
+   tableau, juste avant la pagination (?p=structures, ?p=evenements). Aucune
+   règle CSS ne peut désigner « la dernière rangée affichée ». On retire donc
+   le filet du TABLEAU : c'est celui de la dernière rangée montrée, quelle
+   qu'elle soit, qui ferme la liste — un seul trait dans tous les cas.
+   La contrepartie est juste en dessous : la règle qui effaçait le filet de la
+   dernière rangée n'a plus lieu d'être ici, sinon une liste entièrement
+   affichée ne se refermerait sur rien. */
+.module-content-inner .table-scroll .list { border-left: 0; border-right: 0; border-bottom: 0; border-radius: 0; box-shadow: none; }
+.module-content-inner .table-scroll .list tbody tr:last-child td,
+.module-content-inner .table-scroll .list > :last-child > tr:last-child > * { border-bottom: 1px solid var(--line); }
+.module-content-inner .table-scroll .list tr > :first-child { padding-left: var(--content-pad); }
+.module-content-inner .table-scroll .list tr > :last-child { padding-right: var(--content-pad); }
+/* … et dans une CARTE, le même procédé à l'échelle de la carte : le tableau la
+   REMPLIT, bord à bord (docs/UI.md § 9). La marge négative annule le padding
+   de la carte, et ce même retrait est reposé sur la première et la dernière
+   cellule, pour que le contenu du tableau reste aligné sur le titre du cadre.
+   C'est --card-pad et non --content-pad : un tableau de carte se cale sur sa
+   carte, jamais sur le retrait de la PAGE, qui le ferait dépasser du cadre.
+
+   Pourquoi sans marge latérale : un tableau arrêté à 26px des bords laisse ses
+   séparateurs de lignes flotter dans le vide, et la carte semble alors contenir
+   deux cadres emboîtés. Règle sans exception — on ne la déclare pas page par
+   page, c'est ainsi que ?p=recherche et le suivi d'une campagne de recherche de
+   fonds avaient fini par y échapper. */
+.card .table-scroll { margin-left: calc(-1 * var(--card-pad)); margin-right: calc(-1 * var(--card-pad)); border-radius: 0; }
+.card table.list { border: 0; border-radius: 0; box-shadow: none; background: transparent; }
+/* Le tableau s'ouvre sur un filet de la MÊME épaisseur que ceux qui séparent
+   ses lignes : sans lui, sa bande d'en-tête commencerait dans le vide. Posé sur
+   la première rangée plutôt que sur thead — un tableau de carte n'a pas
+   toujours d'en-tête (?p=recherche). */
+.card table.list > :first-child > tr:first-child > * { border-top: 1px solid var(--line); }
+/* Hors d'un .table-scroll, c'est le tableau lui-même qui doit déborder : un
+   <table> ne s'élargit pas sous une marge négative, sa largeur est posée. */
+.card > table.list, .card-block > table.list, .card-disp > table.list {
+    width: calc(100% + 2 * var(--card-pad));
+    margin-left: calc(-1 * var(--card-pad)); margin-right: calc(-1 * var(--card-pad));
+}
+/* --row-pad est un raccourci (« 10px 12px ») : on repose le padding complet
+   plutôt qu'un padding-left/right, qui n'accepterait pas deux valeurs. */
+/* Le second sélecteur de chaque paire n'est pas un doublon : il égale la
+   spécificité de « .module-content-inner .table-scroll .list tr > :first-child »
+   ci-dessus (quatre classes), que le premier n'atteint pas — sans lui, un
+   tableau de carte reprenait le retrait de la PAGE. */
+/* ⚠️ …sauf quand la liste est TOUT le contenu de sa carte — titre posé
+   au-dessus d'elle (?p=pays, ?p=tags, ?p=categories_structures, les deux
+   cartes de ?p=compta_plan). Le retrait de 26px existe pour aligner les
+   cellules sur le titre INTÉRIEUR du cadre ; sans titre à l'intérieur, il
+   n'aligne plus rien et ne fait qu'éloigner le texte du bord, bien plus qu'il
+   ne l'est du haut et du bas. Les cellules de bord reprennent alors le retrait
+   de n'importe quelle autre cellule : plus de cas particulier du tout.
+   ⚠️ Et c'est le padding des CELLULES qu'on corrige, surtout pas --card-pad :
+   .card porte 26px en dur, et --card-pad sert justement à les annuler d'une
+   marge négative pour que le tableau affleure. Redéfinir la variable n'a pas
+   déplacé le bord de la carte — il a seulement cessé d'être annulé, et le
+   tableau s'est mis à flotter à 15px de ses bords, séparateurs de lignes
+   suspendus dans le vide. Essayé, mesuré.
+   La spécificité est celle qu'il faut pour battre la paire ci-dessous (quatre
+   classes) : .card plus son :has() et le reste du sélecteur. */
+.card:has(> table.list:only-child) .list tr > :first-child,
+.card:has(> table.list:only-child) .list tr > :last-child,
+.card:has(> .table-scroll:only-child) .table-scroll .list tr > :first-child,
+.card:has(> .table-scroll:only-child) .table-scroll .list tr > :last-child { padding: var(--row-pad); }
+.card .list tr > :first-child,
+.card .table-scroll .list tr > :first-child { padding: var(--row-pad); padding-left: var(--card-pad); }
+.card .list tr > :last-child,
+.card .table-scroll .list tr > :last-child { padding: var(--row-pad); padding-right: var(--card-pad); }
+/* Le tableau qui FERME la carte la ferme vraiment : pas de bande vide sous sa
+   dernière ligne. Les coins du BAS prennent l'arrondi de la carte — en haut,
+   rien à arrondir, le tableau y est coupé net sous le titre du cadre. Deux
+   niveaux, parce qu'un .card-block peut s'intercaler (?p=structure) ; au-delà
+   le tableau n'est plus ce qui ferme la carte. */
+/* « Ce qui ferme la carte », c'est le conteneur de défilement — ou le tableau
+   lui-même quand il n'y en a pas. La marge va sur CE bloc-là et sur lui seul :
+   posée en plus sur le tableau qu'il contient, elle le faisait sortir du cadre
+   par le bas. Un .card-block peut s'intercaler (?p=structure) ; au-delà, le
+   tableau n'est plus ce qui ferme la carte. */
+.card > :is(.table-scroll, table.list):last-child,
+.card > .card-block:last-child > :is(.table-scroll, table.list):last-child {
+    margin-bottom: calc(-1 * var(--card-pad));
+    border-radius: 0 0 var(--radius) var(--radius);
+}
+/* Et ce qui l'OUVRE, symétriquement. Sans cette règle, un tableau qui n'est
+   précédé d'aucun titre touchait trois bords sur quatre et gardait la marge du
+   quatrième : la bande vide en haut se lisait comme une première rangée sans
+   contenu (?p=pays, ?p=categories_structures, ?p=tags, qui portent leur titre
+   HORS de la carte). Le filet d'ouverture posé plus haut n'a alors plus lieu
+   d'être — il doublerait le bord de la carte. */
+.card > :is(.table-scroll, table.list):first-child,
+.card > .card-block:first-child > :is(.table-scroll, table.list):first-child {
+    margin-top: calc(-1 * var(--card-pad));
+    border-radius: var(--radius) var(--radius) 0 0;
+}
+.card > :is(.table-scroll, table.list):first-child table.list > :first-child > tr:first-child > *,
+.card > table.list:first-child > :first-child > tr:first-child > * { border-top: 0; }
+/* Le tableau porte aussi l'arrondi du bas : à partir de 1280px le conteneur
+   repasse en overflow:visible (pour l'en-tête collant des listes) et ne découpe
+   plus rien — c'est alors le fond du <table>, carré, qui déborderait dans
+   l'angle de la carte. .list a son propre overflow:hidden. */
+.card > .table-scroll:last-child > table.list,
+.card > .card-block:last-child > .table-scroll:last-child > table.list {
+    border-radius: 0 0 var(--radius) var(--radius);
+}
+/* La dernière ligne ne porte plus sa propre bordure : celle de la carte est
+   juste dessous, et les deux se doublaient sur un trait de 2px. */
+.card > :is(.table-scroll, table.list):last-child tr:last-child > *,
+.card > .card-block:last-child > :is(.table-scroll, table.list):last-child tr:last-child > * { border-bottom: 0; }
+/* Bandeau d'onglets de module, niveau intermédiaire entre le rail (module)
+   et la page (onglet) — voir
+   views/_module_tabs.php. Réutilisé tel quel par les onglets principaux de
+   Paramètres (views/_param_tabs.php) pour un rendu cohérent partout : l'onglet
+   actif se détache en blanc plein sur le fond flouté du bandeau, les inactifs
+   restent transparents. */
+/* (Ici vivaient les rangées d'onglets de module et de sous-onglets, d'abord
+   masquées à toutes les largeurs, puis retirées du balisage avec elles : le
+   rail porte les trois niveaux, tiroir du téléphone compris. docs/UI.md
+   § 9 ter garde le récit.) */
+.inline-year-select { font: inherit; font-size: var(--fs-basic); color: var(--ink); padding: 4px 8px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--card); cursor: pointer; }
+.inline-year-select:focus { outline: none; border-color: var(--primary); box-shadow: var(--focus-ring); }
+/* Sélecteur d'année à côté du titre (Événements, Écritures, etc.) : même
+   hauteur que les .btn.ghost.btn-sm du bandeau (ex. « Export SUISA »). */
+.page-head-title .inline-year-select { padding: 5px 8px; }
+/* .inline-year-select est aussi posée sur des <input> (texte/date, voir
+   evenements_liste.php bulk-edit) qui n'ont pas de chevron — rétabli ici
+   seulement pour la variante <select> (background:/padding: en shorthand
+   plus haut écrasent le chevron global défini sur le sélecteur `select`). */
+select.inline-year-select {
+    padding-right: 26px;
+    background-color: var(--card);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 7px center; background-size: 13px;
+}
+.cout-toggle { display: flex; align-items: center; }
+.cout-toggle .check { flex-direction: row; align-items: center; gap: 7px; margin: 0; font-size: var(--fs-basic); font-weight: 500; color: var(--ink); white-space: nowrap; }
+/* Même voix que le titre d'une page — 800, interlettrage resserré, encre —, un
+   cran plus bas dans l'échelle. Un titre de carte est le titre d'un bloc, pas
+   une étiquette : il se lit comme le titre de l'écran qui le contient, en plus
+   petit. (La couleur est reprise de h1,h2,h3 { color: var(--brand) } plus
+   haut : les titres ne sont plus teintés depuis que la couleur du module vit
+   dans le rail.) */
+h2 { font-size: var(--fs-big); margin: 36px 0 16px; font-weight: 800; line-height: 1.25; letter-spacing: -.03em; color: var(--ink); }
+h3.sub { font-size: var(--fs-basic); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 28px 0 14px; font-weight: 700; }
+h3.sub.no-mt { margin-top: 0; }
+

@@ -25,7 +25,7 @@ $filtreActif = $projet !== [] || $annee !== [] || $statut !== [];
 
 <?php // Même charpente que ?p=structures : la zone du module, puis une barre
       // d'outils, puis le tableau — qui va d'un bord à l'autre de cette zone
-      // (.module-content-inner .table-scroll, assets/app.css). L'onglet actif
+      // (.module-content-inner .table-scroll, assets/css/). L'onglet actif
       // nomme la page, elle n'a donc pas de titre à elle. ?>
 <div class="module-content"><div class="module-content-inner">
     <div class="toolbar">
@@ -108,7 +108,7 @@ $filtreActif = $projet !== [] || $annee !== [] || $statut !== [];
             <?php // Sur écran étroit, « État » disparaît et son badge se replie
                   // ici : la même fusion que la carte du tableau de bord — la
                   // progression quand la campagne est en cours, son état sinon.
-                  // Les deux sont rendus, le CSS choisit (assets/app.css). ?>
+                  // Les deux sont rendus, le CSS choisit (assets/css/). ?>
             <td class="camp-avancement<?= $c['statut'] === 'en_cours' ? '' : ' camp-avancement-etat' ?>">
                 <?php // La même barre que la carte d'une campagne, en plus étroit :
                       // ce qui reste à faire ET ce qu'on a obtenu, sans compter.

@@ -266,7 +266,11 @@ function route_evenements(): void
         'ville'     => ['e.ville COLLATE NOCASE', 'e.salle COLLATE NOCASE'],
         'audience'  => 'e.visibilite',
         'statut'    => 'e.statut',
-        'suisa'     => 'e.statut_suisa',
+        // Le statut SUISA est DÉRIVÉ (evenement_statut_suisa()), il n'a pas de
+        // colonne : le tri suit l'avancement — à faire, envoyé, décompte reçu,
+        // puis « ne s'applique pas » —, et la date à l'intérieur de chaque étape.
+        'suisa'     => ["CASE WHEN e.suisa_applicable = 0 THEN 4 WHEN e.suisa_decompte_le <> '' THEN 3
+                           WHEN e.suisa_envoye_le <> '' THEN 2 ELSE 1 END", 'e.date'],
         'salaries'  => 'nb_salaries',
     ]);
 

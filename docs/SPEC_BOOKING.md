@@ -292,8 +292,8 @@ quand aucun SMTP n'est configuré. Pour le booking, l'absence de SMTP configuré
 silencieux — cohérent avec le besoin de maîtriser le débit d'envoi (impossible à garantir
 via `mail()`, qui dépend entièrement des réglages du serveur d'hébergement).
 
-- **Boîtes d'expédition propres au booking**, gérées dans Paramètres → E-mails →
-  *Envois pour le booking* (`views/emails_booking.php`, route `emails_booking`).
+- **Boîtes d'expédition propres au booking**, gérées dans Paramètres → E-mails,
+  carte *Boîtes d'envois externes* de `?p=emails` (`views/emails.php`, route `emails`, visible pour qui voit le booking).
   Table `mailing_expediteurs` : nom affiché, adresse, et **son propre SMTP**
   (host/port/sécurité/identifiant/mot de passe) — « diffusion@ » et
   « production@ » peuvent vivre chez deux hébergeurs différents. Chaque champ

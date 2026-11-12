@@ -13,6 +13,16 @@ if (is_file($__local)) {
     require $__local;
 }
 
+// --- Fuseau horaire ------------------------------------------------------
+// Toutes les heures que PHP écrit (date()) ou affiche viennent de ce fuseau.
+// Sans lui, PHP prend celui de php.ini — souvent UTC sur un poste de
+// développement : les copies du serveur, le journal ou la dernière connexion
+// s'affichaient avec une heure de retard (deux en été). Les horodatages
+// écrits par SQLite avec datetime('now') restent en UTC et ne sont comparés
+// qu'à datetime('now') : ce réglage ne les touche pas.
+if (!defined('APP_FUSEAU')) define('APP_FUSEAU', 'Europe/Zurich');
+date_default_timezone_set(APP_FUSEAU);
+
 // --- Environnement : 'prod' ou 'dev' --------------------------------------
 // En 'prod' : erreurs masquées (mais journalisées), e-mails réellement envoyés,
 // redirection HTTPS forcée. En 'dev' : erreurs affichées, e-mails journalisés.

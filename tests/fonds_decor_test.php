@@ -4,7 +4,7 @@
 // Un fond calculé tient en TROIS morceaux qui ne se connaissent pas : une
 // entrée dans FONDS_DECOR (lib/helpers.php), une branche qui le dessine
 // (views/_fond_decor.php) et une règle « body.fond-<clé> » qui pose son fond
-// de page (assets/app.css). Ses couleurs en tiennent deux : une entrée dans
+// de page (assets/css/). Ses couleurs en tiennent deux : une entrée dans
 // FONDS_COULEURS et une classe « .fondc-<clé> » qui pose --fond-a/--fond-b.
 //
 // Il manque un morceau, et l'écran s'affiche nu : pas d'erreur, pas de
@@ -27,7 +27,7 @@ function check(string $label, $attendu, $obtenu): void
     printf("  FAIL  %-52s attendu %s, obtenu %s\n", $label, var_export($attendu, true), var_export($obtenu, true));
 }
 
-$css     = (string) file_get_contents(__DIR__ . '/../assets/app.css');
+$css     = css_source();
 $partiel = (string) file_get_contents(__DIR__ . '/../views/_fond_decor.php');
 $ecran   = (string) file_get_contents(__DIR__ . '/../views/apparence.php');
 

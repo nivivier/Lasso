@@ -84,7 +84,9 @@ function compta_lettrer_par_regles(?int $compteId, ?int $annee): int
 {
     // tiers et communication voyagent avec le libellé : une règle peut
     // désormais porter sur l'un des trois (regle_match(), lib/compta.php).
-    $sql = "SELECT id, compte_bancaire_id, texte, tiers, communication, montant FROM ecritures WHERE origine_lettrage NOT IN ('manuel', 'ignore')";
+    // Jamais un exercice clos : une règle modifiée aujourd'hui ne recatégorise
+    // pas des comptes approuvés (voir compta_cloture_annee()).
+    $sql = "SELECT id, compte_bancaire_id, texte, tiers, communication, montant FROM ecritures WHERE origine_lettrage NOT IN ('manuel', 'ignore') AND " . compta_ouvert_sql();
     $params = [];
     if ($compteId) {
         $sql .= ' AND compte_bancaire_id = ?';
@@ -999,6 +1001,7 @@ function route_compta_ecritures(): void
         ? db()->query('SELECT * FROM axes_analytiques WHERE actif = 1 ORDER BY ordre, id')->fetchAll()
         : [];
     render('compta_ecritures', [
+        'clotureAnnee'       => compta_cloture_annee(),
         'tri'                => $tri,
         'comptes'            => $comptes,
         'compteId'           => $compteId,
@@ -1206,6 +1209,22 @@ function compta_reponse_json(): bool
     return true;
 }
 
+// Un axe est-il porté par un enregistrement qu'on ne peut pas détacher sans le
+// réécrire ? Les ventilations partent avec l'axe, et les écritures et campagnes
+// de fonds le perdent seules (ON DELETE SET NULL) : seules restent les trois
+// tables dont la clé n'a rien prévu.
+function axe_analytique_utilise(int $id): bool
+{
+    foreach (['fiche_lignes', 'facture_lignes', 'projets'] as $table) {
+        $st = db()->prepare("SELECT 1 FROM $table WHERE axe_analytique_id = ? LIMIT 1");
+        $st->execute([$id]);
+        if ($st->fetchColumn()) {
+            return true;
+        }
+    }
+    return false;
+}
+
 function route_compta_axes(): void
 {
     require_login();
@@ -1237,6 +1256,14 @@ function route_compta_axes(): void
             if (compta_reponse_json()) { return; }
         } elseif ($section === 'delete') {
             $id = (int) ($_POST['id'] ?? 0);
+            // Un axe porté par une ligne de fiche, de facture ou un projet ne se
+            // supprime pas : ces clés étrangères n'ont pas d'ON DELETE, et une
+            // fiche est un historique figé qu'on ne réécrit pas. La base
+            // refusait — en erreur 500 (tests/pages_test.php § 5). On le dit,
+            // et on propose de le désactiver, ce qui le retire des menus.
+            if ($id && axe_analytique_utilise($id)) {
+                redirect('compta_axes', ['err' => 'utilise']);
+            }
             if ($id) {
                 db()->prepare('DELETE FROM ecritures_ventilations WHERE axe_id = ?')->execute([$id]);
                 db()->prepare('DELETE FROM axes_analytiques WHERE id = ?')->execute([$id]);
@@ -1283,6 +1310,7 @@ function route_compta_axes(): void
     render('compta_axes', [
         'axes'  => db()->query('SELECT * FROM axes_analytiques ORDER BY ordre, id')->fetchAll(),
         'saved' => isset($_GET['ok']),
+        'errUtilise' => ($_GET['err'] ?? '') === 'utilise',
     ], 'Comptabilité — Axes analytiques');
 }
 
@@ -1629,7 +1657,43 @@ function route_compta_bilan(): void
             }
         }
     }
-    render('compta_bilan', compta_bilan_data($annee, $nbPrec), 'Comptabilité — Comptes annuels');
+    render('compta_bilan', compta_bilan_data($annee, $nbPrec) + [
+        'clotureAnnee' => compta_cloture_annee(),
+        'clotureLe'    => (string) param('compta_cloture_le', ''),
+        'cloturePar'   => (string) param('compta_cloture_par', ''),
+        'clotureOk'    => (string) ($_GET['cloture'] ?? ''),
+    ], 'Comptabilité — Comptes annuels');
+}
+
+// Clôturer un exercice, ou rouvrir le dernier clos. Réservé aux
+// administrateurs : la route est rattachée à « compta » (le dispatcher exige
+// l'écriture), mais clore ou rouvrir des comptes approuvés est un geste
+// d'administration — comme le dernier administrateur qu'on ne supprime pas,
+// c'est une règle MÉTIER, pas un droit de module.
+//
+// Clôturer N clôt tout ce qui précède. Rouvrir ne rouvre que le dernier :
+// la clôture redescend d'un an, jamais d'un coup jusqu'au début.
+function route_compta_exercice_cloturer(): void
+{
+    require_login();
+    check_csrf();
+    $annee = (int) ($_POST['annee'] ?? 0);
+    if (!est_admin() || $annee < 2000 || $annee > (int) date('Y')) {
+        redirect('compta_bilan', ['annee' => $annee ?: date('Y'), 'cloture' => 'refus']);
+    }
+    $actuelle = compta_cloture_annee();
+    $rouvrir = ($_POST['action'] ?? '') === 'rouvrir';
+    if ($rouvrir && $actuelle !== $annee) {
+        redirect('compta_bilan', ['annee' => $annee, 'cloture' => 'refus']);
+    }
+    sauvegarder_base($rouvrir ? 'reouverture-' . $annee : 'cloture-' . $annee);
+    $nouvelle = $rouvrir ? $annee - 1 : max($annee, (int) $actuelle);
+    $u = current_user();
+    $set = db()->prepare('INSERT OR REPLACE INTO parametres (cle, valeur) VALUES (?, ?)');
+    $set->execute(['compta_cloture_annee', (string) $nouvelle]);
+    $set->execute(['compta_cloture_le', horodatage_maintenant()]);
+    $set->execute(['compta_cloture_par', $u ? utilisateur_nom($u) : '']);
+    redirect('compta_bilan', ['annee' => $annee, 'cloture' => $rouvrir ? 'rouvert' : 'clos']);
 }
 
 // Ligne de total d'un tableau de bilan (une cellule par colonne d'année).

@@ -57,7 +57,14 @@ window.addEventListener('DOMContentLoaded', () => {
     const rail   = document.getElementById('sidebar');
     const bouton = document.getElementById('side-reduire');
     if (!rail || !bouton) return;
-    const estReduit = () => racine.classList.contains('rail-reduit');
+    // ⚠️ Réduit ET large : la classe vient d'un réglage mémorisé dans le
+    // navigateur, qui reste posé quand la fenêtre passe sous 800px. Le rail y
+    // devient un tiroir, que le CSS n'affiche jamais réduit — sans la seconde
+    // condition, le clic sur un module qui a des pages ouvrait un panneau
+    // invisible au lieu de naviguer : « les liens du menu ne marchent pas
+    // toujours » sur téléphone, selon ce qu'on avait fait sur l'ordinateur.
+    const large = matchMedia('(min-width: 801px)');
+    const estReduit = () => racine.classList.contains('rail-reduit') && large.matches;
 
     // Le bouton dit ce qu'il FERA, pas l'état où l'on est : c'est ce qu'on lit
     // dans une infobulle avant de cliquer.
@@ -84,14 +91,14 @@ window.addEventListener('DOMContentLoaded', () => {
     // LE PANNEAU D'UN MODULE, en rail réduit. Il sort du rail, donc sa position
     // verticale ne peut pas être écrite en CSS : elle se calcule à l'entrée du
     // curseur, depuis la place du volet survolé. Le panneau est un ENFANT du
-    // volet (assets/app.css, .nav-flyout) — c'est ce qui fait que le survol
+    // volet (assets/css/, .nav-flyout) — c'est ce qui fait que le survol
     // reste vrai quand le curseur passe du rail au panneau.
     //
     // La SORTIE est retardée (délai de grâce) : on vise rarement droit, et un
     // panneau qui se ferme dès que le curseur mord d'un pixel hors du volet est
     // un panneau qu'on n'atteint pas. Le délai est annulé si l'on revient —
     // entrer dans le panneau, qui est un descendant du volet, redéclenche son
-    // « mouseenter ». La bordure gauche transparente du panneau (app.css) fait
+    // « mouseenter ». La bordure gauche transparente du panneau (assets/css/) fait
     // le reste : elle couvre le retrait de .side-nav, là où il n'y avait ni
     // volet ni panneau sous le curseur.
     //
@@ -126,7 +133,7 @@ window.addEventListener('DOMContentLoaded', () => {
         // peut replacer qu'APRÈS coup : le panneau grandit d'abord vers le bas,
         // dépasse, puis remonte — deux mouvements à la suite là où il n'y a
         // qu'un geste. Avec lui, la remontée part en même temps que le
-        // dépliage et dure autant (transition sur top, assets/app.css).
+        // dépliage et dure autant (transition sur top, assets/css/).
         const placer = (supplement = 0) => {
             clearTimeout(fermeture);
             if (!estReduit()) return;
@@ -210,10 +217,10 @@ window.addEventListener('DOMContentLoaded', () => {
             ev.preventDefault();
             // Sans effet visible quand la page est .on ou .deplie : ses
             // sous-pages sont déjà là, et les replier cacherait celle qu'on
-            // est en train de lire (assets/app.css).
+            // est en train de lire (assets/css/).
             // Sans effet visible quand la page est .on ou .deplie : ses
             // sous-pages sont déjà là, et les replier cacherait celle qu'on
-            // est en train de lire (assets/app.css).
+            // est en train de lire (assets/css/).
             const plier = lien.classList.contains('sous-ouvert');
             // ⚠️ Replacer et faire défiler APRÈS que le dépliage soit fini, pas
             // pendant : mesurée tout de suite, la boîte fait encore zéro, le
@@ -223,7 +230,7 @@ window.addEventListener('DOMContentLoaded', () => {
             // En rail réduit, le panneau va changer de hauteur : on le replace
             // TOUT DE SUITE, en lui disant de combien, pour que sa remontée et
             // le dépliage ne fassent qu'un seul mouvement. (Sa liste, elle, est
-            // bornée et défile — voir .nav-flyout .nav-pages dans app.css.)
+            // bornée et défile — voir .nav-flyout .nav-pages dans assets/css/.)
             const placerVolet = placeurs.get(lien.closest('.nav-volet'));
             if (placerVolet) {
                 const h = sous.getBoundingClientRect().height;
@@ -304,7 +311,7 @@ window.addEventListener('DOMContentLoaded', () => {
 // (Ici vivait le ramène-en-vue de l'onglet actif des bandes .module-tabs /
 // .param-subtabs, qui défilaient horizontalement sur téléphone. Ces rangées
 // ne s'affichent plus à aucune largeur — le rail, tiroir compris, porte toute
-// la navigation : voir .module-tabs dans assets/app.css.)
+// la navigation : voir .module-tabs dans assets/css/.)
 
 // Positionne un panneau flottant (position:fixed) sous un élément d'ancrage,
 // aligné à gauche puis clampé pour ne jamais déborder le bord droit du
@@ -361,7 +368,7 @@ function positionnerPanneauFlottant(anchorRect, panel, offsetTop, auDessusSiBeso
 }
 
 // Filtres secondaires (.filters-more, ex. ?p=structures : Jauge/Mois du
-// lieu) : .filters-more-body en position:fixed (voir assets/app.css pour le
+// lieu) : .filters-more-body en position:fixed (voir assets/css/ pour le
 // pourquoi du fixed plutôt qu'absolute — un absolute, même ancré plus haut
 // dans l'arbre, faisait grandir la largeur intrinsèque de .filters et
 // provoquait un retour à la ligne de .toolbar qui décalait .head-actions).
@@ -385,7 +392,7 @@ window.addEventListener('DOMContentLoaded', () => {
         // Le panneau « Filtres » des listes en cartes (.filtres-mobile) n'a rien
         // à faire ici : son conteneur .filtres-mobile-panneau est en
         // position:absolute DANS la toolbar, il se place donc tout seul et
-        // flotte par-dessus la liste, fond plein, par choix (assets/app.css).
+        // flotte par-dessus la liste, fond plein, par choix (assets/css/).
         // Lui réserver de la place en dessous décalait la liste — et les deux
         // volets de la vue ?vue=duo — d'une hauteur en plus, qui n'était même
         // pas la bonne : querySelector ne voit que la PREMIÈRE moitié du
@@ -543,7 +550,7 @@ window.addEventListener('DOMContentLoaded', () => {
 // page elle-même). Le crayon est remplacé par les boutons enregistrer/
 // annuler, au même endroit — tous trois vivent dans le même conteneur
 // .head-actions, juste à côté du crayon (voir aussi .card-actions-overlay
-// dans app.css pour les cadres sans ligne d'en-tête propre).
+// dans assets/css/ pour les cadres sans ligne d'en-tête propre).
 //
 // « Annuler » referme sur place, sans recharger : le formulaire reprend les
 // valeurs que le serveur avait rendues (form.reset(), qui restaure l'état
@@ -1427,7 +1434,7 @@ document.addEventListener('click', e => {
 // Arbre hiérarchique avec glisser-déposer pour réordonner/reparenter (rangées
 // .plan-row avec data-id/data-parent/data-depth) — factorisé depuis
 // projets.php et compta_plan.php (mêmes classes CSS .plan-*/.dnd-on, voir
-// app.css). Glisser une ligne calcule (parent, profondeur, ordre des frères)
+// assets/css/). Glisser une ligne calcule (parent, profondeur, ordre des frères)
 // et soumet #reorder-form (id/parent_id/order — le serveur revalide toujours
 // la cohérence, ex. cycles interdits ou profondeur imposée). Gère aussi le
 // renommage en ligne (crayon → focus ; Entrée/blur soumet ; Échap annule) et
@@ -1602,6 +1609,31 @@ function lassoPlanArbre(opts) {
 //
 // Le dépôt renseigne #reorder-form (id + ordre complet) et l'envoie : c'est le
 // serveur qui renumérote, la page n'invente aucun ordre local.
+// CRAYON D'EN-TÊTE D'UNE SECTION (.section-editable > … .edit-toggle-btn) :
+// bascule la section en mode modification — seules alors apparaissent ses
+// commandes lier/délier (.edit-only, masquées par défaut, voir assets/css/). Le
+// crayon devient une croix (« Annuler ») tant que l'édition est ouverte.
+// Délégué au document : il sert les structures liées d'une fiche structure
+// comme les rattachements d'une fiche personne (docs/UI.md § 2b). La croix
+// référence le sprite, où le bouton de fermeture du panneau latéral l'a déjà
+// déposée sur toute page du gabarit.
+document.addEventListener('click', function (e) {
+    const btn = e.target.closest('.edit-toggle-btn');
+    if (!btn) return;
+    const sec = btn.closest('.section-editable');
+    if (!sec) return;
+    if (!btn.dataset.titreDefaut) {
+        btn.dataset.titreDefaut = btn.title;
+        btn.dataset.ariaDefaut = btn.getAttribute('aria-label') || btn.title;
+        btn.dataset.iconeDefaut = btn.innerHTML;
+    }
+    const on = sec.classList.toggle('editing');
+    btn.classList.toggle('on', on);
+    btn.innerHTML = on ? '<svg class="ico" aria-hidden="true"><use href="#ico-x"></use></svg>' : btn.dataset.iconeDefaut;
+    btn.title = on ? 'Annuler' : btn.dataset.titreDefaut;
+    btn.setAttribute('aria-label', on ? 'Annuler' : btn.dataset.ariaDefaut);
+});
+
 // AJOUT D'UNE LIGNE À UNE LISTE DÉJÀ AFFICHÉE, sans recharger la page.
 //
 // Déclaré sur le formulaire, jamais écrit par écran (docs/UI.md § 5) :
@@ -1700,6 +1732,11 @@ document.addEventListener('submit', async e => {
         history.replaceState(null, '', url);
     } else {
         form.reset();
+        // reset() ne touche pas la valeur d'un champ caché (c'est son attribut
+        // qu'on écrit) : la recherche gardait le choix précédent, et un second
+        // envoi reliait la même chose.
+        form.querySelectorAll('.cat-search-val').forEach(v => { v.value = ''; });
+        form.querySelectorAll('.cat-search-input').forEach(i => { i.value = ''; });
     }
     if (form.dataset.ajoutMessage) lassoToast(form.dataset.ajoutMessage);
 });
@@ -1986,7 +2023,7 @@ document.addEventListener('click', e => {
 // arrêter l'événement.
 //
 // Le tour de CSS habituel (bordure transparente pour élargir la boîte) ne
-// fonctionne pas ici : les cases gardent leur rendu natif (app.css ne pose
+// fonctionne pas ici : les cases gardent leur rendu natif (assets/css/ ne pose
 // appearance:none que sur :not([type=checkbox]):not([type=radio])), et le
 // navigateur ignore la bordure — vérifié, la boîte reste à 13x13.
 const CASE_PARDON_PX = 3;
@@ -2033,8 +2070,16 @@ document.addEventListener('click', e => {
 // Clé par route (?p=…) : deux listes différentes ne doivent pas partager leur
 // sélection. Les valeurs absentes de la page (filtre différent, ligne
 // supprimée) sont simplement ignorées au retour.
+//
+// Elle ne survit pas à la session de CONNEXION : un onglet resté ouvert garde
+// son sessionStorage à travers une expiration et une reconnexion — le même
+// compte ou un autre aurait retrouvé des lignes cochées la veille, prêtes pour
+// une suppression groupée. Toute page hors session (body.auth-bg : connexion,
+// mot de passe oublié) efface donc les sélections ; une session expirée passe
+// forcément par elle.
 (function () {
-    const cle = 'lasso:selection:' + (new URLSearchParams(location.search).get('p') || 'defaut');
+    const PREFIXE = 'lasso:selection:';
+    const cle = PREFIXE + (new URLSearchParams(location.search).get('p') || 'defaut');
     const cases = () => document.querySelectorAll('.row-check');
 
     function memoriser() {
@@ -2046,6 +2091,14 @@ document.addEventListener('click', e => {
     }
 
     window.addEventListener('DOMContentLoaded', () => {
+        // app.js est chargé dans <head> : <body> n'existe qu'ici.
+        if (document.body.classList.contains('auth-bg')) {
+            try {
+                Object.keys(sessionStorage).filter(k => k.startsWith(PREFIXE))
+                    .forEach(k => sessionStorage.removeItem(k));
+            } catch (e) { /* stockage indisponible : rien à effacer */ }
+            return;
+        }
         const liste = cases();
         if (!liste.length) return;
 

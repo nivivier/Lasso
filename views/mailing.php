@@ -8,13 +8,15 @@
       // campagne », qui se lisait comme le bouton du même nom sur les
       // campagnes de démarchage — deux choses sans rapport. Un geste se pose
       // dans la page qu'il prolonge, pas dans la navigation (docs/UI.md § 1),
-      // et c'est bien le Suivi qu'il prolonge : on y lit la file d'attente et
-      // l'historique des envois. ?>
+      // et c'est bien cette page qu'il prolonge : on y lit la file d'attente et
+      // l'historique des envois.
+      //
+      // Pas de barre d'outils ici : le bloc se pose donc JUSTE APRÈS le
+      // bandeau, d'où le script de layout.php le remonte dans la zone des
+      // actions, comme celui d'une barre (docs/UI.md § 1). ?>
 <?php if (peut_ecrire('booking')): ?>
-<div class="page-head">
-    <div class="head-actions ml-auto">
-        <a class="btn" href="?p=mailing_campagne"><?= icon('plus') ?><span class="lbl"> Nouvel envoi groupé</span></a>
-    </div>
+<div class="head-actions">
+    <a class="btn" href="?p=mailing_campagne"><?= icon('plus') ?><span class="lbl"> Nouvel envoi groupé</span></a>
 </div>
 <?php endif; ?>
 
@@ -60,7 +62,7 @@
             $taux = $traites > 0 ? round((int) $c['echecs'] / $traites * 100) : null;
         ?>
             <tr>
-                <td class="muted small nowrap"><?= e(date('d.m.Y H:i', strtotime($c['cree_le']))) ?></td>
+                <td class="muted small nowrap"><?= e(horodatage($c['cree_le'], 'd.m.Y H:i')) ?></td>
                 <td><?= e($c['sujet']) ?: '—' ?></td>
                 <td class="num"><?= (int) $c['nb_destinataires'] ?></td>
                 <td class="num"><?= (int) $c['envoyes'] ?></td>

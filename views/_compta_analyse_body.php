@@ -20,7 +20,7 @@ $totProd = 0.0;
 $totChg  = 0.0;
 ?>
 <?php if (!$impression): ?><div class="table-scroll"><?php endif; ?>
-<table class="list compta-cr cr-flat">
+<table class="list compta-cr cr-flat<?= $impression ? '' : ' cartes-chiffres cartes-analyse' ?>">
     <thead>
         <tr>
             <th>Axe</th>
@@ -37,34 +37,34 @@ $totChg  = 0.0;
         $totChg  += $v['charges'];
     ?>
         <tr class="cr-groupe<?= $impression ? '' : ' cr-clic row-link' ?>"<?= $impression ? '' : ' data-href="?p=compta_analyse_axe&axe=' . (int) $v['id'] . '&annee=' . (int) $annee . '"' ?>>
-            <td>
+            <td class="col-axe">
                 <?= e($v['libelle']) ?>
                 <?php if (!$impression && !$v['actif']): ?><span class="badge muted-badge">inactif</span><?php endif; ?>
             </td>
-            <td class="muted<?= $impression ? '' : ' small' ?>"><?= $v['code'] ? e($v['code']) : '' ?></td>
-            <td class="num<?= $cls((float) $v['produits'], $v['produits'] > 0 ? 'montant-pos' : '') ?>"><?= $v['produits'] != 0 ? chf($v['produits']) : $vide ?></td>
-            <td class="num<?= $cls((float) $v['charges'], $v['charges'] < 0 ? 'montant-neg' : '') ?>"><?= $v['charges'] != 0 ? chf($v['charges']) : $vide ?></td>
-            <td class="num<?= $impression ? '' : ' strong' ?><?= $cls((float) $res, $res > 0 ? 'montant-pos' : ($res < 0 ? 'montant-neg' : '')) ?>"><?= $res != 0 ? chf($res) : $vide ?></td>
+            <td class="col-code muted<?= $impression ? '' : ' small' ?>"><?= $v['code'] ? e($v['code']) : '' ?></td>
+            <td data-libelle="Recettes" class="col-recettes num<?= $cls((float) $v['produits'], $v['produits'] > 0 ? 'montant-pos' : '') ?>"><?= $v['produits'] != 0 ? chf($v['produits']) : $vide ?></td>
+            <td data-libelle="Dépenses" class="col-depenses num<?= $cls((float) $v['charges'], $v['charges'] < 0 ? 'montant-neg' : '') ?>"><?= $v['charges'] != 0 ? chf($v['charges']) : $vide ?></td>
+            <td data-libelle="Résultat" class="col-resultat num<?= $impression ? '' : ' strong' ?><?= $cls((float) $res, $res > 0 ? 'montant-pos' : ($res < 0 ? 'montant-neg' : '')) ?>"><?= $res != 0 ? chf($res) : $vide ?></td>
         </tr>
     <?php endforeach; ?>
     </tbody>
     <tfoot>
         <tr class="cr-total">
-            <td>Total ventilé</td>
-            <td></td>
-            <td class="num"><?= chf($totProd) ?></td>
-            <td class="num"><?= chf($totChg) ?></td>
-            <td class="num"><?= chf($totProd + $totChg) ?></td>
+            <td class="col-axe">Total ventilé</td>
+            <td class="col-code"></td>
+            <td data-libelle="Recettes" class="col-recettes num"><?= chf($totProd) ?></td>
+            <td data-libelle="Dépenses" class="col-depenses num"><?= chf($totChg) ?></td>
+            <td data-libelle="Résultat" class="col-resultat num"><?= chf($totProd + $totChg) ?></td>
         </tr>
         <?php // Ce qui n'est ventilé nulle part : une rangée qui MÈNE aux
               // écritures concernées, donc sans objet sur une feuille. ?>
         <?php if (!$impression && $nonVentile !== null): $nvRes = $nonVentile['resultat']; ?>
         <tr class="cr-note row-link" data-href="?p=compta_ecritures&annee=<?= (int) $annee ?>&axe=sans_axe">
-            <td>Écritures non ventilées</td>
-            <td></td>
-            <td class="num <?= $nonVentile['produits'] > 0 ? 'montant-pos' : '' ?>"><?= $nonVentile['produits'] != 0 ? chf($nonVentile['produits']) : $vide ?></td>
-            <td class="num <?= $nonVentile['charges'] < 0 ? 'montant-neg' : '' ?>"><?= $nonVentile['charges'] != 0 ? chf($nonVentile['charges']) : $vide ?></td>
-            <td class="num <?= $nvRes > 0 ? 'montant-pos' : ($nvRes < 0 ? 'montant-neg' : '') ?>"><?= $nvRes != 0 ? chf($nvRes) : $vide ?></td>
+            <td class="col-axe">Écritures non ventilées</td>
+            <td class="col-code"></td>
+            <td data-libelle="Recettes" class="col-recettes num <?= $nonVentile['produits'] > 0 ? 'montant-pos' : '' ?>"><?= $nonVentile['produits'] != 0 ? chf($nonVentile['produits']) : $vide ?></td>
+            <td data-libelle="Dépenses" class="col-depenses num <?= $nonVentile['charges'] < 0 ? 'montant-neg' : '' ?>"><?= $nonVentile['charges'] != 0 ? chf($nonVentile['charges']) : $vide ?></td>
+            <td data-libelle="Résultat" class="col-resultat num <?= $nvRes > 0 ? 'montant-pos' : ($nvRes < 0 ? 'montant-neg' : '') ?>"><?= $nvRes != 0 ? chf($nvRes) : $vide ?></td>
         </tr>
         <?php endif; ?>
     </tfoot>

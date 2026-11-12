@@ -82,7 +82,7 @@ foreach ($postes as $p) {
         <?php endif; ?>
     </div>
     <div class="card form table-scroll">
-    <table class="list mb-16 plan-table postes-table">
+    <table class="list mb-16 plan-table postes-table cartes-chiffres cartes-postes">
         <thead>
             <tr>
                 <th class="col-icon" title="Ligne prise en compte dans les nouvelles fiches">Actif</th>
@@ -121,7 +121,7 @@ foreach ($postes as $p) {
                     <span class="badge <?= (int) $p['actif'] ? 'ok-badge' : 'muted-badge' ?>"><?= (int) $p['actif'] ? 'Active' : 'Inactive' ?></span>
                     <?php endif; ?>
                 </td>
-                <td>
+                <td class="col-ligne">
                     <div class="inline-edit">
                         <span class="plan-nom">
                             <?= e($p['libelle']) ?>
@@ -188,7 +188,7 @@ foreach ($postes as $p) {
                         <?php endif; ?>
                     </div>
                 </td>
-                <td class="num td-taux">
+                <td class="num td-taux" data-libelle="Taux <?= $annee ?>">
                     <?php
                     $sansTaux = $mode === 'taux_employe' || $mode === 'bareme_age';
                     $lecture  = $mode === 'taux_employe' ? 'par employé'

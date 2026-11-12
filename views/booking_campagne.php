@@ -83,7 +83,7 @@ $sfReinit = bouton_reinit_filtres(
           // sert à SUIVRE un démarchage en cours — on y clique cent fois sans
           // rien vouloir détruire. ?>
     <div class="head-actions">
-    <a class="btn ghost" href="?p=booking_campagne_form&id=<?= (int) $campagne['id'] ?>"><?= icon('pencil') ?> Modifier</a>
+    <a class="btn ghost" href="?p=booking_campagne_form&id=<?= (int) $campagne['id'] ?>"><?= icon('pencil') ?><span class="lbl"> Modifier</span></a>
     </div>
     <?php endif; ?>
 </div>

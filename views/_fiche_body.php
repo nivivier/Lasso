@@ -132,7 +132,7 @@ $deductions = $figees['deduction'] ?: [
             <p><strong><?php if (empty($impression) && !empty($f['employe_id'])): ?><a href="<?= e(url_avec_retour('?p=employe&id=' . (int) $f['employe_id'], 'fiche', (int) $f['id'])) ?>"><?= e($f['employe_nom']) ?></a><?php else: ?><?= e($f['employe_nom']) ?><?php endif; ?></strong><br>
             <?= e($f['employe_rue']) ?><br>
             <?= e($f['employe_npa']) ?><br>
-            <?php if ($f['employe_avs']): ?>N° AVS : <?= e($f['employe_avs']) ?><?php endif; ?></p>
+            <?php if ($f['employe_avs']): ?>N° AVS : <?= e(avs_affiche($f['employe_avs'])) ?><?php endif; ?></p>
         </div>
     </div>
 

@@ -127,7 +127,10 @@ function route_factures(): void
         'emission'  => "COALESCE(NULLIF(f.date_emission, ''), f.cree_le)",
         'echeance'  => 'f.date_echeance',
         'montant'   => 'f.montant_total',
-        'paiement'  => "COALESCE(NULLIF(f.date_paiement, ''), '')",
+        // La colonne s'appelle payee_le (une facture n'a pas de
+        // « date_paiement », c'est la fiche de salaire qui en a une) : le tri
+        // la nommait mal et tombait en erreur. Vu par tests/pages_test.php.
+        'paiement'  => "COALESCE(NULLIF(f.payee_le, ''), '')",
     ]);
     $orderBy = $tri['sql'] !== ''
         ? $tri['sql'] . ', f.id DESC'

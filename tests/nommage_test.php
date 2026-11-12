@@ -171,7 +171,7 @@ foreach ($it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($rac
         || !preg_match('/\.(php|js|css)$/', $rel)
         // Ce fichier-ci nomme forcément ce qu'il interdit.
         || $rel === 'tests/nommage_test.php'
-        || $rel === 'lib/db/migrations.php') {
+        || str_starts_with($rel, 'lib/db/migrations')) {
         continue;
     }
     if (stripos(file_get_contents($p), 'spectacle') !== false) {
@@ -211,6 +211,21 @@ foreach ($vues as $vue) {
     }
 }
 check('aucune page à onglets absente de nav_groupes()', [], $sansOnglet);
+
+echo "\n10) Le titre de l'onglet du navigateur suit la navigation\n";
+// Un onglet tire son titre de titre_onglet() (lib/modules.php), qui le déduit
+// de nav_groupes()/parametres_groupes() : render() doit l'appeler. Et le mot
+// « Mailing », retiré de l'interface au profit d'« Envois groupés », ne
+// revient pas par un titre écrit à la main.
+$srcHelpers = (string) file_get_contents($racine . '/lib/helpers.php');
+check('render() passe par titre_onglet()', 1, preg_match('/function render\(.*?titre_onglet\(/s', $srcHelpers));
+$titresMailing = [];
+foreach (glob($racine . '/lib/routes*.php') ?: [] as $f) {
+    if (preg_match_all("/'Mailing — [^']*'/", (string) file_get_contents($f), $m)) {
+        $titresMailing = array_merge($titresMailing, $m[0]);
+    }
+}
+check('aucun titre « Mailing — … »', [], $titresMailing);
 
 echo "\n$tests tests, $fails échec(s)\n";
 exit($fails > 0 ? 1 : 0);

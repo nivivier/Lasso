@@ -99,7 +99,7 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
         <p class="facture-statut">
             <?= facturation_badge($f) ?>
             <?php if (trim((string) ($f['envoyee_le'] ?? '')) !== ''): ?>
-                <span class="mail-sent" title="Envoyée le <?= e(date('d.m.Y à H:i', strtotime($f['envoyee_le']))) ?>"><?= icon('check') ?> Envoyée</span>
+                <span class="mail-sent" title="Envoyée le <?= e(horodatage($f['envoyee_le'], 'd.m.Y à H:i')) ?>"><?= icon('check') ?> Envoyée</span>
             <?php endif; ?>
         </p>
     </div>
@@ -133,22 +133,22 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
     <?php endif; ?>
 
     <div class="table-scroll">
-    <table class="list">
+    <table class="list cartes-chiffres cartes-facture-lignes">
         <thead><tr><th>Description</th><th class="num">Qté</th><th class="num">Prix unit.</th><th class="num">Montant</th><?php if ($aDesAxes): ?><th>Axe</th><?php endif; ?></tr></thead>
         <tbody>
         <?php foreach ($lignes as $l): ?>
             <tr>
-                <td><?= e($l['description']) ?></td>
-                <td class="num"><?= nombre_court((float) $l['quantite']) ?></td>
-                <td class="num"><?= chf((float) $l['prix_unitaire']) ?></td>
-                <td class="num"><?= chf((float) $l['montant']) ?></td>
+                <td class="col-desc"><?= e($l['description']) ?></td>
+                <td class="num col-qte" data-libelle="Qté"><?= nombre_court((float) $l['quantite']) ?></td>
+                <td class="num col-prix" data-libelle="Prix unit."><?= chf((float) $l['prix_unitaire']) ?></td>
+                <td class="num col-montant"><?= chf((float) $l['montant']) ?></td>
                 <?php if ($aDesAxes): ?>
                     <?php // L'axe se change même sur une facture émise : il ne
                           // figure pas sur le document envoyé au débiteur, c'est
                           // une donnée de comptabilité analytique. Envoi au
                           // changement (data-submit-on-change), sans bouton :
                           // un seul champ, une seule décision. ?>
-                    <td class="muted small col-axe-facture">
+                    <td class="muted small col-axe-facture" data-libelle="Axe">
                         <?php if ($axesModifiables): ?>
                             <?php // data-ajax : l'axe n'engage que sa ligne, et la
                                   // facture est longue — la recharger entière pour un

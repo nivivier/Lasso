@@ -25,12 +25,15 @@
 //                           structure : le rôle d'une personne chez elle.
 //   $msBadges   (facultatif) : pastilles ajoutées devant les étiquettes, même
 //                           rangée (« Booking », « Administration »).
+//   $msAction   (facultatif) : HTML posé APRÈS le lien, dans le <li> — le
+//                           bouton « Délier » d'un rattachement (?p=personne).
 //   $msInactif  (facultatif) : grise la fiche. Par défaut le statut de la
 //                           structure en décide ; un rattachement clos la
 //                           grise aussi, même sur une structure active.
 $msAvantNom = $msAvantNom ?? '';
 $msSousNom  = $msSousNom  ?? '';
 $msBadges   = $msBadges   ?? '';
+$msAction   = $msAction   ?? '';
 $msStatut   = (string) ($msS['statut'] ?? '');
 $msInactif  = $msInactif ?? ($msStatut === 'inactif');
 
@@ -79,6 +82,7 @@ $msTags = ($msS['tags_noms'] ?? '') !== '' ? array_map(
         </span>
         <?php endif; ?>
     </a>
+    <?= $msAction ?>
 </li>
 <?php
 // Les variables facultatives ne doivent PAS fuir sur la fiche suivante : la

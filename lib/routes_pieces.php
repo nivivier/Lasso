@@ -185,6 +185,14 @@ function route_piece_form(): void
             $sql = 'UPDATE pieces SET type=?, structure_id=?, personne_id=?, libelle=?, tiers=?, montant=?,
                     date_piece=?, date_echeance=?, date_payee=?, mode_paiement=?, plan_compte_id=?, notes=?';
             $args = array_values($champs);
+            // Une pièce qui redevient « à payer » lâche son écriture : gardé,
+            // le rapprochement dirait le contraire de la date — et
+            // ecriture_piece_etat() compterait encore ce justificatif. C'est
+            // ici, et nulle part ailleurs, que l'on « dé-paie » une pièce : le
+            // bouton « Pas encore payée » de la fiche faisait doublon.
+            if ($champs['date_payee'] === '') {
+                $sql .= ', ecriture_id = NULL';
+            }
             if ($num = piece_numerotation($piece, $champs)) {
                 $sql .= ', origine=?, numero=?';
                 $args = array_merge($args, array_values($num));
@@ -430,22 +438,17 @@ function route_piece_payee(): void
     if (!$id || !piece_charger($id)) {
         redirect('pieces');
     }
-    if (($_POST['section'] ?? '') === 'annuler') {
-        // Détacher aussi l'écriture : une pièce « pas payée » qui garde son
-        // rapprochement dirait deux choses contraires.
-        db()->prepare("UPDATE pieces SET date_payee = '', mode_paiement = '', ecriture_id = NULL WHERE id = ?")
-            ->execute([$id]);
-    } else {
-        // Même règle qu'au formulaire : une date illisible n'en est pas une.
-        // Ici elle retombe sur AUJOURD'HUI et non sur le vide — le bouton dit
-        // « Marquer payée », laisser la pièce impayée serait répondre le
-        // contraire de ce qu'on a demandé.
-        $saisie = trim((string) ($_POST['date_payee'] ?? ''));
-        $date = date_valide($saisie) ? $saisie : date('Y-m-d');
-        $mode = valeur_autorisee((string) ($_POST['mode_paiement'] ?? ''), array_keys(PIECE_MODES_PAIEMENT), 'compte');
-        db()->prepare('UPDATE pieces SET date_payee = ?, mode_paiement = ? WHERE id = ?')
-            ->execute([$date, $mode, $id]);
-    }
+    // Ne fait que « Marquer payée ». L'inverse passe par « Modifier » (vider
+    // la date), qui défait aussi le rapprochement — route_piece_form().
+    // Même règle qu'au formulaire : une date illisible n'en est pas une. Ici
+    // elle retombe sur AUJOURD'HUI et non sur le vide — le bouton dit
+    // « Marquer payée », laisser la pièce impayée serait répondre le contraire
+    // de ce qu'on a demandé.
+    $saisie = trim((string) ($_POST['date_payee'] ?? ''));
+    $date = date_valide($saisie) ? $saisie : date('Y-m-d');
+    $mode = valeur_autorisee((string) ($_POST['mode_paiement'] ?? ''), array_keys(PIECE_MODES_PAIEMENT), 'compte');
+    db()->prepare('UPDATE pieces SET date_payee = ?, mode_paiement = ? WHERE id = ?')
+        ->execute([$date, $mode, $id]);
     redirect('piece', ['id' => $id, 'ok' => 'paiement']);
 }
 

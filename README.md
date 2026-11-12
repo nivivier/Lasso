@@ -32,9 +32,9 @@ montrant que ce que le compte a le droit de lire.
 Sous tous ces modules, **un annuaire de personnes** : un contact de structure,
 un employé et un compte de connexion peuvent être la même personne, et le
 disent. Une personne peut être rattachée à plusieurs structures avec un rôle
-différent dans chacune. Il se règle dans Paramètres → Application → Personnes,
-réservé aux administrateurs — une personne ne relève d'aucun module en
-particulier.
+différent dans chacune. Il vit dans le Carnet d'adresses, onglet Personnes :
+on y crée une personne et, depuis sa fiche, on la lie à une structure ou l'en
+délie.
 
 **Technologie :** PHP 8.3+ et SQLite, sans framework ni étape de compilation.
 Quatre dépendances seulement, **toutes embarquées dans le dépôt** (jamais de CDN) :
@@ -82,6 +82,7 @@ define('SETUP_SECRET', '<longue valeur aléatoire>');        // protège l'écra
 | `APP_ENV` | `prod` : erreurs masquées, e-mails envoyés, HTTPS forcé. `dev` : erreurs affichées, e-mails journalisés. | variable serveur `APP_ENV`, sinon `dev` en ligne de commande et sous `php -S`, sinon **`prod`** |
 | `APP_DB_PATH` | Chemin absolu du fichier SQLite. **À placer hors de la racine web.** | `data/database.sqlite` |
 | `FORCE_HTTPS` | Redirection 301 vers HTTPS + en-tête HSTS. | `true` en prod |
+| `APP_FUSEAU` | Fuseau horaire des heures écrites et affichées par l'application (copies, journal, dernière connexion…). | `Europe/Zurich` |
 | `SETUP_SECRET` | L'écran de création du 1ᵉʳ compte exige `?p=installation&key=<secret>`. **En production, son absence bloque l'installation** (réponse 503 explicite) plutôt que de laisser l'écran ouvert. | vide — obligatoire en `prod` |
 
 **Envoi d'e-mails (SMTP)** — beaucoup d'hébergements mutualisés désactivent `mail()`.
@@ -180,7 +181,9 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
    est décrit en 12 : il montre ce qui demande un geste, pas des totaux.
 5. **Certificat de salaire** (page d'un employé) : récapitulatif annuel au format du
    formulaire 11, impression PDF, et **export XML** à importer dans l'application
-   officielle *eCertificat de salaire CSI* pour produire les PDF certifiés.
+   officielle *eCertificat de salaire CSI* pour produire les PDF certifiés. L'export de
+   toute une année se fait depuis Paramètres → Exporter, ou par le menu « … »
+   de la liste des fiches.
 6. **Comptabilité** : créez vos comptes bancaires, importez les relevés au format
    **camt.053** (XML ISO 20022) ou l'export **CSV PostFinance**, lettrez les écritures
    (catégorie du plan comptable), définissez des **règles de lettrage
@@ -195,6 +198,11 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
    la référence QR et la nature de l'opération ; l'écriture garde la trace de la
    provenance de sa contre-partie, selon qu'elle est déclarée par le relevé ou
    déduite de son libellé.
+   Un exercice terminé se **clôture** depuis les comptes annuels
+   (administrateurs) : ses écritures et celles des années antérieures ne
+   peuvent plus changer de montant, de date, de compte ni de catégorie, ni
+   être ajoutées ou supprimées — la base elle-même le refuse. Une sauvegarde
+   précède la clôture ; seule la dernière année close peut être rouverte.
 7. **Facturation** : débiteurs, factures avec **zone de paiement QR suisse**
    conforme (PDF), envoi par e-mail et relances. L'IBAN créancier vient du compte
    bancaire, partagé avec la comptabilité.
@@ -285,14 +293,14 @@ rendre le dépôt public, définissez un jeton de lecture GitHub : `define('MAJ_
    une feuille de route.
    Les **campagnes de mailing** avec désinscription, elles, envoient en masse
    et forment un sous-module à part (« Envois groupés »), activable séparément.
-   Un envoi groupé se prépare depuis **Booking → Suivi**, bouton « Nouvel envoi
+   Un envoi groupé se prépare depuis **Booking → Envois groupés**, bouton « Nouvel envoi
    groupé » : c'est la page qui montre la file d'attente et l'historique des
    envois, donc celle d'où l'on en lance un.
    Le lien de désinscription ouvre une page de confirmation avant d'agir : un
    antivirus de messagerie ou l'aperçu de lien d'un client mail suit les URL
    d'un message pour les inspecter, et désinscrirait la structure tout seul.
    Les adresses d'expédition du booking sont autant de **boîtes**, chacune avec
-   son propre serveur SMTP (Paramètres → E-mails → Envois pour le booking).
+   son propre serveur SMTP (Paramètres → E-mails, carte « Boîtes d'envois externes »).
 10. **Tri des listes** : un clic sur un en-tête de colonne trie la liste
     (structures, suivi d'une campagne, fiches, employés, événements, factures,
     écritures). Le tri se fait en base, pas sur la page affichée — il vaut donc
@@ -550,7 +558,7 @@ Aucun de ces combos n'écrit de couleur : ils recombinent des teintes déjà
 dérivées de celles de l'employeur, et suivent donc le thème comme le reste.
 
 Pour qui touche au CSS : toutes les couleurs passent par des tokens définis en
-tête d'`assets/app.css`, et seul ce bloc est redéfini en sombre. Écrire une
+tête d'`assets/css/`, et seul ce bloc est redéfini en sombre. Écrire une
 couleur de fond en dur dans une règle produit un aplat clair au milieu d'une page
 sombre — `php tests/run.php` le refuse. Même discipline pour les **tailles de
 texte** : sept crans (`--fs-tiny` … `--fs-huge`), jamais une valeur, et la
@@ -567,8 +575,10 @@ des documents imprimés, ombres) : le plafond peut baisser, jamais monter.
 
 ## 6. Sauvegarde
 
-**Paramètres → Exporter → Sauvegarde complète** télécharge une **archive** qui
-contient tout ce qu'il faut pour repartir :
+**Paramètres → Données → Sauvegardes** (administrateurs) réunit tout ce qui
+protège la base entière : la télécharger, la date du dernier téléchargement et
+le rappel, les copies gardées sur le serveur, et la restauration. « Télécharger »
+produit une **archive** qui contient tout ce qu'il faut pour repartir :
 
 | dans l'archive | contenu |
 | --- | --- |
@@ -583,12 +593,12 @@ aux images cassées et aux pièces jointes introuvables.
 
 Le format est un **ZIP** ; sur un hébergement dépourvu de l'extension `zip`, un
 **TAR.GZ** (extension `phar`, présente par défaut). Si aucune des deux n'est
-disponible, le téléchargement retombe sur la base seule et la page d'export le
+disponible, le téléchargement retombe sur la base seule et la page le
 signale — les fichiers déposés sont alors à copier à part.
 
 ### Restaurer
 
-**Paramètres → Importer → type « Sauvegarde complète »** : on dépose l'archive,
+Carte **« Restaurer une sauvegarde »** de la même page : on dépose l'archive,
 et l'application fait le reste. Réservé à l'**administration** (écriture sur le
 cœur), comme la sauvegarde dont c'est l'inverse.
 
@@ -625,23 +635,44 @@ procédure écrite dans le `SAUVEGARDE.txt` de chaque archive.
 d'installation et l'emplacement de la base, et se conserve à part.
 
 > **Une sauvegarde se range comme un document confidentiel.** Elle porte toute
-> la base : salaires nominatifs, carnet d'adresses, et les mots de passe des
-> **boîtes d'envoi** (SMTP) **en clair** — un serveur de messagerie réclame le
-> mot de passe lui-même, pas son empreinte. Les mots de passe des **comptes de
-> connexion**, eux, n'y sont qu'en empreinte bcrypt : ils ne se relisent pas,
-> mais une sauvegarde restaurée rend à chacun le sien.
+> la base : salaires nominatifs, carnet d'adresses. Les mots de passe des
+> **comptes de connexion** n'y sont qu'en empreinte bcrypt ; ceux des **boîtes
+> d'envoi** (SMTP) y sont **chiffrés** avec une clé qui reste sur le serveur
+> (voir § 7) — restaurée sur un autre serveur, la base les rend illisibles et
+> Paramètres → E-mails demande de les ressaisir.
 
-À conserver régulièrement en lieu sûr. Quand le dernier téléchargement remonte à
-plus de 30 jours (`SAUVEGARDE_RAPPEL_JOURS`), ou qu'aucun n'a été enregistré, le
-tableau de bord le rappelle aux administrateurs.
+**Chiffrer la sauvegarde (facultatif).** Une case sous la description ;
+cochée, elle demande une phrase secrète, saisie deux fois, qui chiffre
+l'archive en AES-256 : `base.sqlite` et les fichiers déposés ne
+s'ouvrent qu'avec elle, la note `SAUVEGARDE.txt` reste lisible. Elle n'est
+conservée **nulle part** — perdue, l'archive est perdue. La restauration la
+demande ; pour ouvrir l'archive à la main, il faut un
+outil qui lit le ZIP chiffré en AES (7-Zip, Keka, WinRAR…), l'utilitaire
+intégré de macOS ou de Windows n'y parvient pas. Réservé au format ZIP, et aux
+serveurs dont l'extension `zip` sait chiffrer : sinon la case n'apparaît pas.
+
+À conserver régulièrement en lieu sûr. La page affiche la date du dernier
+téléchargement. Quand il remonte à plus de 30 jours, ou qu'aucun n'a été
+enregistré, le tableau de bord le rappelle aux administrateurs ; le délai se
+règle sur la même page (1 à 365 jours), la constante `SAUVEGARDE_RAPPEL_JOURS`
+n'en donnant que la valeur par défaut.
 
 **Copies automatiques.** Avant une mise à jour, un import, une fusion de
-doublons, un recalcul de fiches ou une restauration, l'application copie la base
+doublons, un recalcul de fiches, une clôture d'exercice ou une restauration, l'application copie la base
 dans un `.sqlite.bak` à côté d'elle (`sauvegarder_base()`). Seules les **10 plus
 récentes** sont gardées (`SAUVEGARDES_AUTO_MAX`, réglable dans
 `lib/config.local.php`) : chacune est une copie intégrale de la base. Elles
 restent sur le serveur et disparaissent avec lui — elles ne remplacent pas la
-sauvegarde complète.
+sauvegarde complète. La carte **« Copies sur le serveur »** de Paramètres →
+Sauvegardes les liste avec leur date, leur motif et leur taille,
+en crée une à la demande (« Créer une copie », qui compte dans le
+plafond), **restaure** celle qu'on choisit et, au crayon, permet d'en
+supprimer. Restaurer une copie remplace la base comme une restauration
+d'archive — la base actuelle devient d'abord une copie de plus, et l'on est
+déconnecté —, mais ne touche pas aux fichiers déposés, qu'une copie ne
+contient pas. Quand la copie la plus récente est celle qu'une restauration a
+posée, son bouton devient « Annuler la restauration ». Seuls les fichiers de cette
+liste peuvent être supprimés, jamais la base ni un autre fichier du dossier.
 
 ---
 
@@ -682,6 +713,33 @@ sauvegarde complète.
   l'application s'il manque, pour qu'un déploiement partiel ne laisse pas la base
   exposée.
 - Uploads de logos validés (type image réel, 2 Mo max).
+- **Mots de passe des boîtes d'envoi chiffrés en base** (AES-256-GCM,
+  `lib/secrets.php`) : un serveur SMTP réclame le mot de passe lui-même, on ne
+  peut donc pas n'en garder qu'une empreinte. La clé n'est pas dans la base :
+  constante `SECRETS_CLE` de `lib/config.local.php` (32 octets en base64) si
+  elle est définie, sinon un fichier `<base>.cle.php` créé à côté de la base au
+  premier besoin, lisible par le seul propriétaire et ignoré par git. Une copie
+  de la base ou une sauvegarde qui fuit ne livre donc plus les boîtes d'envoi ;
+  un accès au disque du serveur, si. **Les n° AVS** (employés et copie figée
+  de chaque fiche) sont chiffrés de la même façon. Une sauvegarde **protégée
+  par une phrase secrète** emporte la clé, et la restauration la reprend : c'est
+  la façon sûre de déménager. **Ne perdez pas ce fichier** si vous déménagez
+  avec une sauvegarde sans phrase : sans lui, les mots de passe et les n° AVS
+  sont à ressaisir.
+- **Journal d'activité** (Paramètres → Application → Journal, administrateurs) :
+  chaque requête qui modifie quelque chose — enregistrer, supprimer, envoyer —
+  y laisse le compte, la date, la route, l'identifiant visé et l'issue (fait
+  ou refusé). Jamais le contenu du formulaire. Conservé cinq ans.
+  **Les erreurs du serveur** y figurent aussi, dans une carte en tête : en
+  production elles ne s'affichent pas, et le journal d'erreurs de PHP d'un
+  hébergement mutualisé, personne ne le lit. Une ligne par erreur distincte
+  (message, fichier et ligne, page, compte, nombre de fois) ; le tableau de
+  bord signale aux administrateurs celles qui n'ont pas encore été vues.
+- **Suppressions gardées par le serveur** : ce qui ne doit pas être supprimé
+  (une fiche payée, une facture émise, un employé qui a des fiches, le dernier
+  administrateur) est refusé par la route, pas seulement caché dans
+  l'interface — `tests/journal_test.php` vérifie que ces gardes restent dans le
+  code.
 
 > Les données employés (`data/`), les logos (`uploads/`) et la config locale
 > (`lib/config.local.php`) sont **exclus du dépôt git** par `.gitignore`.
@@ -709,6 +767,24 @@ Le JavaScript y passe aussi : `tests/javascript_test.php` fait compiler
 `assets/*.js` et chaque `<script>` des vues par un vrai moteur — Node s'il est
 installé (c'est le cas sur la CI), sinon JavaScriptCore via `osascript` sur un
 Mac. Sans moteur, le test l'annonce (« ignoré ») ; en CI, il échoue.
+
+Et dans un vrai navigateur : `tests/navigateur_test.php` pilote un Chrome
+sans fenêtre, parcourt l'application en suivant ses liens, ouvre menus et
+crayons, et relève toute erreur JavaScript, de console ou de CSP. Sans
+Chrome, il l'annonce et passe ; en CI, il échoue. `CHROME_BIN` désigne un
+autre exécutable.
+
+Toutes les pages aussi : `tests/pages_test.php` fabrique une base de
+démonstration neuve dans un dossier temporaire, lance un serveur intégré
+branché dessus, se connecte en administrateur et ouvre chaque route GET de la
+table de routage, avec sa recherche et chacun de ses tris. Il ne vérifie pas ce
+que la page dit, seulement qu'elle se rend sans erreur PHP. Puis il **envoie
+chaque formulaire** trouvé sur ces pages, un par bouton d'envoi, champs
+obligatoires remplis, suppressions en dernier (il les fait vraiment : la base
+est jetable). Enfin il **ajoute une balise** `"'><x-xss>` à chaque colonne de
+texte libre de la base et rouvre toutes les pages : la balise doit ressortir
+échappée partout. Pour la liste de ce qui redirige au lieu de s'afficher :
+`LASSO_PAGES_DETAIL=1 php tests/pages_test.php`.
 
 > Le serveur intégré de PHP ne lit pas les `.htaccess` : en local, les dossiers
 > protégés restent accessibles. Sans incidence en production sous Apache.
@@ -786,4 +862,4 @@ c'est ce qui évite de redécider à chaque page.
   l'échec n'est visible que dans le journal d'erreurs du serveur. Un administrateur
   peut toujours réinitialiser un mot de passe depuis Paramètres → Application
   → Utilisateurs.
-- Les sauvegardes ne sont pas chiffrées : l'archive exportée est en clair, base et fichiers déposés compris.
+- Une sauvegarde n'est chiffrée que si l'on donne une phrase secrète au téléchargement, et seulement au format ZIP ; sans elle, salaires et adresses y sont lisibles.

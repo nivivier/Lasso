@@ -10,11 +10,11 @@
 $depuisQs = $depuisQs ?? '';
 ?>
 <tr>
-                    <td><a href="<?= e(url_avec_retour('?p=facture&id=' . (int) $fa['id'], 'evenement', $id)) ?>"><?= $fa['numero'] !== '' ? e($fa['numero']) : '<span class="muted">(brouillon)</span>' ?></a></td>
-                    <td><?= e($fa['structure_nom']) ?></td>
-                    <td class="num strong"><?= chf((float) $fa['montant_total']) ?></td>
-                    <td><?= facturation_badge($fa) ?></td>
-                    <td>
+                    <td class="col-numero"><a href="<?= e(url_avec_retour('?p=facture&id=' . (int) $fa['id'], 'evenement', $id)) ?>"><?= $fa['numero'] !== '' ? e($fa['numero']) : '<span class="muted">(brouillon)</span>' ?></a></td>
+                    <td class="col-structure"><?= e($fa['structure_nom']) ?></td>
+                    <td class="num strong col-montant"><?= chf((float) $fa['montant_total']) ?></td>
+                    <td class="col-statut"><?= facturation_badge($fa) ?></td>
+                    <td class="actions">
                         <?php if ($peutEcrireEv): ?>
                         <form method="post" action="?p=evenement_facture_retirer<?= $depuisQs ?>" data-confirm="Délier cette facture de l'événement ?">
                             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">

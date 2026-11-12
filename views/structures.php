@@ -173,7 +173,7 @@ $montreContacte = $depuisNav !== 'facturation';
         // Filtres de colonne hors tableau. Deux vues en ont besoin : la carte,
         // qui n'a pas de <thead> où les accrocher, et la liste en mode mobile,
         // dont le <thead> est masqué par la mise en cartes (@media 700px,
-        // assets/app.css). Ce sont les MÊMES filtres que ceux du tableau, nommés
+        // assets/css/). Ce sont les MÊMES filtres que ceux du tableau, nommés
         // cette fois : views/_structures_filtres.php les a déjà rendus dans
         // $sfColonnes, avec le paramètre de vue qu'il faut ($sfExtra — la carte
         // doit se reconduire elle-même, la liste non). Les réécrire ici, c'était

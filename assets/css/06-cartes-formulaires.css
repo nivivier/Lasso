@@ -1,0 +1,930 @@
+/* =================== Cards & forms =================== */
+.card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 26px;
+    box-shadow: var(--shadow);
+}
+/* De nombreux blocs répétés (.linked-add, .tags-liste, .contact-row…) espaçaient
+   les lignes via un margin-bottom sur chaque ligne — inoffensif tant qu'une
+   autre ligne suit, mais qui s'ajoutait au padding-bottom de la carte quand
+   la ligne se trouvait être la dernière (y compris quand seul un formulaire
+   masqué — .edit-only, [hidden] — suivait : un :last-child CSS cible cet
+   élément cadré dans le DOM, pas la dernière ligne VISIBLE, donc inefficace
+   ici). Le bas de carte se creusait alors visiblement plus que le haut (nettoyé
+   au cas par cas via .mt-0 sur le premier titre). Fix : la marge migre sur le
+   haut de l'élément SUIVANT plutôt que le bas de chaque ligne — un
+   margin-top sur un élément caché (display:none) n'a aucun effet visuel, donc
+   plus jamais de marge fantôme en fin de carte, quel que soit ce qui suit. */
+/* Même souci avec un <p> ordinaire (ex. « Aucun contact. ») terminant une
+   carte : sa marge par défaut du navigateur (1em) s'ajoute au padding-bottom
+   de la carte. Scopé à *:last-child (donc sans effet si un élément — même
+   masqué — le suit encore, cas alors couvert par la règle précédente). */
+.card > p:last-child, .card-block > p:last-child, .card-disp > p:last-child { margin-bottom: 0; }
+.card.auth { width: 100%; padding: 30px; }
+/* « Bonjour » plutôt que « Connexion » : c'est un accueil, pas l'intitulé d'un
+   formulaire — d'où une taille de titre de page. */
+.card.auth h1 { margin: 0 0 20px; font-size: var(--fs-huge); letter-spacing: -.02em; line-height: 1.15; }
+.auth-lien { margin: 14px 0 0; text-align: center; }
+.fieldset-groupe { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 14px 16px 16px 16px; margin: 0 0 18px; }
+.fieldset-groupe legend { padding: 0 8px; font-size: var(--fs-small); font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.fieldset-groupe .grid2, .fieldset-groupe .grid3 { margin-bottom: 14px; }
+.fieldset-groupe .grid2:last-child, .fieldset-groupe .grid3:last-child { margin-bottom: 0; }
+
+.form-split { display: grid; grid-template-columns: 2fr 1fr; gap: 0 24px; align-items: start; }
+.form-split-main { min-width: 0; }
+.form-split-side { margin: 0; min-width: 0; }
+/* La colonne latérale reste étroite quelle que soit la largeur d'écran — les
+   grilles à colonnes fixes (formulaires d'édition en ligne) y seraient trop
+   à l'étroit, on les repasse donc en une seule colonne. */
+.form-split-side .grid2, .form-split-side .grid3, .form-split-side .grid4 { grid-template-columns: 1fr; }
+@media (max-width: 800px) { .form-split { grid-template-columns: 1fr; } }
+
+/* Sections éditables de la sidebar structure (Salles & festivals, Contacts) :
+   les commandes ajouter/lier/modifier/supprimer (.edit-only) restent masquées
+   tant que le crayon d'en-tête n'a pas basculé la section en mode édition. */
+.section-editable:not(.editing) .edit-only { display: none; }
+.section-editable.editing .read-only { display: none; }
+.edit-toggle-btn.on { background: var(--highlight-tint); color: var(--highlight-d); }
+/* Le bouton « + » (nouveau contact) reste sur la même ligne que le crayon. */
+.card-head-row .edit-only { flex: 0 0 auto; }
+.fusion-candidat { display: block; cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+.fusion-candidat:has(input:checked) { border-color: var(--primary); box-shadow: var(--focus-ring); }
+.card-head-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+.card-head-row h2 { margin: 0; }
+
+/* Sous-sections empilées dans une même carte (?p=structure : Lieux liés +
+   Événements liés). Héritées de la colonne de droite que la fiche d'une
+   structure portait autrefois (.struct-aside .aside-block, retirée avec elle),
+   mais sans exiger d'ancêtre : ces cartes ne sont plus dans une barre
+   latérale. */
+.card-block + .card-block { margin-top: 26px; padding-top: 22px; border-top: 1px solid var(--line); }
+.card-block .grid2, .card-block .grid3, .card-block .grid4 { grid-template-columns: 1fr; }
+
+/* 3 colonnes de cartes empilées, chaque colonne d'une hauteur indépendante
+   (?p=structure, avec le module booking) : Lieux liés/Informations générales,
+   Statut/Contacts, Localisation/Historique. Un simple grid3 (rangées) forcerait
+   les cartes à s'aligner par ligne quelle que soit leur hauteur — ici chaque
+   colonne est un flex empilé, indépendant des deux autres. */
+/* Trois colonnes quand la place est là, deux puis une quand elle manque — et
+   c'est la largeur de la BOÎTE qui décide, non celle de la fenêtre : la même
+   fiche s'affiche pleine page et dans le volet droit de la vue deux colonnes,
+   où il reste 850px sur un écran de 1500. auto-fit s'en charge tout seul, sans
+   seuil à tenir. */
+.card-columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 22px 18px; align-items: start; }
+.card-col { display: flex; flex-direction: column; gap: 22px; }
+
+/* ── Deux colonnes inégales dans une fiche ────────────────────────────────
+   Une carte large, une carte étroite à côté (?p=personne : l'identité et les
+   rattachements), et les deux empilées quand la place manque.
+
+   ⚠️ En flex-wrap et non en grille à deux colonnes, et surtout pas derrière
+   une media query : cette fiche s'affiche AUSSI dans le volet droit de la vue
+   deux colonnes, dont la largeur n'a aucun rapport avec celle de la fenêtre —
+   un seuil en vw l'aurait coupée en deux dans un volet de 400px. Le flex
+   mesure la place réelle. Une requête de conteneur dirait la même chose en
+   demandant un élément d'enveloppe de plus (un conteneur ne peut pas se
+   requêter lui-même).
+
+   Les deux portent flex-grow : repliée seule sur sa ligne, la carte étroite
+   doit reprendre toute la largeur, pas rester en colonne de 320px au milieu du
+   vide. Côte à côte, le rapport 3:1 des grow donne à la carte étroite la
+   largeur d'une mini-fiche, celle du mode cartes. */
+.fiche-colonnes { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 22px 18px; }
+.fiche-col-large { flex: 3 1 440px; min-width: 0; }
+.fiche-col-etroite { flex: 1 1 320px; min-width: 0; }
+/* row-gap:0 (via le gap raccourci ci-dessus) ne se voit jamais en 3 colonnes
+   (chaque .card-col ne fait qu'une seule ligne dans la grille) — mais une
+   fois réduit à 1 colonne (ci-dessous), les 3 .card-col s'empilent et
+   deviendraient adjacents sans le moindre espace entre eux. Même 22px que le
+   gap interne de .card-col, pour une cadence régulière entre toutes les
+   cartes une fois empilées, qu'elles viennent de la même colonne ou non. */
+/* (Plus de seuil à 900px : auto-fit replie la grille de lui-même, à la largeur
+   réelle du conteneur et non à celle de la fenêtre.) */
+
+input.input-titre:not([type="checkbox"]):not([type="radio"]) { font-size: var(--fs-big); font-weight: 800; padding: 2px 14px; color: var(--primary)}
+
+/* .field-group : un champ qui n'est PAS un <label> — le cas d'un groupe de
+   cases à cocher, qu'un <label> enveloppant rendrait fou (cliquer le libellé
+   activerait sa première case, voir choix_coches_html()). Il se suffit à
+   lui-même, hors d'un .form aussi : ces groupes vivent parfois dans un
+   formulaire sans cette classe. */
+.form label, .filters label, .field-group { display: flex; flex-direction: column; gap: 6px; font-weight: 500; color: var(--muted); }
+.form label, .field-group { margin-bottom: 16px; font-size: var(--fs-basic); }
+.filters label { margin-bottom: 6px; line-height:0.8; font-size: var(--fs-tiny); }
+
+/* Sélecteur segmenté à icônes (icon_picker(), lib/helpers.php) : boutons
+   connectés dont un seul est actif — même format que les droits par module de
+   ?p=utilisateurs (.perm-toggle), mais horizontal. */
+/* Les règles préfixées « :is(.form, .filters) » répondent à celle des libellés
+   de formulaire (« .form label, .filters label », 0,1,1, qui empile en
+   colonne) : une seule classe ne l'emporterait pas. Elles remplacent les
+   !important d'autrefois — un !important ne se surcharge plus, et le masquage
+   de « deux colonnes » en dessous de 1100px avait dû en poser un second.
+   ⚠️ Le préfixe ne porte QUE les propriétés disputées : posé sur la règle
+   entière, il passerait aussi devant les variantes (.seg-picker-label .seg-btn,
+   .cout-toggle .check), qui comptent sur l'ordre du fichier pour l'emporter. */
+:is(.form, .filters) .seg-picker { flex-direction: row; }
+:is(.form, .filters) .seg-picker .seg-btn { display: inline-flex; flex-direction: row; }
+.seg-picker { display: inline-flex; flex-direction: row; width: max-content; border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; }
+.seg-picker .seg-btn {
+    display: inline-flex; flex-direction: row; align-items: center; justify-content: center;
+    width: 46px;
+    /* --action-height (voir :root) calque la hauteur totale de button/.btn.
+       .seg-btn n'a pas sa propre bordure haut/bas (seulement une bordure
+       droite entre boutons) : c'est .seg-picker, tout autour, qui apporte les
+       2px de bordure manquants — d'où le -2 * var(--btn-border-w) : sans lui,
+       le toggle Liste/Carte serait 2px plus haut que ses boutons voisins. */
+    height: calc(var(--action-height) - 2 * var(--btn-border-w));
+    margin: 0; background: var(--card); border: none; border-right: 1px solid var(--line); color: var(--muted);
+    cursor: pointer; transition: background .15s, color .15s; text-decoration: none; box-shadow: none; border-radius: 0;
+}
+.seg-btn:last-child { border-right: none; }
+/* La troisième position de la bascule — « deux colonnes » — n'existe qu'au
+   large : en dessous de 1100px les deux colonnes se marchent dessus. Même
+   spécificité que la règle des boutons, et placée après elle. */
+@media (max-width: 1099px) {
+    .seg-picker .seg-btn-duo, :is(.form, .filters) .seg-picker .seg-btn-duo { display: none; }
+    /* Une bascule qui ne propose plus que « liste » ne bascule rien : les
+       écrans dont la seule autre vue est « deux colonnes » (personnes,
+       employés, fiches, factures) la retirent entièrement. Ceux qui ont aussi
+       une carte — structures, événements — la gardent. */
+    .seg-picker-duo { display: none; }
+}
+/* Avec libellé : le bouton cesse d'être un carré et prend la largeur de son
+   mot. Sur un écran étroit la bande se replie plutôt que de déborder — c'est
+   un choix de formulaire, pas une barre d'outils, et il peut occuper deux
+   lignes. */
+.seg-picker-label { flex-wrap: wrap; max-width: 100%; }
+
+/* Le compte d'une liste posé dans la barre d'outils (« 30 personnes dans
+   l'annuaire ») : une indication, pas une commande. Sur un écran étroit elle
+   prenait sa largeur entière sur le champ de recherche, qui se réduisait à un
+   carré — elle s'efface, la recherche reste. */
+@media (max-width: 800px) {
+    .toolbar-compte { display: none; }
+}
+.seg-picker-label .seg-btn { width: auto; gap: 7px; padding: 0 14px; font-size: var(--fs-basic); font-weight: 500; }
+/* Sur un écran étroit, le repli libre laissait des trous : des boutons de
+   largeurs inégales qui se replient dessinent des rangées dépareillées, et la
+   bande se lit alors comme un tableau cassé. Deux colonnes égales, séparées
+   par le fond qui transparaît dans un écart d'un pixel — un filet entre les
+   cases sans avoir à décider, case par case, laquelle porte une bordure et
+   laquelle n'en porte pas. Un dernier bouton resté seul prend toute la
+   largeur, sinon la case vide à côté de lui se verrait comme un trou. */
+@media (max-width: 700px) {
+    .seg-picker-label {
+        display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+        width: 100%; gap: 1px; background: var(--line);
+    }
+    /* Hauteur libre : un libellé de deux mots passe à la ligne dans une
+       colonne étroite, et une hauteur figée l'y aurait tronqué. */
+    .seg-picker-label .seg-btn {
+        border-right: none; justify-content: flex-start;
+        height: auto; min-height: calc(var(--action-height) - 2 * var(--btn-border-w));
+        padding-top: 7px; padding-bottom: 7px; text-align: left;
+    }
+    .seg-picker-label .seg-btn:last-child:nth-child(odd) { grid-column: 1 / -1; }
+}
+.seg-btn .ico { width: 17px; height: 17px; }
+/* Les deux teintes d'un combo de décor, en pastilles : le bouton MONTRE ce
+   qu'il fait au lieu de le nommer (?p=apparence). Elles lisent --fond-a et
+   --fond-b, que la classe fondc-* du bouton lui-même pose — un combo ajouté
+   à FONDS_COULEURS n'a donc rien à écrire ici. Le cerne d'encre n'est pas un
+   ornement : sans lui, la pastille « surface » est invisible sur le fond
+   blanc du bouton. */
+.fond-points { display: inline-flex; align-items: center; }
+.fond-points i {
+    display: block; width: 13px; height: 13px; border-radius: 50%;
+    border: 1px solid color-mix(in srgb, var(--ink) 20%, transparent);
+    box-sizing: border-box;
+}
+.fond-points i:first-child { background: var(--fond-a); }
+.fond-points i:last-child { background: var(--fond-b); margin-left: -4px; }
+.seg-btn input { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
+.seg-btn:hover { background: var(--surface); text-decoration: none; }
+.seg-btn:has(input:checked), .seg-btn.on { background: var(--highlight-tint); color: var(--highlight-d); }
+.seg-btn:has(input:focus-visible), .seg-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+
+/* Style par défaut de tous les champs de saisie du site (pas besoin de le
+   répéter par écran/scope). :not(checkbox/radio) — sinon les cases à cocher
+   héritent du style « champ texte » (bordure, fond, largeur 100%) et de
+   appearance:none, qui les rend invisibles/inertes. */
+input:not([type="checkbox"]):not([type="radio"]), select, textarea {
+    font: inherit; font-size: var(--fs-basic); color: var(--ink); width: 100%;
+    padding: 10px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); background-color: var(--card);
+    transition: border-color .15s, box-shadow .15s;
+}
+input:not([type="checkbox"]):not([type="radio"]) { appearance: none; -webkit-appearance: none; }
+/* Chevron custom sur tous les <select> (remplace la flèche native de l'OS,
+   incohérente entre navigateurs) — SVG inline en data URI (pas de fichier
+   externe), couleur --muted figée en dur (un data URI ne peut pas référencer
+   une variable CSS). */
+select {
+    appearance: none; -webkit-appearance: none; cursor: pointer;
+    padding-right: 30px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 14px;
+}
+select::-ms-expand { display: none; }
+select:disabled { cursor: not-allowed; }
+.filters select, .filters input, .cat-cell select, .bulk-bar select { width: auto; }
+/* Input cat-search pour lettrage individuel (remplace le <select> dans chaque ligne) */
+/* Le :not() répète celui de la règle générale des champs (0,2,1), comme
+   .cadre-edit plus bas : sinon ses 10px de marge interne l'emportent. */
+.row-cat-input:not([type="checkbox"]):not([type="radio"]) { font: inherit; font-size: var(--fs-basic); color: var(--ink); width: 100%; min-width: 140px;
+    padding: 4px 8px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--card);
+    cursor: pointer; transition: border-color .15s, box-shadow .15s;}
+.row-cat-input::placeholder { color: var(--muted); }
+/* Le formulaire de lettrage partagé ne se voit pas : il n'est qu'un porteur de
+   champs cachés, et son seul enfant visible va vivre dans la cellule ouverte
+   (views/_compta_ecritures_panneaux.php). */
+.ecr-cat-form { margin: 0; }
+
+/* ÉDITION EN LIGNE d'une écriture manuelle. Les champs prennent la place du
+   contenu de leur cellule, et doivent donc tenir dans la COLONNE : largeur
+   pleine, hauteur d'une rangée, pas de marge basse (celle des champs de
+   formulaire décalerait la ligne entière). */
+.ecr-champ {
+    font: inherit; font-size: var(--fs-basic); color: var(--ink);
+    width: 100%; min-width: 0; margin: 0;
+    padding: 4px 8px; border: 1px solid var(--line); border-radius: var(--radius-sm);
+    background: var(--card);
+}
+.ecr-champ:focus { outline: none; border-color: var(--primary); box-shadow: var(--focus-ring); }
+/* Un montant se lit aligné à droite, en édition comme en lecture. */
+.ecr-champ-num { text-align: right; font-variant-numeric: tabular-nums; }
+/* Les trois commandes à la place du crayon, dans la cellule d'actions : c'est
+   là qu'on a cliqué pour ouvrir. Enregistrer, annuler, supprimer — l'ordre du
+   geste (docs/UI.md § 2). */
+.ecr-edit-actions { display: inline-flex; align-items: center; gap: 4px; }
+/* La ligne ouverte se distingue de ses voisines sans crier : la même teinte
+   que le survol, tenue tant que l'édition dure. */
+tr.ecr-en-edition > td { background: var(--surface); }
+.row-cat-input:focus { outline: none; border-color: var(--primary); box-shadow: var(--focus-ring); cursor: text; }
+/* Préfixe (catégorie parente) affiché au-dessus de l'input — absent si pas de parent */
+.cat-prefix { font-size: var(--fs-tiny); line-height: 1.1; color: var(--muted); margin-bottom: 1px; }
+/* Mode affichage statique (catégorie / axe déjà remplis) */
+.row-field-disp { display: flex; align-items: center; gap: 3px; min-height: 28px; }
+.row-field-txt { flex: 1; display: flex; line-height: 1.1; flex-direction: column; min-width: 0; font-size: var(--fs-basic); overflow: hidden; }
+.row-field-txt > span { overflow: visible; text-overflow: ellipsis; white-space: nowrap; }
+.row-field-prefix { font-size: var(--fs-tiny); color: var(--muted); }
+.row-edit-btn { background: none; border: none; padding: 2px 3px; cursor: pointer; color: var(--muted);
+    opacity: 0; flex-shrink: 0; line-height: 0; border-radius: var(--radius-sm); transition: opacity .12s; }
+.cat-cell:hover .row-edit-btn, .axe-cell:hover .row-edit-btn, .row-field-disp:hover .row-edit-btn,
+.piece-cell:hover .row-edit-btn { opacity: 1; }
+.row-edit-btn:focus-visible { opacity: 1; outline: 2px solid var(--primary); outline-offset: 1px; }
+/* Un .row-edit-btn qui porte un menu déroulant (le trombone de la colonne
+   « Pièce ») reste visible tant que son menu est ouvert : sans cette règle, la
+   souris quitte la cellule pour aller choisir un type et le déclencheur
+   disparaît sous le panneau resté ouvert. */
+.menu-deroulant[open] > summary.row-edit-btn { opacity: 1; }
+.row-edit-btn svg { width: 12px; height: 12px; }
+/* Texte plus compact pour Date et Compte */
+.compta-lettrage td.nowrap { font-size: var(--fs-small); width: 1%; white-space: nowrap; }
+.compta-lettrage .compte-cell { font-size: var(--fs-small); }
+/* Dropdown partagé positionné en absolu dans le flux de la page */
+#row-cat-list { position: absolute; z-index: 200; }
+/* Bulk cat-search : largeur fixe pour tenir dans la barre flottante */
+.bulk-cat-search { width: 280px; flex-shrink: 0; position: relative; }
+/* Champ cat-search « pleine boîte » (barre groupée + recherche de facture liée) :
+   même style, une seule déclaration. */
+.bulk-cat-search .cat-search-input,
+.facture-search .cat-search-input { font: inherit; font-size: var(--fs-basic); color: var(--ink); padding: 10px 12px; margin: 0; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--card); }
+.bulk-cat-search .cat-search-input:focus,
+.facture-search .cat-search-input:focus { outline: none; border-color: var(--primary); box-shadow: var(--focus-ring); }
+/* Ouvre vers le haut (barre fixée en bas de l'écran) */
+.bulk-cat-search .cat-search-list { top: auto; bottom: 100%; margin: 0 0 2px; }
+/* Cat-search dans le formulaire écriture manuelle */
+.form-cat-search { position: relative; }
+/* Axe analytique par ligne */
+.axe-cell { width: 1%; white-space: nowrap; }
+.axe-disp { display: flex; align-items: center; gap: 4px; }
+.axe-disp-txt { display: inline-block; min-width: 24px; }
+.axe-add-btn, .axe-edit-btn { opacity: 0; pointer-events: none; }
+.axe-cell:hover .axe-add-btn,
+.axe-cell:hover .axe-edit-btn,
+.axe-add-btn:focus-visible,
+.axe-edit-btn:focus-visible { opacity: 1; pointer-events: auto; }
+/* Select inline (toujours visible quand aucune ventilation) */
+.axe-inline-sel { font: inherit; font-size: var(--fs-basic); padding: 2px 5px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--card); max-width: 120px; }
+.axe-inline-sel:focus { outline: none; border-color: var(--primary); box-shadow: var(--focus-ring); }
+
+/* Ligne de fiche : axe analytique éditable */
+.ligne-axe-cell { white-space: nowrap; }
+.ligne-axe-cell:hover .axe-edit-btn,
+.ligne-axe-cell .axe-edit-btn:focus-visible { opacity: 1; pointer-events: auto; }
+/* Page suggestion de ventilation */
+.row-selected { background: var(--primary-tint); }
+.suggestion-config { padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.suggestion-ecriture { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; font-size: var(--fs-basic); padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+.suggestion-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: var(--fs-basic); }
+.suggestion-row select { font: inherit; font-size: var(--fs-basic); padding: 3px 22px 3px 6px; border: 1px solid var(--line); border-radius: var(--radius-sm); background-color: var(--card); background-position: right 5px center; background-size: 12px; }
+.suggestion-table tfoot tr:last-child td { font-weight: bold; }
+
+/* Panneau de ventilation multi-axe (flottant, positionné par JS) */
+.axe-panel { position: absolute; z-index: 300; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-sm); box-shadow: var(--shadow); padding: 12px; min-width: 340px; }
+/* Grille et non flex, avec des pistes nommées : la règle globale des champs
+   (« input:not([type=checkbox])… , select, textarea ») impose width:100% à une
+   spécificité de (0,2,1), au-dessus du (0,2,0) d'un « .axe-panel-row .vent-mont ».
+   En flex, le montant réclamait donc toute la ligne et l'axe se réduisait à
+   seize pixels : on ne lisait plus ce qu'on avait choisi. La grille fixe la
+   part de chacun avant que les champs n'aient leur mot à dire ; le width:100%
+   qu'ils reçoivent les fait alors remplir LEUR piste, ce qui est exactement ce
+   qu'on veut. */
+.axe-panel-row { display: grid; grid-template-columns: minmax(0, 1fr) 104px auto; gap: 6px; align-items: center; margin-bottom: 6px; }
+.axe-panel-row .vent-axe { min-width: 0; font: inherit; font-size: var(--fs-basic); padding: 4px 7px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--card); }
+.axe-panel-row .vent-mont { min-width: 0; font: inherit; font-size: var(--fs-basic); padding: 4px 7px; border: 1px solid var(--line); border-radius: var(--radius-sm); text-align: right; }
+.axe-panel-row .vent-axe:focus,
+.axe-panel-row .vent-mont:focus { outline: none; border-color: var(--primary); box-shadow: var(--focus-ring); }
+.axe-panel-row .vent-del { flex-shrink: 0; color: var(--muted); background: none; border: none; cursor: pointer; padding: 3px; border-radius: var(--radius-sm); display: flex; align-items: center; }
+.axe-panel-row .vent-del:hover { color: var(--danger); background: var(--danger-tint); }
+.axe-panel-row .vent-del .ico { width: 14px; height: 14px; }
+.axe-panel-total { font-size: var(--fs-small); color: var(--muted); margin: 4px 0 10px; }
+/* Ce qu'il RESTE à répartir, à côté de ce qui l'est déjà : c'est le chiffre
+   qu'on cherche en ventilant, et une soustraction de tête à chaque ligne saisie
+   est exactement ce qu'un écran doit épargner. Ambre tant qu'il reste un geste
+   à faire — la règle de docs/UI.md § 13 —, rouge quand on a dépassé le montant
+   de l'écriture, teal quand tout est placé. */
+.axe-panel-reste { font-weight: 600; }
+.axe-panel-reste.est-reste { color: var(--amber); }
+.axe-panel-reste.est-trop { color: var(--danger); }
+.axe-panel-reste.est-complet { color: var(--ok); }
+.axe-panel-btns { display: flex; gap: 6px; }
+/* Grille 2 colonnes pour la section catégorie+axe dans le formulaire manuel */
+.grid2-optional { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 640px) { .grid2-optional { grid-template-columns: 1fr; } }
+/* :not() en plus pour égaler la spécificité de la règle générale .filters input:not(...):not(...)
+   (sinon son padding shorthand écraserait le padding-right réservé à l'icône ci-dessous).
+   padding vertical 10px (pas 9px) : aligné sur le padding par défaut de tous
+   les champs (input:not(checkbox/radio), select, textarea ci-dessus), pour
+   que le champ de recherche ait exactement la même hauteur que button/.btn
+   (même formule padding+bordure+line-height) — un .search-label à côté d'un
+   .head-actions (toolbar) paraissait plus bas sinon. line-height:1.6 posé
+   ICI, directement sur l'input (pas sur .search-label, essayé d'abord et
+   sans effet) : .search-label est un <label>, visé par ".filters label
+   { line-height:0.8 }" (pensée pour les petits libellés au-dessus des
+   <select>) — spécificité (1 classe) inférieure à ".filters label" (1 classe
+   + 1 type), qui l'emporte quel que soit l'ordre dans le fichier ;
+   line-height (valeur SANS unité = ratio, pas une valeur figée) se
+   propageait alors par héritage jusque dans l'input, qui
+   recalculait 0.8 × SA PROPRE taille de police (13px) = 10.4px, écrasant sa
+   hauteur bien en dessous de celle de button/.btn. Fixé directement sur
+   l'input (spécificité suffisante ici pour ne dépendre d'aucun héritage).
+   padding vertical en var(--btn-padding-v) (pas 10px en dur) : suit
+   automatiquement button/.btn si son padding change un jour (voir :root). */
+input[type="search"]:not([type="checkbox"]):not([type="radio"]) { padding: var(--btn-padding-v) 34px var(--btn-padding-v) 10px; font-size: var(--fs-basic); line-height: 1.6; }
+/* Loupe de tous les champs de recherche (voir champ_recherche(), lib/helpers.php).
+   C'est un vrai <button> et non plus un ::after décoratif : la loupe est
+   cliquable partout — elle soumet le formulaire quand il y en a un, sinon elle
+   rend le focus au champ. Le SVG vient de icon('search') avec
+   stroke="currentColor", donc la teinte par module (--highlight, voir
+   module_couleur_css_vars()) s'applique par simple héritage de `color` : plus
+   besoin du masque CSS qu'imposait un data-URI, qui ne pouvait pas lire une
+   variable CSS.
+
+   Ni `display` ni `padding-right` ici : le premier est fixé plus bas par la
+   règle .search-label des filtres (flex/column), le second par la règle
+   input[type="search"]:not(…):not(…) ci-dessus, toutes deux plus spécifiques —
+   les redéclarer ici n'aurait aucun effet. Les 34px qu'elle réserve à droite
+   suffisent : la loupe occupe de 8 à 24px depuis le bord. */
+.search-label { position: relative; }
+.search-label input { width: 100%; }
+/* Centrage vertical par `inset` + marges automatiques, et non par
+   translateY(-50%) : la règle globale `button:active` pose son propre
+   transform (l'enfoncement de 1 px commun à tous les boutons), qui aurait
+   écrasé celui du centrage — la loupe serait descendue d'un coup au clic.
+   background/border/box-shadow sont remis à zéro pour la même raison : cette
+   loupe est un bouton pour le clavier et la souris, pas visuellement. */
+/* Le bouton occupe toute la hauteur du champ et 38px de large (retrait d'1px
+   pour ne pas mordre la bordure arrondie) : l'icône reste petite, mais la
+   cible tactile fait 38×41 au lieu des 16×20 de l'icône seule — indispensable
+   au doigt, la loupe étant désormais un vrai bouton et non un décor. Les 34px
+   réservés à droite par input[type="search"] empêchent le texte saisi de
+   passer dessous. */
+.search-go {
+    position: absolute; top: 1px; bottom: 1px; right: 1px; width: 38px;
+    display: flex; align-items: center; justify-content: center; padding: 0;
+    background: none; border: 0; box-shadow: none;
+    color: var(--highlight); cursor: pointer;
+    transition: color .15s ease;
+}
+/* Trait plus épais que le 2 par défaut de icon() : à cette taille la loupe
+   paraissait fine à côté du poids du texte saisi. */
+.search-go .ico { width: 16px; height: 16px; stroke-width: 2.6; }
+/* Survol : la couleur seule. Pas de pastille de fond derrière l'icône — rien
+   d'autre dans l'interface n'en pose sur une icône à l'intérieur d'un champ.
+   Le `background: none` est indispensable : sans lui, `button:hover` peindrait
+   le fond bleu plein de tous les boutons derrière la loupe. */
+.search-go:hover { background: none; color: var(--highlight-d); }
+.search-go:focus-visible { outline: 2px solid var(--highlight); outline-offset: -2px; border-radius: var(--radius-sm); }
+
+/* En-têtes de groupe dans les listes cat-search */
+/* Propriétés partagées par les labels en petites capitales (sections, règles, cat-search) */
+.cat-search-sens,
+.regle-sub { font-weight: 700; text-transform: uppercase; color: var(--muted); }
+.cat-search-sens  { padding: 6px 12px 2px; font-size: var(--fs-tiny); letter-spacing: .06em; cursor: default; pointer-events: none; }
+.cat-search-group { padding: 2px 12px 1px 22px; font-size: var(--fs-tiny); font-weight: 600; color: var(--muted); cursor: default; pointer-events: none; }
+/* Formulaire écriture manuelle */
+.ecr-manuel-form { margin-bottom: 16px; }
+.ecr-manuel-form h3.form-subtitle { margin: 0 0 16px; font-size: var(--fs-large); font-weight: 700; }
+/* Ligne écriture manuelle : légère teinte pour la distinguer des imports */
+.compta-lettrage tr.ecr-manuelle td { background: var(--row-manuelle); }
+/* Survol des lignes : même teinte calculée (dérivée de la couleur de marque)
+   que .row-link:hover ailleurs (tableau de bord, listes…), pas une couleur
+   fixe indépendante du thème. */
+.compta-lettrage tbody tr:not(.ecr-mois-sep):hover td { background: var(--primary-tint); }
+.filters .year-select { width: 104px; } /* largeur figée : pas de variation 2026 / Toutes */
+input:disabled, select:disabled, textarea:disabled { color: var(--muted); opacity: .55; background: var(--bg); cursor: not-allowed; }
+.auth-form { margin-top: 4px; }
+.auth-form button { width: 100%; margin-top: 6px; padding: 11px; }
+input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:focus {
+    outline: none; border-color: var(--primary); box-shadow: var(--focus-ring);
+}
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 18px; }
+.grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0 18px; }
+/* row-gap:0 ci-dessus est voulu pour l'usage courant de .grid2/3/4 (grille de
+   CHAMPS de formulaire) : chaque champ porte déjà sa propre marge basse, un
+   row-gap en plus la doublerait. Mais ces mêmes classes servent aussi,
+   ailleurs, à poser plusieurs .card côte à côte (?p=evenement, cadres
+   Informations/Localisation/Organisation) — une carte n'a, elle, aucune
+   marge à elle : sur une seule colonne (mobile, @media plus bas :
+   grid-template-columns devient 1fr), row-gap:0 les collait donc les unes aux
+   autres sans espace, un fix par page en aurait laissé d'autres réapparaître
+   ailleurs à la prochaine réutilisation. :has(> .card) cible ce seul usage
+   (jamais vrai pour une grille de champs, dont les enfants directs sont des
+   <label>/.field-group) — sans effet sur toute grille de champs existante. */
+.grid2:has(> .card), .grid3:has(> .card), .grid4:has(> .card) { row-gap: 22px; }
+/* Des cartes côte à côte TANT QU'IL Y A LA PLACE : autant de colonnes que la
+   largeur en permet, et non un nombre figé par .grid2/.grid3. Trois cartes
+   courtes (?p=piece : la pièce, le paiement, l'écriture) tiennent sur une
+   rangée en plein écran, sur deux en tablette, et s'empilent sur téléphone —
+   sans qu'aucun point de rupture ne soit écrit : 290px est la largeur en
+   dessous de laquelle un tableau clé/valeur cesse de se lire.
+   Pendant de .grid-taux pour les champs, et de .champs-rangee pour une rangée
+   de champs courts. */
+.cartes-rangee {
+    --cartes-min: 290px;   /* sous cette largeur, un tableau clé/valeur ne se lit plus */
+    --cartes-max: 3;       /* jamais plus de colonnes que la rangée n'a de cartes */
+    --cartes-ecart: 18px;
+    display: grid; gap: 22px var(--cartes-ecart);
+    /* min(…, 100%) : sur un téléphone étroit (320px, soit 280px de contenu), un
+       plancher de 290px ferait déborder la page d'une dizaine de pixels —
+       exactement le genre de débordement qui ne se voit qu'en main. */
+    grid-template-columns: repeat(auto-fit, minmax(
+        max(min(var(--cartes-min), 100%), (100% - (var(--cartes-max) - 1) * var(--cartes-ecart)) / var(--cartes-max)),
+        1fr));
+}
+/* Une carte qui porte un tableau large ne se range pas dans une colonne : elle
+   prend la rangée entière, les autres gardant la leur.
+   ⚠️ C'est elle qui oblige au plancher « un tiers de la rangée » ci-dessus :
+   auto-fit ne replie que les colonnes VIDES, et une carte qui les traverse
+   toutes les occupe. Sans ce plancher, une rangée de 1284px se découpait en
+   quatre colonnes de 308px dont la carte large occupait toute la largeur — les
+   deux autres se retrouvaient serrées sur un quart chacune, moitié de rangée
+   vide à leur droite. Mesuré. */
+.cartes-rangee > .carte-pleine { grid-column: 1 / -1; }
+/* Le nombre de colonnes se compte sur les cartes qui en occupent UNE : deux
+   cartes courtes et une large font deux colonnes, pas trois — sinon la rangée
+   du haut garde une colonne vide à droite pendant que la large, dessous, va
+   d'un bord à l'autre. */
+.cartes-rangee-2 { --cartes-max: 2; }
+.field-pair { display: flex; gap: 8px; }
+.field-pair input { flex: 2; min-width: 0; }
+.field-pair select { flex: 1; width: auto; min-width: 0; }
+/* Grille de taux : autant de colonnes que la largeur le permet (≈150px/champ) */
+.grid-taux { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0 22px; }
+/* Tableau de bord : grille responsive, chaque widget (Prochains événements,
+   Suisa, Évolution financière, Salaires à verser, Factures émises…) est une
+   cellule indépendante — 3 colonnes en plein écran, 2 en tablette, 1 en
+   dessous (mobile, cf. @media 800px plus bas) plutôt que deux colonnes figées
+   groupant plusieurs pods chacune. .content perd son plafond de largeur de
+   lecture (1120px) sur cette page : avec 3 colonnes, le tableau de bord
+   profite de toute la largeur dispo plutôt que de se comprimer inutilement. */
+.content:has(> .dash-cols) { max-width: none; }
+/* column-count (mise en page façon "presse", chaque carte remplit une
+   colonne avant de passer à la suivante) plutôt que grid-template-columns :
+   en grid, la hauteur d'une RANGÉE est celle de son item le plus grand — un
+   pod court (ex. Suisa) partageant sa rangée avec un pod haut (ex. Évolution
+   financière) laissait un grand vide sous lui avant que le pod suivant de sa
+   colonne ne démarre à la ligne de grille suivante, quelle que soit sa
+   propre hauteur. En colonnes, chaque carte s'enchaîne directement sous la
+   précédente DANS SA COLONNE, sans dépendre de la hauteur des cartes des
+   colonnes voisines. break-inside:avoid empêche une carte d'être coupée
+   entre deux colonnes ; margin-bottom (pas de row-gap en colonnes) restitue
+   un espacement vertical identique au column-gap horizontal. */
+.dash-cols { column-count: 3; column-gap: 32px; }
+.dash-cols > * { break-inside: avoid; margin: 0 0 32px; }
+/* Chaque pod (Prochains événements, Suisa, Évolution financière, Salaires à
+   verser, Factures émises) est une carte à part entière, titre compris —
+   avant, le <h2> flottait au-dessus de la carte, directement sur le fond
+   d'écran personnalisable (Apparence) : illisible selon l'image de fond.
+   Effet vitre dépolie (même recette que .blur-glass/.page-head-band et le
+   bandeau flottant de la vue carte d'evenements_liste) plutôt qu'un fond
+   blanc plein : cohérent avec le reste de l'appli quand un fond d'écran est
+   actif, et transparent par-dessus la couleur unie par défaut. */
+/* « Organiser les cartes » : le panneau du bouton d'engrenage du tableau de
+   bord. Même dessin que les panneaux de filtre de colonne (.col-filter-menu) —
+   c'est le même geste, un réglage qu'on ouvre au-dessus de la page et qui se
+   referme tout seul — sans en reprendre la mécanique de placement, qui sert à
+   suivre une cellule de tableau. Ici l'ancre ne bouge pas. */
+/* display:block ANNULE le flex de .head-actions, et ce n'est pas cosmétique :
+   un <details> a un conteneur interne pour son contenu, qui reste dans le flux
+   même fermé (largeur nulle). Comme item flex, il récoltait le gap:12px de
+   .head-actions — 12px de vide collés à droite du bouton, qui ne tombait donc
+   plus dans l'alignement de la page. Il n'y a de toute façon rien à disposer
+   ici : un seul enfant visible, le panneau étant en position absolue. */
+.dash-reglages { position: relative; display: block; }
+.dash-reglages > summary { list-style: none; cursor: pointer; }
+.dash-reglages > summary::-webkit-details-marker { display: none; }
+.dash-reglages-panneau {
+    position: absolute; top: calc(100% + 6px); right: 0; z-index: 20;
+    min-width: 330px; max-width: min(380px, calc(100vw - 32px));
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-sm);
+    box-shadow: var(--shadow); padding: 14px 16px;
+}
+.dash-reglage-ligne { display: flex; align-items: center; gap: 4px; padding: 2px 0; }
+/* Les deux groupes de boutons gardent leur largeur quoi qu'il arrive : sans
+   nowrap, « Prochains événements » faisait passer ses chevrons l'un sous
+   l'autre et la ligne à double hauteur. */
+.dash-reglage-ligne > form { flex: 0 0 auto; white-space: nowrap; }
+/* Le nom prend la place restante : les deux groupes de boutons restent alignés
+   d'une ligne à l'autre, quelle que soit la longueur du titre. */
+.dash-reglage-nom { flex: 1 1 auto; min-width: 0; font-weight: 600; font-size: var(--fs-basic); }
+/* Une carte masquée reste lisible — on doit pouvoir la retrouver pour la
+   remontrer — mais s'annonce comme absente du tableau de bord. */
+.dash-reglage-ligne.est-cachee .dash-reglage-nom { color: var(--muted); font-weight: 500; text-decoration: line-through; }
+
+/* .card.auth partage la vitre dépolie des cartes du tableau de bord : la page
+   de connexion pose une carte sur un fond décoré, exactement comme elles — et
+   c'est le même token, donc le même comportement en thème sombre. Déclarée ici
+   et non avec .blur-glass (plus haut) : .card, déclarée entre les deux, écrase
+   sinon le fond des sélecteurs à une seule classe. */
+.dash-card, .card.auth { background: var(--glass); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+
+/* Une ligne d'une carte du tableau de bord qui ATTEND UN GESTE : fond ambre
+   très clair. Posée sur la ligne et non sur ses cellules, pour que le survol
+   (.list tr.row-link:hover, plus spécifique) continue de l'emporter.
+
+   C'est la seule couleur de fond d'une carte, et elle remplace les médaillons
+   d'alerte qui se posaient sur les titres (« 3 à contacter », « 1 en retard ») :
+   ils annonçaient en chiffre ce que les lignes juste en dessous montraient
+   déjà. Une ligne de TOTAL n'en porte jamais — elle ne demande rien. */
+/* Le titre d'une carte du tableau de bord mène à son module. Même parti que
+   l'en-tête de colonne triable (.col-tri) : il GARDE l'allure d'un titre —
+   c'est la carte qui mène ailleurs, pas un lien posé dedans — et ne se signale
+   qu'au survol. Le retrait négatif compense le remplissage, pour que la
+   surface cliquable déborde du mot sans décaler le titre d'un pixel. */
+.dash-titre-lien {
+    color: inherit; text-decoration: none; border-radius: var(--radius-sm);
+    padding: 2px 6px; margin: -2px -6px;
+}
+.dash-titre-lien:hover, .dash-titre-lien:focus-visible {
+    color: var(--primary-d); background: var(--primary-tint); text-decoration: none;
+}
+.dash-card tbody tr.ligne-action { background: var(--amber-tint); }
+/* …et la même classe dans une LISTE pleine page, en plus pâle. Le sens est
+   identique — cette ligne attend un geste (docs/UI.md § 13) —, la densité ne
+   l'est pas : une carte montre trois lignes et doit les faire ressortir, une
+   liste en montre cent, et l'ambre plein y deviendrait le fond de la page.
+   D'où --row-attention, le ton que ?p=compta_ecritures emploie déjà pour une
+   écriture à lettrer : même rôle, même teinte.
+   Posé sur les CELLULES et non sur la rangée, parce que c'est là que les
+   rangées des listes pleine largeur portent leur blanc (voir .module-content) ;
+   sur le <tr>, il passerait dessous sans se voir. Le survol reste plus
+   spécifique et garde la main. */
+.list tbody tr.ligne-action > td { background: var(--row-attention); }
+.list tr.row-link.ligne-action:hover > td { background: var(--amber-tint); }
+
+/* Nombres colorés par gravité dans les tableaux du tableau de bord (carte
+   Suisa) — mêmes teintes que les statuts ailleurs dans l'application. Le fond
+   ambre dit qu'il y a quelque chose à faire, la couleur du nombre dit à quel
+   point : ambre pour ce qui attend, rouge pour ce qui manque. */
+.dash-card td.num-attente { color: var(--amber); }
+.dash-card td.num-retard { color: var(--danger); }
+/* Factures émises (tableau de bord) : le retard se lit à la couleur, l'étiquette
+   « Émise »/« En retard » ayant été retirée — elle disait en mots ce que la
+   couleur montre déjà. Une facture pas encore échue reste à l'encre du texte :
+   pas de couleur, donc pas d'alerte pour ce qui va bien. */
+/* Totaux des cartes du tableau de bord à l'encre : l'ambre signale ce qui
+   attend une action, et un total n'est pas une alerte. Il faut le dire
+   explicitement — « .list .strong » (0,2,0) colore les nombres en gras en teal
+   et l'emporte sur « .list tfoot td » (0,1,2), le nombre de classes primant.
+   Règle limitée à .dash-card : les totaux des autres listes gardent leur teal. */
+.dash-card .total-row td.num { color: var(--ink); }
+/* Le total d'une carte se fond dans la carte, comme son titre : aucun fond à
+   lui, et surtout pas l'ambre, qui ne sert qu'à ce qui attend un geste — un
+   total n'en attend aucun. Il faut le dire, « .list tfoot td » le posant
+   ailleurs sur la bande --surface : dans une carte de cinq lignes, cette bande
+   faisait un second bandeau face à celui des titres. Seul un filet le sépare
+   des lignes qu'il additionne. */
+.dash-card .total-row td { background: transparent; }
+/* « et X autres » : la suite des lignes, pas un bouton — discrète, alignée sur
+   le texte des lignes au-dessus, et cliquable sur toute sa hauteur. */
+.dash-card .dash-reste td { padding-top: 7px; padding-bottom: 7px; }
+.dash-card .dash-reste a { font-size: var(--fs-small); color: var(--muted); }
+.dash-card .dash-reste a:hover { color: var(--highlight-d); }
+.dash-card td.facture-retard { color: var(--amber); }
+.dash-card td.facture-retard-long { color: var(--danger); }
+
+/* Deux tableaux dans une même carte du tableau de bord (Recherche de fonds :
+   les campagnes, puis les bilans dus). Le premier perd la marge négative basse
+   qui colle un tableau au bord de sa carte — elle ne vaut que pour le dernier,
+   et sans ça la rangée de titres du second venait se plaquer sur la dernière
+   ligne du premier. */
+.dash-card table.list:not(:last-child) { margin-bottom: 0; }
+.dash-card table.list + table.list { margin-top: 20px; }
+
+/* Suivi d'une recherche de fonds : la seconde ligne d'un dossier, celle qui
+   s'ouvre au crayon. Une rangée souple plutôt qu'une grille : les dates ont
+   toutes la même largeur, les deux champs de texte prennent ce qui reste, et
+   l'ensemble repasse en colonnes sur un écran étroit sans règle à écrire. */
+.fonds-suite > td { background: var(--surface); }
+
+/* Les dossiers d'une campagne de recherche de fonds, en cartes sur téléphone.
+   Six colonnes ne tiennent pas dans 375px : le tableau défilait de biais, et
+   l'on ne voyait ni les montants ni l'état sans pousser l'écran du doigt.
+   Même geste que la liste des structures d'une campagne de démarchage — c'est
+   la mécanique de .liste-cartes qui est reprise (en-têtes masqués, lignes en
+   grille, cellules sans bordure), seule la grille est propre à ce tableau :
+
+       Bailleur                              [état]
+       délai                              [✎ actions]
+       Demandé 12 000.00     Accordé 5 000.00
+
+   La ligne de détail (dépôt, réponse, bilan), elle, reprend toute la largeur :
+   c'est un formulaire, pas une rangée de données. */
+@media (max-width: 700px) {
+    .fonds-dossiers tbody tr:not(.fonds-suite) {
+        /* Deux colonnes égales et non « 1fr auto » : en édition, les cellules
+           portent des champs, et une colonne dimensionnée sur son contenu
+           donnait 52px au montant demandé contre 225 à l'accordé. */
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        grid-template-areas:
+            "nom     etat"
+            "delai   actions"
+            "demande accorde";
+        row-gap: 4px;
+        /* Le plancher de .liste-cartes est calculé pour SA colonne de droite,
+           posée hors flux ; ici tout est dans le flux. */
+        min-height: 0;
+        /* Le tableau est à fleur de carte (docs/UI.md § 9) : c'est donc à la
+           ligne de rendre la gouttière, et celle de la carte qui l'héberge. */
+        padding: 12px var(--card-pad);
+    }
+    .fonds-dossiers .dash-nom { grid-area: nom; }
+    .fonds-dossiers .col-delai { grid-area: delai; color: var(--muted); }
+    .fonds-dossiers .col-etat { grid-area: etat; justify-self: end; }
+    .fonds-dossiers .actions { grid-area: actions; justify-self: end; align-self: start; }
+    /* Les deux montants reprennent leur libellé : sans en-tête de colonne, un
+       nombre seul ne dit pas s'il est demandé ou obtenu — et c'est toute la
+       question d'un dossier. Alignés à gauche, parce qu'ils ne sont plus en
+       colonne et qu'il n'y a donc plus rien à aligner. */
+    /* .fonds-dossiers.list et non .fonds-dossiers seul : « .list .num » aligne
+       à droite, à spécificité égale et plus bas dans la feuille — il
+       l'emportait. */
+    .fonds-dossiers.list :is(.col-demande, .col-accorde) { grid-area: demande; text-align: left; }
+    .fonds-dossiers.list .col-accorde { grid-area: accorde; }
+    /* Le libellé est porté par la cellule de LECTURE et non par le <td> : il
+       disparaît ainsi de lui-même quand la ligne s'ouvre en édition, où il
+       ferait doublon avec l'intitulé du champ. La bascule ne pose aucune classe
+       sur la ligne (lassoInitLigneEdition(), assets/app.js) : elle masque les
+       .fonds-disp et montre les .fonds-editable, et c'est tout ce sur quoi on
+       peut s'appuyer. */
+    .fonds-dossiers.list :is(.col-demande, .col-accorde) .fonds-disp::before {
+        content: attr(data-libelle) " "; color: var(--muted); font-weight: 400; font-size: var(--fs-small);
+    }
+    /* En ÉDITION, le même libellé passe au-dessus du champ : sans en-tête de
+       colonne, deux cases de montant côte à côte ne disent pas laquelle est la
+       demande et laquelle la réponse. Reconnu à la cellule de lecture masquée,
+       faute d'une classe posée sur la ligne. */
+    .fonds-dossiers.list :is(.col-delai, .col-demande, .col-accorde):has(.fonds-disp[hidden])::before {
+        content: attr(data-libelle); display: block; color: var(--muted); font-size: var(--fs-small); margin-bottom: 2px;
+    }
+    /* Les champs occupent leur colonne : à leur largeur par défaut, ils en
+       sortaient. */
+    .fonds-dossiers.list :is(.col-delai, .col-demande, .col-accorde, .col-etat) :is(input, select) { width: 100%; min-width: 0; }
+    .fonds-dossiers tr.fonds-suite { display: block; padding: 0; }
+    .fonds-dossiers tr.fonds-suite > td { padding: 12px var(--card-pad); }
+}
+.fonds-suite-champs { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: flex-end; }
+.fonds-suite-champs label { margin: 0; flex: 0 0 auto; }
+.fonds-suite-champs label.grow { flex: 1 1 220px; min-width: 160px; }
+.fonds-suite-champs input { margin: 0; }
+/* La pastille de légende sans icône (ce qui reste à trouver) : un carré de la
+   couleur du segment, comme la piste elle-même — donc l'ambre de ce qui reste
+   à faire. */
+.camp-legende .camp-pastille {
+    width: 11px; height: 11px; border-radius: 3px; background: var(--amber-piste);
+}
+.camp-legende .camp-pastille.camp-oui { background: var(--ok); }
+.camp-legende .camp-pastille.camp-attente { background: var(--muted); }
+
+/* Carte « Campagnes » du tableau de bord : une ligne par campagne, l'icône de
+   son projet en tête pour la reconnaître sans lire. La barre d'avancement est
+   celle des listes (.camp-barre-liste). */
+/* flex et non inline-flex : en ligne, la boîte se posait sur la LIGNE DE BASE de
+   la cellule, donc 4px trop haut dès que la colonne voisine (barre + compte sur
+   deux lignes) rendait la rangée plus haute que l'icône. En bloc, c'est le
+   vertical-align: middle de la cellule qui la centre, comme le reste. */
+.dash-campagne { display: flex; align-items: center; gap: 8px; min-width: 0; }
+/* Même taille que dans ?p=booking_campagnes (.campagnes-table .projet-pastille) :
+   c'est la même icône pour le même projet, elle doit se reconnaître pareil
+   d'un écran à l'autre. */
+.dash-campagne .avatar-ini { width: 30px; height: 30px; font-size: var(--fs-tiny); margin: 0; flex: 0 0 auto; }
+/* Ce qui tenait le tableau de cette carte trop large, des deux côtés :
+   — le NOM était sur une seule ligne, tronqué d'un « … ». Or tronquer ne réduit
+     pas la largeur MINIMALE d'un texte : la colonne réclamait quand même la
+     place du nom entier. Il passe sur deux lignes au plus — au-delà, neuf
+     campagnes ne tiendraient plus dans une carte.
+   — la colonne « Avancement » demandait la largeur de la barre PLUS celle de
+     son compte, les deux côte à côte et insécables. La barre rétrécit et le
+     compte passe dessous.
+   Aucune de ces règles n'est sous @media : ce qui compte n'est pas la largeur
+   de l'ÉCRAN mais celle de la CARTE, et le tableau de bord en range trois par
+   rangée — sur un grand écran, une carte de tableau de bord est déjà étroite. */
+.dash-campagne-nom {
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+}
+.dash-card .camp-avancement { white-space: normal; }
+.dash-card .camp-barre-liste { width: 80px; }
+.dash-card .camp-avancement-txt { display: block; margin-left: 0; }
+/* Tableau plein cadre (Prochains événements, Salaires à verser, Factures
+   émises) : déborde jusqu'aux bords gauche/droite/bas de la carte (le
+   padding de .card, 26px, ne s'applique qu'au-dessus, sous le titre) — même
+   principe que .module-content-inner .table-scroll (tableau plein cadre,
+   contenu réinséré via le padding des premières/dernières cellules) mais
+   sans le débordement horizontal plein écran de ce dernier, borné à cette
+   carte. Ce comportement est désormais celui de TOUT tableau de carte (voir
+   « le tableau REMPLIT la carte » plus haut) : il ne reste ici que ce qui
+   appartient en propre au tableau de bord. */
+/* Le filet au-dessus du total : le 2px hérité de « .list tfoot td » y marquait
+   une rupture que rien ne justifie sur cinq lignes. */
+.dash-card table.list tfoot td { border-top-width: 1px; }
+.dash-chart { width: 100%; height: auto; display: block; }
+/* Décor du graphique comptable : posé ici et non dans le SVG (views/tableau_bord.php)
+   pour suivre le thème. Les valeurs claires reprennent à l'identique celles qui
+   étaient codées en dur (--line = #e8e9f1, --muted = #6b7280) — le changement
+   ne se voit qu'en sombre, où elles étaient restées celles du thème clair. */
+.dash-chart .ch-grille { stroke: var(--line); }
+.dash-chart .ch-zero { stroke: var(--muted); opacity: .55; }
+.dash-chart .ch-label { font-size: var(--fs-small); font-family: inherit; fill: var(--muted); }
+@media (max-width: 1400px) {
+    .dash-cols { column-count: 2; }
+}
+@media (max-width: 900px) {
+    .dash-cols { column-count: 1; }
+}
+
+/* Champ de pourcentage : input + suffixe « % » dans un cadre unique */
+.pct-input { display: flex; align-items: stretch; max-width: 150px; border: 1px solid var(--line);
+    border-radius: var(--radius-sm); background: var(--card); overflow: hidden; transition: border-color .15s, box-shadow .15s; }
+.pct-input:focus-within { border-color: var(--primary); box-shadow: var(--focus-ring); }
+.form .pct-input input { border: none; border-radius: 0; background: transparent; text-align: right;
+    font-variant-numeric: tabular-nums; padding-right: 6px; }
+.form .pct-input input:focus { box-shadow: none; }
+.pct-suffix { display: flex; align-items: center; padding: 0 11px 0 8px; background: var(--surface);
+    border-left: 1px solid var(--line); color: var(--muted); font-size: var(--fs-basic); font-weight: 600; }
+/* Préfixe :is(.form, .filters) : voir .seg-picker. */
+:is(.form, .filters) .check { flex-direction: row; }
+.check { display: flex; flex-direction: row; align-items: center; gap: 9px; font-weight: 500; color: var(--ink); }
+.check input[type="checkbox"] { width: 18px; height: 18px; flex: 0 0 auto; margin: 0; accent-color: var(--primary); cursor: pointer; }
+.form-actions { display: flex; gap: 10px; margin-top: 14px; align-items: center; }
+.linked-add { display: flex; gap: 10px; align-items: center; margin-bottom: 0; }
+/* Le contenu prend la place restante, et pousse donc les boutons au bord droit —
+   règle déjà posée pour les champs (.linked-add input/select/.cat-search, plus
+   bas), il manquait le texte. Sans elle, le « délier » d'une structure liée
+   venait se coller au nom au lieu de s'aligner avec ceux des lignes voisines.
+   min-width:0 : sans lui, un nom long refuse de se couper et élargit la rangée
+   au-delà de sa carte. */
+.linked-add > span, .linked-add > code { flex: 1 1 auto; min-width: 0; }
+/* Une adresse à copier (le jeton de ?p=mailing) n'a pas d'espace où couper. */
+.linked-add > code { overflow-wrap: anywhere; }
+/* Rangée de liaison posée DANS une ligne — une cellule de tableau, la suite des
+   pastilles d'une fiche : tout y est au petit format, champ compris. Une rangée
+   à la taille d'une carte y ferait une ligne deux fois plus haute que ses
+   voisines (docs/UI.md § 5). Le « + » reste mis en évidence — c'est l'action —
+   mais perd son libellé : dans une ligne, il n'y a pas la place d'un mot. */
+.linked-add-ligne { gap: 6px; }
+.linked-add-ligne :is(input, select):not([type="checkbox"]):not([type="radio"]) {
+    /* Trois sélecteurs d'attribut comme la règle générique des champs, plus la
+       classe : sans cela son padding de 10px l'emporterait. */
+    padding: var(--btn-sm-padding-v) 10px; font-size: var(--fs-basic);
+    min-height: var(--action-height-sm);
+}
+.linked-add-ligne .btn { min-height: var(--action-height-sm); }
+.contact-row { margin-bottom: 0; }
+:is(.linked-add, .contact-row):not(.souscat-row) + * { margin-top: 16px; }
+
+/* Cadre d'édition ouvert DANS une liste, à la place de la ligne qu'il modifie :
+   un contact de structure (views/_structure_contact_form.php) ou un modèle de
+   mailing (views/mailing_modeles.php). Il porte toujours la classe .form —
+   sans elle, ses <label> n'héritent d'aucun style de champ (« .form label »,
+   plus haut) et les rangées se collent les unes aux autres. */
+/* Cadre volontairement compact : il s'ouvre À L'INTÉRIEUR d'une liste, entre
+   deux contacts, et doit rester lisible d'un coup d'œil plutôt que repousser
+   le reste de la carte hors de l'écran. D'où des champs plus bas que la norme
+   du site (6px de marge interne au lieu de 10) et des rangées plus serrées.
+   Le sélecteur des champs répète le :not() de la règle générale
+   (input:not([type=checkbox]):not([type=radio]), 0,2,1) : une seule classe ne
+   suffirait pas à l'emporter. */
+.cadre-edit { margin: 14px 0 0; padding: 12px 14px 14px; background: var(--surface); }
+.cadre-edit input:not([type="checkbox"]):not([type="radio"]),
+.cadre-edit select { padding: 6px 9px; }
+.cadre-edit label, .cadre-edit .field-group { margin-bottom: 10px; gap: 4px; }
+/* Une seule respiration verticale dans tout le cadre : 10px, portés par les
+   champs eux-mêmes. « .fieldset-groupe .grid2 » (plus haut) ajoutait 14px sous
+   chaque paire Prénom/Nom et E-mail/Téléphone, qui s'empilaient sur ces 10px —
+   d'où deux écarts à 24px pour trois à 10px, et l'impression de rangées mal
+   alignées. Le cadre garde .fieldset-groupe pour sa bordure, pas pour ça. */
+.cadre-edit .grid2 { margin-bottom: 0; }
+.cadre-edit-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.cadre-edit-titre { font-weight: 700; color: var(--ink); font-size: var(--fs-basic); }
+.cadre-edit-actions { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+/* Le crayon d'une ligne de contact est visible en permanence, comme celui de
+   toutes les autres lignes de l'application : une commande qu'il faut survoler
+   pour découvrir n'existe pas pour qui ne la cherche pas déjà. */
+.contact-read :is(.contact-edit-btn, .contact-lien-btn) { flex: 0 0 auto; }
+/* Supprimer : en bas du cadre, à l'opposé des commandes courantes, et au
+   style « danger » de tous les autres boutons de suppression du site. */
+/* Les deux rôles fonctionnels (qui reçoit les mailings, qui reçoit les factures)
+   et le rôle en clair tiennent sur une ligne sous un libellé unique : c'est la
+   même question. Le champ libre prend ce qui reste. */
+.role-groupe .role-ligne { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.role-groupe .check { margin-bottom: 0; font-size: var(--fs-basic); white-space: nowrap; }
+/* Base de 80px et non 200 : c'est la largeur en dessous de laquelle le champ
+   passerait à la ligne. Un mot comme « Programmation » y reste lisible une
+   fois saisi, et la ligne Rôle tient d'un seul tenant bien plus longtemps. */
+.role-groupe .role-libre { flex: 1 1 80px; min-width: 0; }
+/* Dernière rangée : l'URL prend toute la largeur, la langue juste la sienne
+   (un code à deux lettres n'a pas besoin d'une demi-carte). */
+.contact-fin { display: flex; align-items: flex-start; gap: 18px; }
+.contact-fin .contact-formulaire { flex: 1 1 auto; min-width: 0; }
+.contact-fin .contact-langue { flex: 0 0 auto; }
+.contact-fin .contact-langue input { width: 6rem; }
+/* Pas de filet au-dessus : le cadre est déjà bordé, un second trait à
+   l'intérieur ne séparait rien qui ne le fût déjà. En revanche un peu plus
+   d'air que la marge inter-champs : entre deux rangées, les 10px de blanc sont
+   suivis d'un libellé qui occupe la place ; ici il n'y a rien, et le bouton
+   remontait contre le dernier champ. 14px de plus rétablissent l'équilibre. */
+.cadre-edit-pied { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+
+/* Boîtes d'expédition du mailing (?p=emails) : une ligne par boîte, son
+   cadre d'édition en dessous. Deux commandes en tête de carte, d'où le groupe :
+   .card-head-row ne place que ses enfants directs. */
+.exp-tete-actions { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+/* Visible en permanence, comme tous les crayons de l'application : une commande
+   qu'il faut survoler pour découvrir n'existe pas pour qui ne la cherche pas
+   déjà (docs/UI.md § 1). */
+.exp-lu .exp-editer { flex: 0 0 auto; }
+.exp-bloc + .exp-bloc { margin-top: 14px; }
+
+/* Modèles de mailing (?p=mailing_modeles) : bloc en lecture, puis le même
+   cadre d'édition que les contacts. Le nom prend la place du titre en tête du
+   cadre, d'où sa graisse — c'est bien le titre qu'on modifie. */
+.modele-lu .card-head-row { margin-bottom: 8px; }
+.modele-etiquette { font-weight: 700; }
+.modele-corps { white-space: pre-wrap; }
+.cadre-edit .modele-nom-champ { font-weight: 700; color: var(--ink); }
+/* Le titre est un champ comme les autres, libellé compris — mais il partage sa
+   rangée avec annuler/enregistrer : alignement par le BAS, pour que les boutons
+   se posent sur la ligne du champ et non au milieu de l'ensemble libellé+champ. */
+.modele-edit .cadre-edit-head { align-items: flex-end; }
+.cadre-edit .modele-nom-label { flex: 1 1 auto; min-width: 0; margin-bottom: 0; }
+@media (max-width: 720px) {
+    .cadre-edit .grid2 { grid-template-columns: 1fr; }
+    .contact-fin { flex-direction: column; }
+    .contact-fin .contact-langue { align-self: flex-start; }
+}
+.linked-add select { width: auto; flex: 1; }
+/* Champ de recherche dans une rangée « lier » : il prend la place, le bouton
+   garde la sienne à droite. min-width:0 sinon un champ flex refuse de descendre
+   sous la largeur de son contenu et pousse le bouton à la ligne — ce qui
+   arrivait dans la colonne étroite d'une fiche facture. */
+.linked-add .cat-search { flex: 1 1 auto; min-width: 0; }
+.linked-add .cat-search .cat-search-input { width: 100%; }
+.linked-add .cat-search { flex: 1; }
+/* Le champ occupe toute la largeur disponible → le bouton reste collé à droite. */
+.linked-add input[type="text"], .linked-add input[type="search"] { flex: 1; min-width: 0; }
+.linked-add button { flex: 0 0 auto; }
+.page-head .linked-add { margin-bottom: 0; }
+.souscat-liste { margin: 6px 0 18px 28px; padding-left: 14px; border-left: 2px solid var(--line); }
+.souscat-liste .souscat-row.linked-add { margin-bottom: 8px; }
+.souscat-liste .souscat-row .linked-add { margin-bottom: 0; }
+/* .facture-search .cat-search-input : mutualisé avec .bulk-cat-search plus haut. */
+.form-actions label.inline { flex-direction: row; align-items: center; gap: 9px; margin-bottom: 0; color: var(--muted); font-weight: 600; }
+
+.year-bar { display: flex; align-items: center; gap: 14px; margin-bottom: 4px; flex-wrap: wrap; }
+.year-bar h2 { margin: 0; }
+.year-bar label.inline { flex-direction: row; align-items: center; gap: 9px; margin-bottom: 0; color: var(--muted); font-weight: 600; }
+.year-bar select { width: auto; padding: 8px 30px 8px 14px; border: 1px solid var(--line); border-radius: var(--radius-sm); font: inherit; font-weight: 600; }
+

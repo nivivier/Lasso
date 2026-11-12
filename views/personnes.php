@@ -57,6 +57,10 @@ $duoSel = (int) ($duoSel ?? 0);
         ?>
         <div class="head-actions">
             <?= bascule_vue_html('personnes', $vue, $qsSansVue) ?>
+            <?php // Même geste que « Nouvelle structure » : la fiche, en création. ?>
+            <?php if (peut_ecrire('carnet')): ?>
+            <a class="btn" href="?p=personne"><?= icon('user-plus') ?><span class="lbl"> Nouvelle personne</span></a>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -71,7 +75,7 @@ $duoSel = (int) ($duoSel ?? 0);
     <div class="table-scroll">
     <?php // liste-cartes : la même liste passe en cartes dès qu'elle est à
           // l'étroit — sur téléphone comme dans la colonne de gauche de la vue
-          // deux colonnes (requête de conteneur, voir assets/app.css). ?>
+          // deux colonnes (requête de conteneur, voir assets/css/). ?>
     <table class="list liste-cartes cartes-personnes">
         <thead><tr>
             <?php // L'effacement des filtres se loge dans le PREMIER en-tête,

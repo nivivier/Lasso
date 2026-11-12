@@ -5,7 +5,7 @@
 //
 // Les champs sont posés à plat, sans grille : c'est le formulaire qui les
 // dispose en rangée et les laisse passer à la ligne quand la place manque (voir
-// .feuille-form dans app.css). Chaque champ porte la classe qui dit sa largeur
+// .feuille-form dans assets/css/). Chaque champ porte la classe qui dit sa largeur
 // souhaitée — une heure n'a pas besoin de la même place qu'une remarque.
 //
 // Aucun texte de description au-dessus : le texte indicatif du champ dit déjà

@@ -81,7 +81,7 @@ $jour = fn ($d) => trim((string) $d) !== '' ? date('d.m.Y', strtotime((string) $
                   // replie ici, comme l'état d'une campagne de démarchage : une
                   // seule des deux questions se pose à la fois, et c'est
                   // l'argent qui mène celle-ci. Les deux sont rendus, le CSS
-                  // choisit (assets/app.css). ?>
+                  // choisit (assets/css/). ?>
             <td class="camp-avancement">
                 <?= fonds_barre_html($parts, 'camp-barre-liste') ?>
                 <span class="camp-avancement-txt"><b><?= chf($parts['obtenu']) ?></b><?= $parts['chiffree'] ? ' / ' . chf($parts['base']) : '' ?></span>

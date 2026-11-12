@@ -10,7 +10,7 @@ $nomEmployeur = (string) param('employeur_nom');
 <head>
     <meta charset="UTF-8">
     <title>Export SUISA<?= $nomEmployeur !== '' ? ' — ' . e($nomEmployeur) : '' ?></title>
-    <link rel="stylesheet" href="assets/app.css?v=<?= @filemtime(__DIR__ . '/../assets/app.css') ?: '1' ?>">
+    <?= css_liens_html() ?>
 </head>
 <body class="print-page">
     <?php // Une seule action mise en évidence — le téléchargement, qui est le but

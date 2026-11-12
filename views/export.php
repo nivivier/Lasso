@@ -1,7 +1,6 @@
 <?php
 /** @var array $annees */ /** @var array $anneesCompta */ /** @var array $comptesCamt */ /** @var bool $errCamt */
-/** @var bool $errSauvegarde */
-/** @var array $anneesEvenements */
+/** @var string $typeDemande */ /** @var int $anneeDemandee */ /** @var array $anneesEvenements */
 
 // Types de données exportables : un seul sélecteur, une seule carte — le
 // contenu (description + formulaire) de chaque type est montré/masqué selon
@@ -11,12 +10,9 @@
 // type) : rattaché en JS au formulaire du type actif via l'attribut form=
 // (même principe que les cases à cocher de l'onglet Incohérences), ses
 // options étant reconstruites depuis $anneesParType ci-dessous.
-// Le format dépend de ce que sait faire le serveur (lib/sauvegarde.php) : une
-// archive quand l'extension zip ou phar est là — le cas courant —, la base
-// seule sinon, auquel cas la carte le dit au lieu de laisser croire que les
-// fichiers déposés sont dedans.
-$formatSauvegarde = sauvegarde_format();
-$typesExport = ['sauvegarde' => 'Sauvegarde complète (.' . $formatSauvegarde . ')'];
+// La sauvegarde complète n'est pas un type de données : elle a sa page,
+// ?p=sauvegardes (route_sauvegardes(), lib/routes.php, dit pourquoi).
+$typesExport = [];
 if (module_actif('compta')) {
     $typesExport['ecritures_csv']  = 'Écritures comptables — CSV';
     $typesExport['ecritures_camt'] = 'Écritures comptables — CAMT.053';
@@ -40,63 +36,43 @@ $anneeSansToutes = ['certificats' => true];
 <?php require __DIR__ . '/_param_tabs.php'; ?>
 <?php if ($errCamt): ?><p class="err flash">Choisissez un compte bancaire avec IBAN renseignée.</p><?php endif; ?>
 
+<?php if (!$typesExport): ?>
+<p class="muted">Aucun module actif n'a de données à exporter.</p>
+<?php else: ?>
 <div class="card form">
     <h2 class="mt-0">Exporter des données</h2>
-    <div class="grid2">
+    <?php // Le choix et son geste sur une même ligne : type, année, puis le
+          // bouton de téléchargement du type choisi, poussé à droite. Chaque
+          // bouton vit ici et vise le formulaire de son bloc par form= (les
+          // champs propres à un type — le compte du camt.053 — restent dans
+          // le bloc). Faute de place, le bouton passe à la ligne. ?>
+    <div class="export-choix">
         <label>Type de données à exporter
-            <select id="export-type">
+            <select id="export-type"<?= isset($typesExport[$typeDemande]) ? ' data-demande="' . e($typeDemande) . '"' : '' ?><?= $anneeDemandee > 0 ? ' data-annee="' . $anneeDemandee . '"' : '' ?>>
                 <?php foreach ($typesExport as $cle => $lib): ?>
-                    <option value="<?= e($cle) ?>"><?= e($lib) ?></option>
+                    <option value="<?= e($cle) ?>"<?= $cle === $typeDemande ? ' selected' : '' ?>><?= e($lib) ?></option>
                 <?php endforeach; ?>
             </select>
         </label>
         <label id="export-annee-wrap" hidden>Année
             <select id="export-annee" name="annee"></select>
         </label>
-    </div>
-    <noscript><p class="muted small">JavaScript est requis pour choisir le type de données — sans lui, seule la sauvegarde complète ci-dessous reste disponible.</p></noscript>
-
-    <div class="export-bloc mt-16" data-type="sauvegarde">
-        <?php if ($errSauvegarde ?? false): ?>
-        <p class="err mb-8">La sauvegarde n'a pas pu être créée — disque plein, droits insuffisants, ou archive impossible à finaliser.
-            Le détail est dans le journal d'erreurs du serveur. Rien n'a été téléchargé.</p>
-        <?php endif; ?>
-        <?php // Trois questions, dans l'ordre où on se les pose : à quoi ça sert,
-              // qu'est-ce qu'il y a dedans, qu'est-ce qui manque. Le détail
-              // technique (pourquoi la base ne contient pas les fichiers, ce
-              // qu'est une empreinte bcrypt) reste ici et dans le README §6.
-              //
-              // « Tous les modules, même désactivés » : vrai, un module éteint
-              // garde ses tables et VACUUM INTO copie la base entière sans en
-              // énumérer aucune. Pas de liste des modules : écrite à la main,
-              // elle avait vieilli de trois chantiers.
-              //
-              // ⚠️ L'avertissement de confidentialité vaut pour les DEUX formats,
-              // il est donc hors du if. Il nomme les secrets : les mots de passe
-              // des boîtes d'envoi sont en base EN CLAIR (un serveur SMTP réclame
-              // le mot de passe, pas son empreinte) ; ceux des comptes n'y sont
-              // qu'en empreinte bcrypt. Dire « aucun mot de passe » serait faux. ?>
-        <p class="small mb-8">Une copie complète de Lasso, à télécharger régulièrement et à garder en lieu sûr.</p>
-        <ul class="small mb-8">
-            <li><strong>Toute la base</strong> : tous les modules, même désactivés, les paramètres et les comptes.</li>
-            <?php if ($formatSauvegarde !== 'sqlite'): ?>
-            <li><strong>Les fichiers déposés</strong> : logos, photos, icônes, feuilles SUISA, pièces jointes.</li>
-            <li>Une note expliquant comment restaurer.</li>
+        <div class="export-telecharger">
+            <?php if (module_actif('compta') && $anneesCompta): ?>
+            <button type="submit" form="export-form-ecritures_csv" data-type="ecritures_csv" hidden><?= icon('download') ?> Télécharger le CSV</button>
             <?php endif; ?>
-        </ul>
-        <?php if ($formatSauvegarde === 'sqlite'): ?>
-        <p class="warn small mb-8"><?= icon('info') ?> <strong>Les fichiers déposés n'y sont pas</strong> (ce serveur
-            ne sait pas créer d'archive) : copiez à part les dossiers <code>uploads/</code> et <code>data/fichiers/</code>.</p>
-        <?php else: ?>
-        <p class="muted small mb-8">Seule la configuration du serveur, <code>lib/config.local.php</code>, n'y est pas : conservez-la à part.</p>
-        <?php endif; ?>
-        <p class="warn small mb-0"><?= icon('info') ?> <strong>À traiter comme un document confidentiel</strong> :
-            elle contient les salaires, les adresses et les mots de passe des boîtes d'envoi en clair.
-            Les mots de passe de connexion, eux, n'y sont pas lisibles.</p>
-        <div class="form-actions">
-            <a class="btn" href="?p=sauvegarde"><?= icon('download') ?> Télécharger la sauvegarde</a>
+            <?php if (module_actif('compta') && $comptesCamt): ?>
+            <button type="submit" form="export-form-ecritures_camt" data-type="ecritures_camt" hidden><?= icon('download') ?> Télécharger le XML</button>
+            <?php endif; ?>
+            <?php if (module_actif('salaires') && $annees): ?>
+            <button type="submit" form="export-form-certificats" data-type="certificats" hidden><?= icon('download') ?> Télécharger le XML</button>
+            <?php endif; ?>
+            <?php if (module_actif('evenements') && $anneesEvenements): ?>
+            <button type="submit" form="export-form-evenements" data-type="evenements" hidden><?= icon('download') ?> Télécharger le CSV</button>
+            <?php endif; ?>
         </div>
     </div>
+    <noscript><p class="muted small">JavaScript est requis pour choisir le type de données.</p></noscript>
 
     <?php if (module_actif('compta')): ?>
     <div class="export-bloc mt-16" data-type="ecritures_csv" hidden>
@@ -104,9 +80,8 @@ $anneeSansToutes = ['certificats' => true];
         <?php if (!$anneesCompta): ?>
             <div class="form-actions"><p class="muted mb-0">Aucune écriture à exporter.</p></div>
         <?php else: ?>
-        <form method="get" action="index.php" id="export-form-ecritures_csv" class="form-actions">
+        <form method="get" action="index.php" id="export-form-ecritures_csv" hidden>
             <input type="hidden" name="p" value="compta_ecritures_exporter_csv">
-            <button type="submit"><?= icon('download') ?> Télécharger le CSV</button>
         </form>
         <?php endif; ?>
     </div>
@@ -125,7 +100,6 @@ $anneeSansToutes = ['certificats' => true];
                     <?php endforeach; ?>
                 </select>
             </label>
-            <button type="submit"><?= icon('download') ?> Télécharger le XML</button>
         </form>
         <?php endif; ?>
     </div>
@@ -141,9 +115,8 @@ $anneeSansToutes = ['certificats' => true];
         <?php if (!$annees): ?>
             <div class="form-actions"><p class="muted mb-0">Aucune fiche de salaire à exporter.</p></div>
         <?php else: ?>
-        <form method="get" action="index.php" id="export-form-certificats" class="form-actions">
+        <form method="get" action="index.php" id="export-form-certificats" hidden>
             <input type="hidden" name="p" value="certificat_exporter_xml">
-            <button type="submit"><?= icon('download') ?> Télécharger le XML</button>
         </form>
         <?php endif; ?>
     </div>
@@ -161,7 +134,7 @@ $anneeSansToutes = ['certificats' => true];
         <?php if (!$anneesEvenements): ?>
             <div class="form-actions"><p class="muted mb-0">Aucun événement à exporter.</p></div>
         <?php else: ?>
-        <form method="get" action="index.php" id="export-form-evenements" class="form-actions">
+        <form method="get" action="index.php" id="export-form-evenements" hidden>
             <input type="hidden" name="p" value="evenements_suisa_exporter">
             <input type="hidden" name="statut_suisa" value="tous">
             <input type="hidden" name="projet_id" value="0">
@@ -169,16 +142,17 @@ $anneeSansToutes = ['certificats' => true];
             <input type="hidden" name="visibilite" value="tous">
             <input type="hidden" name="pays" value="tous">
             <input type="hidden" name="salaries" value="tous">
-            <button type="submit"><?= icon('download') ?> Télécharger le CSV</button>
         </form>
         <?php endif; ?>
     </div>
     <?php endif; ?>
 </div>
+<?php endif; ?>
 
 <script nonce="<?= e(csp_nonce()) ?>">
 (function () {
     var sel = document.getElementById('export-type');
+    if (!sel) return;
     var anneeWrap = document.getElementById('export-annee-wrap');
     var anneeSel = document.getElementById('export-annee');
     var anneesParType = <?= json_encode($anneesParType, JSON_UNESCAPED_UNICODE) ?>;
@@ -186,7 +160,7 @@ $anneeSansToutes = ['certificats' => true];
 
     function applique() {
         var type = sel.value;
-        document.querySelectorAll('.export-bloc').forEach(function (d) { d.hidden = d.dataset.type !== type; });
+        document.querySelectorAll('.export-bloc, .export-telecharger [data-type]').forEach(function (d) { d.hidden = d.dataset.type !== type; });
 
         var annees = anneesParType[type];
         if (annees) {
@@ -203,6 +177,9 @@ $anneeSansToutes = ['certificats' => true];
                 o.value = String(a); o.textContent = String(a);
                 anneeSel.appendChild(o);
             });
+            // L'année d'un lien direct, si ce type la connaît.
+            var anneeLien = sel.dataset.annee;
+            if (anneeLien && anneeSel.querySelector('option[value="' + anneeLien + '"]')) anneeSel.value = anneeLien;
             var form = document.getElementById('export-form-' + type);
             if (form) { anneeSel.setAttribute('form', form.id); }
         } else {
@@ -212,8 +189,10 @@ $anneeSansToutes = ['certificats' => true];
         try { localStorage.setItem('exportType', type); } catch (e) {}
     }
     sel.addEventListener('change', applique);
-    var actif = null;
-    try { actif = localStorage.getItem('exportType'); } catch (e) {}
+
+    // Un lien direct l'emporte sur le dernier type choisi.
+    var actif = sel.dataset.demande || null;
+    if (!actif) { try { actif = localStorage.getItem('exportType'); } catch (e) {} }
     if (actif && sel.querySelector('option[value="' + actif + '"]')) sel.value = actif;
     applique();
 })();

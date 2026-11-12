@@ -31,7 +31,7 @@ retirer un jour.
 | appels `render()` / `render_bare()` / `rendre_fragment()` | **104** |
 | occurrences de `?p=<route>` en dur (vues, lib, assets, index) | **738** |
 | appels `redirect('<route>')` | **287** |
-| citations de routes dans `assets/app.css` (commentaires) | **75** |
+| citations de routes dans `assets/css/` (commentaires) | **75** |
 | citations de routes dans `docs/` et les `*.md` | **58** |
 
 C'est la dernière ligne qui donne l'ordre de grandeur du travail : **un nom de
@@ -124,7 +124,7 @@ de nom d'écran.
 
 `parametres`, `parametres_pays`, `parametres_structures`, `parametres_tags`,
 `parametres_evenements`, `parametres_modules` — mais `employeur`, `emails`,
-`emails_booking`, `apparence`, `comptes`, `maj`, `diagnostic`, `export` sont
+`apparence`, `comptes`, `maj`, `diagnostic`, `export` sont
 eux aussi des pages de Paramètres, sans préfixe.
 
 ---

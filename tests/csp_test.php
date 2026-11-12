@@ -57,6 +57,12 @@ foreach ($fichiers as $f) {
         if (stripos($attrs, 'src=') !== false) {
             continue; // script externe : couvert par 'self'
         }
+        if (preg_match('#type=["\']application/json["\']#i', $attrs)) {
+            // Bloc de DONNÉES : le navigateur ne l'exécute jamais, la CSP ne le
+            // regarde pas. C'est par lui qu'un script de assets/ reçoit les
+            // valeurs du serveur (views/layout.php → assets/gabarit.js).
+            continue;
+        }
         if (stripos($attrs, 'nonce=') === false) {
             $sansNonce[] = basename($f);
         }

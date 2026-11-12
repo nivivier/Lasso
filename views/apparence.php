@@ -136,7 +136,7 @@
               // de porter une icône — sept combinaisons de couleurs ne se
               // nomment pas plus qu'elles ne se dessinent. C'est la classe
               // fondc-* posée sur le bouton qui colore ses pastilles
-              // (assets/app.css) : rien à tenir d'accord avec les combos.
+              // (assets/css/) : rien à tenir d'accord avec les combos.
               // Masquée avec l'image personnalisée, qui a ses couleurs à elle. ?>
         <div class="fond-rangee mt-10" id="fond-couleurs-rangee"<?= $fondChoisi === 'image' ? ' hidden' : '' ?>>
             <span class="muted small">Couleurs du décor</span>

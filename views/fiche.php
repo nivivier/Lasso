@@ -15,6 +15,7 @@
     case 'no_dest': echo '<p class="err flash">Cet employé n\'a pas d\'adresse e-mail valide. Complétez sa fiche.</p>'; break;
     case 'no_exp':  echo '<p class="err flash">Aucun e-mail d\'expéditeur valide n\'est configuré (Paramètres → Employeur).</p>'; break;
 } ?>
+<?php if (($_GET['err'] ?? '') === 'payee'): ?><p class="err flash">Une fiche payée ne peut pas être supprimée.</p><?php endif; ?>
 <?php if (isset($_GET['success'])): ?><p class="ok flash">✓ Fiche enregistrée avec succès.</p><?php endif; ?>
 <?php require __DIR__ . '/_fiche_fiche.php'; ?>
 </div></div>

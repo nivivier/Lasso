@@ -540,22 +540,22 @@ function nav_groupes(): array
             // groupés », puisqu'on y démarche structure par structure.
             'booking_campagnes'          => ['Campagnes', ['booking_campagnes', 'booking_campagne', 'booking_campagne_form'], 0, 'target'],
         ];
-        // Le Suivi appartient au sous-module « Envois groupés » : sans lui, le
+        // L'onglet appartient au sous-module « Envois groupés » : sans lui, le
         // booking garde ses structures, ses modèles de message et sa liste
         // d'exclusion — dont se sert le bouton « Contacter » d'une fiche —
         // mais plus le mailing de masse.
         //
-        // ⚠️ ?p=mailing_campagne est rattachée au Suivi et n'a PLUS d'onglet à
+        // ⚠️ ?p=mailing_campagne est rattachée aux Envois groupés et n'a PLUS d'onglet à
         // elle. Elle en avait un, « Nouvelle campagne », et il tombait dans le
         // rail juste sous l'onglet « Campagnes » du démarchage, qui a son
         // propre bouton « Nouvelle campagne » : deux entrées du même nom, pour
         // deux choses sans rapport — une campagne de démarchage d'un côté, un
         // envoi groupé de l'autre. Le rail nomme des ÉCRANS, pas des gestes
-        // (docs/UI.md § 1) : l'écran s'ouvre désormais par un bouton du Suivi,
-        // d'où il relève. La route reste ici pour que le rail éclaire Suivi
+        // (docs/UI.md § 1) : l'écran s'ouvre désormais par un bouton des
+        // Envois groupés, d'où il relève. La route reste ici pour que le rail les éclaire
         // quand on y est.
         if (module_actif('mailing') && peut_lire('mailing')) {
-            $ongletsBooking['mailing'] = ['Suivi', ['mailing', 'mailing_campagne'], 0, 'mail'];
+            $ongletsBooking['mailing'] = ['Envois groupés', ['mailing', 'mailing_campagne'], 0, 'mail'];
         }
         $ongletsBooking['mailing_modeles'] = ['Modèles', ['mailing_modeles'], 0, 'file-text'];
         $ongletsBooking['mailing_exclusions'] = ["Liste d'exclusion", ['mailing_exclusions'], 0, 'mail-x'];
@@ -598,6 +598,38 @@ function nav_groupes(): array
 //
 // Le contenu dépend des droits et des modules actifs : un groupe dont aucune
 // section n'est lisible n'existe pas.
+// Le titre de l'onglet du navigateur pour une route qui EST un onglet — d'un
+// module (nav_groupes()) ou des paramètres (parametres_groupes()) —, ou null.
+// Une seule règle, déduite de la navigation plutôt qu'écrite page par page :
+// « Module — Onglet », « Paramètres — Section ». Écrits à la main, les titres
+// avaient divergé (« Paramètres — Pays » mais « Employeur » tout court, et
+// « Mailing — Modèles » longtemps après que « Mailing » eut disparu de
+// l'interface). Une fiche (un employé, une facture) n'est pas un onglet : elle
+// garde le titre que sa route lui donne, le nom de l'objet. render() s'en sert.
+function titre_onglet(string $route): ?string
+{
+    if ($route === '' || !function_exists('current_user') || !current_user()) {
+        return null;
+    }
+    foreach (nav_groupes() as [$groupe, , $onglets]) {
+        foreach ($onglets as $cle => $onglet) {
+            $sous = $onglet[4] ?? [];
+            if (isset($sous[$route])) {
+                return $groupe . ' — ' . $sous[$route];
+            }
+            if ($cle === $route) {
+                return $onglet[0] === $groupe ? $groupe : $groupe . ' — ' . $onglet[0];
+            }
+        }
+    }
+    foreach (parametres_groupes() as [, $sections]) {
+        if (isset($sections[$route])) {
+            return 'Paramètres — ' . $sections[$route];
+        }
+    }
+    return null;
+}
+
 function parametres_groupes(): array
 {
     static $cache = null;
@@ -613,6 +645,7 @@ function parametres_groupes(): array
             'apparence'          => 'Apparence',
             'modules'            => 'Modules',
             'utilisateurs'       => 'Utilisateurs',
+            'journal'            => 'Journal',
             // Les personnes ne sont plus ici : elles ont leur onglet dans le
             // Carnet d'adresses, qui est le module qui pouvait enfin les
             // porter. Elles étaient sous « coeur » faute de mieux — aucun des
@@ -622,14 +655,10 @@ function parametres_groupes(): array
     }
 
     $groupes['employeur'] = ['Employeur', ['employeur' => 'Employeur']];
-    // Deux écrans bien distincts : rien n'est partagé entre les envois généraux
-    // (fiches de salaire, factures) et ceux du booking — ni adresses, ni serveur,
-    // ni rythme d'envoi.
-    $emails = ['emails' => 'Envois généraux'];
-    if (module_actif('booking')) {
-        $emails['emails_booking'] = 'Envois pour le booking';
-    }
-    $groupes['emails']    = ['E-mails', $emails];
+    // Un seul écran : les envois internes, puis les boîtes du booking et le
+    // débit des envois groupés pour qui les voit (route_emails()). Ce furent
+    // deux pages, deux entrées de menu pour régler des e-mails.
+    $groupes['emails']    = ['E-mails', ['emails' => 'E-mails']];
 
     // « Valeurs et libellés » plutôt que « Taux » : le groupe ne porte pas que des
     // pourcentages. Une ligne de décompte y a aussi son intitulé — celui que les
@@ -667,8 +696,8 @@ function parametres_groupes(): array
     }
     $groupes['categories'] = ['Catégories', $categories];
 
-    // Données : Importer/Exporter/Incohérences regroupés sous un seul onglet
-    // principal, avec ces 3 sections en sous-onglets.
+    // Données : Importer/Exporter/Sauvegardes/Synchronisation/Incohérences
+    // regroupés sous un seul onglet principal, en sous-onglets.
     // Importer : le sous-onglet pointe sur ?p=import, la page elle-même. Les routes
     // de traitement (une par module) reviennent rendre cette même page avec leurs
     // résultats : elles comptent donc aussi comme la section active, en alias (3ᵉ
@@ -685,7 +714,15 @@ function parametres_groupes(): array
         $donnees['import'] = 'Importer';
         array_unshift($routesImport, 'import');
     }
-    $donnees['export'] = 'Exporter';
+    // Exporter n'a d'objet qu'avec un module qui exporte : la sauvegarde, qui
+    // était son seul type toujours présent, a sa page (Sauvegardes).
+    if (module_actif('compta') || module_actif('salaires') || module_actif('evenements')) {
+        $donnees['export'] = 'Exporter';
+    }
+    // Sauvegarder, restaurer, les copies du serveur : l'administration seule.
+    if (peut_ecrire('coeur')) {
+        $donnees['sauvegardes'] = 'Sauvegardes';
+    }
     // Les jetons d'export : une porte vers l'extérieur, pas un réglage d'affichage.
     if (module_actif('evenements') && peut_lire('evenements')) {
         $donnees['synchronisation'] = 'Synchronisation';
@@ -693,7 +730,11 @@ function parametres_groupes(): array
     if (peut_ecrire('coeur')) {
         $donnees['incoherences'] = 'Incohérences';
     }
-    $groupes['donnees'] = ['Données', $donnees, $routesImport];
+    // Un compte sans module qui importe ou exporte, et qui n'administre pas,
+    // n'a rien à y faire : pas d'onglet vide.
+    if ($donnees) {
+        $groupes['donnees'] = ['Données', $donnees, $routesImport];
+    }
 
     return $cache = $groupes;
 }

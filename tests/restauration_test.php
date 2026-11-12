@@ -140,9 +140,56 @@ foreach (['sqlite', 'zip', 'tar.gz'] as $format) {
     @unlink($archive);
 }
 
+echo "\n5) Archive chiffrée : la phrase, ou rien\n";
+if (!sauvegarde_chiffrement_possible('zip')) {
+    echo "  (chiffrement AES indisponible sur ce serveur, ignoré)\n";
+} else {
+    $p = new PDO('sqlite:' . APP_DB_PATH);
+    $p->exec('UPDATE parametres SET valeur = "AVANT" WHERE cle = "employeur_nom"');
+    $p = null;
+    $archive = fabriquer_archive($source, $bac, 'zip', 'la bonne phrase secrète');
+    $motif = function (string $phrase) use ($archive, $bac): string {
+        try {
+            sauvegarde_restaurer($archive, $bac . '/depot', $phrase);
+            return '';
+        } catch (RuntimeException $e) {
+            return $e->getMessage();
+        }
+    };
+    check('sans phrase : refusée, et on dit pourquoi', true, str_contains($motif(''), 'phrase secrète'));
+    check('mauvaise phrase : refusée, et on dit pourquoi', true, str_contains($motif('une autre phrase'), 'incorrecte'));
+    check('… la base d\'avant est intacte', 'AVANT', $nomActuel());
+    check('bonne phrase : restaurée', '', $motif('la bonne phrase secrète'));
+    check('… la base est remplacée', 'APRES', $nomActuel());
+    check('… les fichiers déposés sont revenus', 'PNG factice', (string) @file_get_contents($bac . '/depot/uploads/logo-restaure.png'));
+    @unlink($archive);
+}
+
+echo "\n6) Restaurer une copie du serveur\n";
+// La copie est prise par une connexion neuve : db() a gardé sous la main le
+// fichier d'avant les restaurations ci-dessus (c'est voulu — rename()).
+$fraiche = fn (): PDO => new PDO('sqlite:' . APP_DB_PATH);
+$fraiche()->exec('UPDATE parametres SET valeur = "COPIE" WHERE cle = "employeur_nom"');
+$nomCopie = basename(APP_DB_PATH, '.sqlite') . '_manuelle_20260101_000000.sqlite.bak';
+$fraiche()->exec('VACUUM INTO ' . $fraiche()->quote(dirname(APP_DB_PATH) . '/' . $nomCopie));
+$fraiche()->exec('UPDATE parametres SET valeur = "MODIFIEE" WHERE cle = "employeur_nom"');
+check('la copie est dans la liste', true, in_array($nomCopie, array_column(sauvegardes_serveur(), 'nom'), true));
+check('son nom mène à son chemin', dirname(APP_DB_PATH) . '/' . $nomCopie, sauvegarde_serveur_chemin($nomCopie));
+check('la base elle-même n\'est pas une copie', null, sauvegarde_serveur_chemin(basename(APP_DB_PATH)));
+check('un chemin n\'est pas un nom', null, sauvegarde_serveur_chemin('../' . basename($bac) . '/' . $nomCopie));
+$r = sauvegarde_restaurer((string) sauvegarde_serveur_chemin($nomCopie), $bac . '/depot');
+check('restaurée : la base est celle de la copie', 'COPIE', $nomActuel());
+check('… aucun fichier déposé n\'est touché', 0, $r['fichiers']);
+check('… la base d\'avant est mise de côté, et listée', true,
+    in_array(basename((string) $r['precedente']), array_column(sauvegardes_serveur(), 'nom'), true));
+check('… la copie restaurée reste disponible', true, is_file(dirname(APP_DB_PATH) . '/' . $nomCopie));
+$routes = (string) file_get_contents(dirname(__DIR__) . '/lib/routes.php');
+check('la route résout le nom par la liste, jamais en chemin', true,
+    str_contains($routes, "sauvegarde_serveur_chemin((string) (\$_POST['nom'] ?? ''))"));
+
 // Fabrique une archive de sauvegarde au format voulu, comme en produirait une
 // autre installation. Renvoie null si le serveur ne sait pas faire ce format.
-function fabriquer_archive(string $base, string $bac, string $format): ?string
+function fabriquer_archive(string $base, string $bac, string $format, string $phrase = ''): ?string
 {
     if ($format === 'sqlite') {
         $a = $bac . '/sauvegarde.sqlite';
@@ -162,6 +209,11 @@ function fabriquer_archive(string $base, string $bac, string $format): ?string
         $z->addFromString('uploads/logo-restaure.png', 'PNG factice');
         $z->addFromString('data/fichiers/piece-restauree.pdf', 'PDF factice');
         $z->addFromString('../evasion.txt', 'ne doit jamais sortir');
+        if ($phrase !== '') {
+            foreach (['base.sqlite', 'uploads/logo-restaure.png', 'data/fichiers/piece-restauree.pdf'] as $n) {
+                $z->setEncryptionName($n, ZipArchive::EM_AES_256, $phrase);
+            }
+        }
         $z->close();
         return $a;
     }

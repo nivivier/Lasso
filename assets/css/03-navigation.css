@@ -1,0 +1,831 @@
+/* =================== Sidebar layout =================== */
+body.has-sidebar { display: flex; min-height: 100vh; }
+
+/* Rail d'icônes de modules : remplace l'ancien rail « icône-pastille +
+   libellé à droite » par un rail
+   étroit, icône au-dessus d'un petit libellé, largeur 84px (voir aussi les
+   offsets de .page-head-band, calés sur cette largeur). */
+/* Densité des lignes de tableau (?p=apparence). Elle ne touche qu'au retrait
+   VERTICAL : c'est lui qui fait tenir plus ou moins de lignes à l'écran.
+   L'horizontal aligne le texte sur le bord de sa carte ou de sa page et ne
+   bouge pas, sinon les colonnes se décaleraient d'un réglage à l'autre.
+   Rendu côté serveur sur <html>, comme le thème : aucun scintillement, aucun
+   JavaScript. Une seule valeur à changer, parce que toutes les listes du site
+   lisent --row-pad — c'est à cela que servait de les normaliser d'abord. */
+:root[data-densite="dense"] { --row-pad-y: 5px; }
+:root[data-densite="large"] { --row-pad-y: 16px; }
+
+/* Rail clair par défaut (pas de dégradé --brand/--brand-2 : depuis que
+   --brand suit la couleur du module actif — module_couleur_css_vars(),
+   lib/helpers.php —, un fond de rail dérivé de --brand changerait de
+   couleur à chaque page ; le rail lui-même doit rester un repère stable). */
+.sidebar {
+    position: relative;   /* repère du panneau de résultats (.side-resultats) */
+    width: var(--rail-width);
+    flex-shrink: 0;
+    /* Verre dépoli, comme les cartes du tableau de bord (.dash-card) : le même
+       --glass et le même flou. Le décor de l'application passe donc derrière le
+       rail au lieu de s'arrêter à son bord — la colonne appartient à l'écran,
+       elle n'est plus un panneau posé dessus.
+       Les deux lueurs restent, à peine : elles sont tirées de --primary et
+       --highlight, donc elles suivent la couleur de l'employeur, et elles
+       empêchent la colonne d'être un aplat uniforme sur toute la hauteur de
+       l'écran — ce qui rendait le rail triste. */
+    background:
+        radial-gradient(340px 320px at -12% -8%, color-mix(in srgb, var(--primary) 14%, transparent), transparent 70%),
+        radial-gradient(280px 280px at 112% 106%, color-mix(in srgb, var(--highlight) 10%, transparent), transparent 70%),
+        var(--glass);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    color: var(--ink);
+    border-right: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    /* Pas de padding horizontal ici (contrairement à avant) : .side-nav a
+       overflow-y:auto, et la spec CSS force alors overflow-x à auto aussi
+       (jamais visible) dès qu'il diffère de overflow-y — un padding sur
+       .sidebar couperait net ce qui doit toucher le bord de la fenêtre.
+       Chaque enfant (side-brand, side-nav, side-avatar-wrap) porte donc son
+       propre padding horizontal. */
+    padding: 20px 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    z-index: 100; /* passe devant le bandeau d'en-tête (.page-head-band) et son icône */
+}
+.side-brand { padding: 0 12px 14px; text-align: center; }
+/* Hauteur fixe (pas height:auto) + object-fit:contain : la largeur du logo
+   employeur est bornée par le rail mais sa hauteur réelle dépend de l'image
+   uploadée (aucune dimension stockée en base, juste validée à l'upload —
+   voir getimagesize() dans lib/helpers.php). Avec height:auto, le
+   navigateur ne réserve aucun espace tant que l'image n'est pas décodée :
+   à CHAQUE clic (rechargement complet de page, pas de SPA), la zone du
+   logo s'affiche à hauteur nulle puis « saute » à sa taille une fois
+   l'image prête — perçu comme un flicker du rail. Une hauteur fixe réserve
+   l'espace immédiatement, quelle que soit la vitesse de décodage. */
+/* Le logo mène au tableau de bord : le lien ne doit rien changer à son dessin,
+   seulement se signaler au survol. */
+.side-accueil, .mbar-accueil { display: block; text-decoration: none; }
+.side-accueil:hover, .mbar-accueil:hover { opacity: .85; text-decoration: none; }
+/* ⚠️ Pas de max-width : c'est le RAIL qui borne le logo. Il en portait un de
+   82px, hérité du rail étroit d'avant — dans 248px, le logo s'affichait trois
+   fois plus petit que la place qu'il a, et perdu au milieu. width:100% +
+   object-fit:contain suffisent : l'image s'étire jusqu'aux bords de la zone
+   de marque, sans jamais se déformer ni dépasser 44px de haut. */
+.side-logo { width: 100%; height: 44px; object-fit: contain; margin: 0 auto; display: block; }
+/* 44px de haut PARTOUT, déplié comme replié : c'est la mesure du rail — celle
+   des initiales de repli, à un cheveu de la pastille du compte. La version
+   réduite est carrée : la borner en largeur la garde carrée au lieu de la
+   laisser flotter au milieu d'une boîte pleine largeur. À 52 elle dépassait
+   d'un cran tout ce qui l'entoure. */
+.side-logo-petit { max-width: 44px; }
+/* LE JEU de logos, et non l'image : c'est l'enveloppe qui dit « déplié » ou
+   « replié », l'image ne dit que « clair » ou « sombre ». Deux règles display
+   sur le même élément se seraient disputé la propriété, et l'ordre de la
+   feuille aurait tranché au lieu de l'intention. */
+.side-logo-jeu-mini { display: none; }
+.side-name { font-size: var(--fs-small); font-weight: 700; color: var(--ink); word-break: break-word; }
+/* Les initiales ne servent qu'au rail réduit (plus bas) : en rail large, le
+   nom entier est là. */
+.side-initiales { display: none; }
+.side-sub { display: none; }
+/* Recherche unifiée, sous le logo. Pleine largeur du rail, et le même champ que
+   partout ailleurs (champ_recherche()) pour qu'une recherche se reconnaisse à sa
+   forme, où qu'elle soit. */
+.side-recherche { padding: 0 8px 12px; }
+/* ⚠️ Aucun habillage propre ici, et c'est le point : le champ du rail est le
+   champ de recherche de l'application, bordure fine et loupe à droite comme
+   dans toutes les barres d'outils. Il a porté une capsule de 44px bordée de
+   2px, loupe à gauche, pour dire « porte d'entrée » plutôt que « filtre » —
+   mais deux dessins pour le même geste se lisaient comme deux fonctions
+   différentes. Ce qui le distingue suffit : sa place sous le logo. */
+/* Les réponses s'affichent DANS la colonne, posées par-dessus la navigation et
+   non intercalées : un rail qui s'allonge à chaque lettre tapée fait sauter les
+   modules sous le curseur. Le panneau a donc son propre défilement, et la
+   navigation reste où elle est. */
+.side-resultats {
+    position: absolute; left: 8px; right: 8px; top: 112px; z-index: 20;
+    max-height: calc(100% - 180px); overflow-y: auto;
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, .16);
+    padding: 6px 0;
+}
+.side-resultats-groupe {
+    display: flex; align-items: baseline; gap: 8px;
+    margin: 0; padding: 8px 12px 4px;
+    font-size: var(--fs-tiny); font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--muted);
+}
+.side-resultats-groupe span { margin-left: auto; letter-spacing: 0; }
+/* Le registre des TYPES, à l'œuvre : le groupe porte la teinte de ce que ses
+   résultats SONT. C'est une marque d'identité, pas un état — d'où le filet
+   devant le mot plutôt qu'un fond. */
+.side-resultats-groupe::before { content: ""; width: 3px; align-self: stretch; border-radius: 2px; background: currentColor; }
+.side-resultats-groupe[data-type="personne"]  { color: var(--personne); }
+.side-resultats-groupe[data-type="document"]  { color: var(--document); }
+.side-resultats-groupe[data-type="evenement"] { color: var(--evenement); }
+.side-resultat { display: block; padding: 7px 12px; color: var(--ink); }
+.side-resultat:hover, .side-resultat.on { background: color-mix(in srgb, var(--primary) 12%, transparent); text-decoration: none; }
+.side-resultat-nom { display: block; font-size: var(--fs-basic); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.side-resultat-sous { display: block; font-size: var(--fs-small); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.side-resultats-vide { margin: 0; padding: 12px; font-size: var(--fs-basic); color: var(--muted); }
+.side-resultats-tout {
+    display: block; margin-top: 4px; padding: 9px 12px;
+    border-top: 1px solid var(--line);
+    font-size: var(--fs-small); font-weight: 700; color: var(--primary);
+}
+.side-recherche .recherche-champ { width: 100%; }
+.side-recherche input[type="search"] { width: 100%; }
+/* ── Navigation : un volet par module ───────────────────────────────────────
+   Le module ouvert est un VOLET teinté de sa couleur, qui enveloppe ses pages ;
+   la page affichée est une capsule de la même teinte, en plein. Une seule
+   couleur, deux intensités, et une relation de contenance qui remplace le filet
+   vertical d'arborescence doublé de cadres de sélection — deux langages qui ne
+   se rejoignaient pas (docs/UI.md § Navigation).
+
+   --vignette : la couleur fixe du module, posée en style inline par
+   views/layout.php (MODULE_COULEURS, lib/modules.php). Absente quand « une
+   couleur par module » est décoché (Paramètres → Apparence), d'où le repli sur
+   --primary dans CHAQUE règle qui s'en sert : sans lui, le volet et la capsule
+   active deviennent transparents et plus rien ne marque où l'on est. */
+.side-nav { display: flex; flex-direction: column; gap: 2px; flex: 1 1 0; min-height: 0; overflow-y: auto; scrollbar-width: none; padding: 0 8px; }
+.side-nav::-webkit-scrollbar { display: none; }
+
+.nav-volet { border-radius: 20px; transition: background .18s ease; }
+.nav-volet.on { background: color-mix(in srgb, var(--vignette, var(--primary)) 34%, transparent); }
+/* Le retrait du bas n'appartient PAS au volet mais à ce qu'il contient : un
+   module d'un seul écran (Tableau de bord, Événements, Recherche de fonds) ne
+   déplie rien, et ces huit pixels de teinte vide sous son libellé faisaient
+   paraître sa ligne plus haute que celles de ses voisins. :has() est déjà la
+   convention ici (voir .toolbar:has(details[open])). */
+.nav-volet.on:has(.nav-pages) { padding-bottom: 8px; }
+
+.nav-mod {
+    display: flex; align-items: center; gap: 10px;
+    min-height: 48px; padding: 0 10px;
+    border-radius: 20px;
+    color: var(--ink); font-size: var(--fs-basic); font-weight: 650;
+    letter-spacing: -.02em; line-height: 1.2;
+    opacity: .7;
+    transition: opacity .15s ease;
+}
+.nav-mod:hover { opacity: 1; color: var(--ink); text-decoration: none; }
+/* Le module ouvert est à pleine intensité, les sept autres reculent d'un cran.
+   C'est une opacité et non un gris : la vignette garde ainsi sa couleur, et le
+   libellé reste de l'encre pleine atténuée — à 0.7 il tient le contraste, ce
+   qu'un gris clair ne faisait pas. */
+.nav-volet.on .nav-mod { opacity: 1; font-weight: 800; }
+
+/* La vignette : la teinte du module éclaircie, le glyphe dans sa version
+   profonde. Les deux mélanges passent par --card et --ink, donc ils suivent le
+   thème — pastel à glyphe sombre en clair, tuile sombre à glyphe clair en
+   sombre, sans seconde palette à tenir. */
+/* ⚠️ Aucune ombre : ni le cerne d'1px, ni le halo teinté qu'avait la vignette
+   du module ouvert. La couleur pleine suffit à la détacher du volet, et ce
+   halo était la seule ombre portée du rail — il faisait flotter huit tuiles
+   au-dessus d'une colonne qui, elle, est à plat. */
+.nav-vignette {
+    flex: 0 0 auto; width: 34px; height: 34px; border-radius: 11px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--vignette, var(--primary));
+    color: var(--vignette-encre, #fff);
+}
+.nav-mod-lbl { flex: 1 1 auto; min-width: 0; }
+/* Largeur fixe, et rendu même vide : c'est elle qui aligne la droite de tous
+   les libellés, qu'un module ait ou non des écrans à déplier. */
+.nav-chevron { flex: 0 0 14px; width: 14px; opacity: .5; }
+.nav-chevron .ico { width: 14px; height: 14px; }
+
+/* Les pages du module, dans le volet. La page affichée prend la teinte pleine :
+   le contraste du texte blanc dessus est garanti par MODULE_COULEURS, dont les
+   sept teintes sont vérifiées >= 4.5:1 sous du blanc (lib/modules.php). */
+.nav-pages { padding: 0 8px; }
+.nav-page {
+    display: flex; align-items: center; gap: 8px;
+    min-height: 38px; margin-bottom: 3px; padding: 0 12px;
+    border-radius: 19px;
+    color: var(--ink); font-size: var(--fs-small); font-weight: 600; letter-spacing: -.01em;
+}
+.nav-page:hover { background: color-mix(in srgb, var(--vignette, var(--primary)) 45%, transparent); color: var(--ink); text-decoration: none; }
+/* La capsule de la page affichée : la MÊME teinte que le volet, en plein, avec
+   l'encre profonde du module dessus. Une couleur, deux intensités. */
+.nav-page.on { background: var(--vignette, var(--primary)); color: var(--vignette-encre, #fff); font-weight: 800; }
+/* L'onglet dont une SOUS-page est affichée : déplié, pas actif. */
+.nav-page.deplie { background: color-mix(in srgb, var(--vignette, var(--primary)) 20%, transparent); font-weight: 800; }
+.nav-page-lbl { flex: 1 1 auto; min-width: 0; }
+.nav-page-badge { flex: 0 0 auto; font-size: var(--fs-tiny); font-weight: 800; color: var(--vignette-encre, var(--primary)); }
+.nav-page.on .nav-page-badge { opacity: .72; }
+
+/* Troisième niveau : ni filet ni tiret, un simple décalage. Le volet dit déjà
+   à quel module ces écrans appartiennent, et un second trait vertical ne
+   disait pas « plus profond » mais « encore une marge ». */
+/* ⚠️ Le retrait du BAS ne peut vivre sur le conteneur : overflow rogne le
+   CONTENU d'une boîte, jamais son propre remplissage — réduite à une hauteur
+   nulle, elle gardait quand même ses quatre pixels, soit autant de vide sous
+   chaque onglet replié (mesuré : 4px au lieu de 0). Il descend donc sur le
+   dernier lien, où il est du contenu comme le reste et disparaît avec lui.
+   Le retrait de GAUCHE, lui, ne pèse pas sur la hauteur et reste ici. */
+.nav-sous-inner { padding: 0 0 0 16px; }
+.nav-sous-inner > :last-child { margin-bottom: 6px; }
+/* …et il est REPLIÉ tant que sa page n'est ni ouverte (.on), ni dépliée
+   (.deplie, une de ses sous-pages est à l'écran), ni ouverte à la main
+   (.sous-ouvert, posée au clic par assets/app.js). Les sous-pages sont dans le
+   DOM dans tous les cas : c'est ce qui permet au clic de les déplier sans
+   recharger, et au rail réduit de les montrer dans son panneau.
+   Le dépliage s'anime en HAUTEUR, et c'est assets/app.js qui la mesure puis la
+   rend à « auto » une fois arrivée (lassoPlierAnime(), partagée avec la branche
+   d'un entonnoir arborescent — une seule recette pour un seul geste).
+   ⚠️ Ni « grid-template-rows: 0fr → 1fr », ni un max-height : la première reste
+   bloquée à zéro ici comme dans l'entonnoir (mesuré des deux côtés : la même
+   règle donne la bonne hauteur dès qu'on lui ôte sa transition), le second
+   donne une vitesse qui dépend du nombre de lignes.
+   ⚠️ visibility remplace ce que display:none faisait pour le clavier : une
+   branche de hauteur nulle reste dans le flux, et sans elle on tabulerait vers
+   des liens invisibles. */
+.nav-sous { overflow: hidden; transition: height .15s ease, visibility .15s; }
+.nav-page:not(.on):not(.deplie):not(.sous-ouvert) + .nav-sous { height: 0; visibility: hidden; }
+/* Le chevron d'un onglet qui se déplie : même rôle que celui d'un module, en
+   plus petit, et il tourne au lieu de changer d'icône — une seule icône dans
+   le balisage, donc rien à tenir d'accord avec l'état. */
+.nav-page-chevron { flex: 0 0 13px; display: inline-flex; opacity: .55; transition: transform .15s ease; }
+.nav-page-chevron .ico { width: 13px; height: 13px; }
+.sidebar .nav-page-chevron .ico { width: 13px; height: 13px; }
+.nav-page.on .nav-page-chevron,
+.nav-page.deplie .nav-page-chevron,
+.nav-page.sous-ouvert .nav-page-chevron { transform: rotate(90deg); }
+.nav-sous-page {
+    display: block; min-height: 32px; margin-bottom: 2px; padding: 7px 12px;
+    box-sizing: border-box; border-radius: 17px;
+    color: var(--ink); font-size: var(--fs-small); font-weight: 500;
+}
+.nav-sous-page:hover { background: color-mix(in srgb, var(--vignette, var(--primary)) 40%, transparent); color: var(--ink); text-decoration: none; }
+.nav-sous-page.on { background: var(--vignette, var(--primary)); color: var(--vignette-encre, #fff); font-weight: 700; }
+
+/* La pastille de comptage du module : en ligne dans le volet, et non posée en
+   absolu au-dessus d'une icône comme dans l'ancien rail étroit. */
+/* Les deux bouts du rail ne sont pas des modules : pas de teinte, une vignette
+   d'encre qui les range à part sans les mettre dehors. Le tableau de bord les
+   regarde tous, les Paramètres les règlent. Ces règles ne dépendent pas de
+   --vignette : elles tiennent donc aussi quand « une couleur par module » est
+   décoché, où les sept autres volets passent au --primary. */
+.nav-volet-encre .nav-vignette { background: color-mix(in srgb, var(--ink) 12%, transparent); color: var(--ink); }
+.nav-volet-encre.on { background: color-mix(in srgb, var(--ink) 7%, transparent); }
+.nav-volet-encre .nav-page.on,
+.nav-volet-encre .nav-sous-page.on { background: var(--ink); color: var(--card); }
+.nav-volet-encre .nav-page.deplie { background: color-mix(in srgb, var(--ink) 8%, transparent); }
+.nav-volet-encre .nav-page:hover,
+.nav-volet-encre .nav-sous-page:hover { background: color-mix(in srgb, var(--ink) 8%, transparent); }
+
+/* ── Le panneau d'un module ─────────────────────────────────────────────────
+   UN seul nœud, deux vies. Rail LARGE : display:contents — le panneau n'existe
+   pas comme boîte, et ses pages se posent dans le volet, sous la ligne du
+   module ; c'est la navigation d'avant, au pixel près. Rail RÉDUIT : le même
+   nœud devient le panneau flottant qui sort à droite au survol de la vignette,
+   avec le nom du module et ses pages.
+   Les pages de TOUS les modules sont dans le DOM (views/layout.php) ; ici, on
+   n'affiche que celles du volet ouvert. C'est ce qui donne au survol quelque
+   chose à montrer sans dupliquer un seul lien. */
+.nav-flyout { display: contents; }
+.nav-flyout-nom { display: none; }
+.nav-volet:not(.on) .nav-pages { display: none; }
+
+/* ── Replier le rail ────────────────────────────────────────────────────────
+   Le bouton est à cheval sur le filet de droite, à hauteur du logo : le même
+   point pour fermer et pour rouvrir. Il ne s'affiche qu'au-dessus de 800px —
+   en dessous le rail est un tiroir, qui n'a rien à replier. */
+.side-reduire { display: none; }
+
+@media (min-width: 801px) {
+    .side-reduire {
+        position: absolute; top: 32px; right: -13px; z-index: 5;
+        width: 26px; height: 26px; padding: 0; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        background: var(--card); border: 1px solid var(--line); box-shadow: none;
+        color: var(--muted); cursor: pointer;
+        transition: color .15s ease, background .15s ease;
+    }
+    .side-reduire:hover { background: var(--surface); color: var(--ink); }
+    .sidebar .side-reduire .ico { width: 15px; height: 15px; }
+    .side-reduire-ouvrir { display: none; }
+    :root.rail-reduit .side-reduire-ouvrir { display: flex; }
+    :root.rail-reduit .side-reduire-fermer { display: none; }
+
+    /* ── Rail réduit ────────────────────────────────────────────────────────
+       Tout part du token : --rail-width commande la largeur du rail ET tout ce
+       qui s'en décale (le contenu, les bandeaux pleine largeur, la carte des
+       lieux). Le redéfinir suffit donc ; aucune de ces règles n'a à connaître
+       l'état replié. */
+    :root.rail-reduit { --rail-width: 68px; }
+    /* Pas de transition de largeur : le rail s'anime, mais les bandeaux
+       pleine largeur qui se calculent sur --rail-width, eux, sautent. Mieux
+       vaut un changement net que deux vitesses. */
+    :root.rail-reduit .side-brand { padding: 0 8px 12px; }
+    :root.rail-reduit .side-name { display: none; }
+    /* Le jeu réduit prend la place du large — et seulement s'il existe : sans
+       version réduite configurée, le logo large reste, serré dans 52px. Mieux
+       vaut un logo à l'étroit qu'un rail sans identité. */
+    :root.rail-reduit .side-brand:has(.side-logo-jeu-mini) .side-logo-jeu-grand { display: none; }
+    :root.rail-reduit .side-logo-jeu-mini { display: block; }
+    :root.rail-reduit .side-initiales {
+        display: flex; align-items: center; justify-content: center;
+        width: 44px; height: 44px; margin: 0 auto; border-radius: 14px;
+        background: var(--surface); color: var(--ink);
+        font-size: var(--fs-basic); font-weight: 800; letter-spacing: .02em;
+    }
+
+    /* La recherche se réduit à sa loupe — même bouton, posé à plat dans le
+       rail. Elle ne cherche pas : elle rouvre le rail et donne le curseur au
+       champ (assets/app.js). Deux dessins pour le même geste, c'était un
+       deuxième champ de recherche à expliquer. */
+    :root.rail-reduit .side-recherche input[type="search"] { display: none; }
+    :root.rail-reduit .side-recherche .search-go {
+        position: static; width: 100%; height: 40px;
+        background: var(--surface); border-radius: var(--radius); color: var(--muted);
+    }
+    :root.rail-reduit .side-recherche .search-go:hover { background: var(--line); color: var(--ink); }
+
+    /* Les volets : la vignette seule, centrée. Le libellé et le chevron
+       disparaissent — c'est le panneau de survol qui les dit. */
+    :root.rail-reduit .nav-volet { border-radius: 16px; }
+    :root.rail-reduit .nav-volet.on:has(.nav-pages) { padding-bottom: 0; }
+    :root.rail-reduit .nav-mod { position: relative; justify-content: center; gap: 0; padding: 0; min-height: 44px; }
+    :root.rail-reduit .nav-mod-lbl,
+    :root.rail-reduit .nav-chevron { display: none; }
+    /* La pastille de comptage revient se poser SUR la vignette, comme dans
+       l'ancien bandeau d'onglets : il n'y a plus de ligne où la ranger. */
+    :root.rail-reduit .side-nav .nav-badge {
+        position: absolute; top: 1px; right: 7px;
+        border: 2px solid var(--card);
+    }
+
+    /* Le panneau. Position absolue dans .sidebar et non dans le volet : le
+       volet vit dans .side-nav, qui défile (overflow-y) et rognerait tout ce
+       qui dépasse de lui. Son « top » est posé par le script, à l'entrée du
+       curseur — une position fixe ici ne saurait pas de quel volet il s'agit.
+       Le panneau est un ENFANT du volet : le survol reste donc vrai quand le
+       curseur passe dessus… à condition qu'il puisse y arriver. */
+    :root.rail-reduit .nav-flyout {
+        display: none;
+        position: absolute; left: 100%; z-index: 120;
+        min-width: 200px; max-width: 260px;
+        padding: 8px;
+        background: var(--card); border: 1px solid var(--line);
+        border-radius: var(--radius); box-shadow: 0 12px 32px rgba(0, 0, 0, .16);
+        /* ⚠️ Le panneau GLISSE quand il se replace. Déplier un onglet le fait
+           grandir, et près du bas de la fenêtre il doit alors remonter pour
+           tenir à l'écran (placer(), assets/app.js, pose ce top en pixels) :
+           posé sec, il sautait juste après l'animation du dépliage. Même durée
+           que le dépliage lui-même, pour que les deux se lisent comme un seul
+           mouvement.
+           La toute PREMIÈRE ouverture est exemptée côté script — le panneau
+           n'était nulle part, il n'a pas à venir d'ailleurs en glissant. */
+        transition: top .15s ease;
+    }
+    /* ⚠️ LE PONT, et il n'est pas un ornement : une bande transparente collée
+       au bord gauche du panneau, qui va mordre dans le volet.
+       Le panneau se pose sur le bord du RAIL (left: 100% de .sidebar) tandis
+       que le volet s'arrête 8px avant, sur le retrait de .side-nav : entre les
+       deux, une bande qui n'appartenait à personne, où le curseur quittait le
+       volet et faisait disparaître le panneau avant qu'on l'atteigne.
+       Un pseudo-élément et NON une bordure gauche transparente, essayée
+       d'abord : une bordure de 10px déforme ce qu'elle entoure — l'ombre part
+       10px trop à gauche, les coins gauches perdent leur arrondi (le rayon se
+       calcule sur la boîte de bordure) et le fond, rabattu sur la boîte de
+       remplissage, laissait une tranche vide. Ici le panneau se peint
+       normalement ; seul le survol s'élargit.
+       Le script ajoute par-dessus un délai de grâce à la sortie. */
+    :root.rail-reduit .nav-flyout::before {
+        content: ""; position: absolute; top: 0; bottom: 0; left: -12px; width: 12px;
+    }
+    /* .flyout-pin : ouvert au CLIC et non au survol — il reste quand la
+       souris s'en va, et c'est la seule façon d'atteindre les pages d'un
+       module au doigt, où il n'y a pas de survol.
+       ⚠️ PAS de :focus-within ici, et ce n'est pas un oubli. Cliquer une
+       vignette lui donne le focus ; le panneau restait alors ouvert quand on
+       allait en survoler une autre — deux panneaux à l'écran, le premier
+       figé en survol. Le clavier n'y perd rien : le script ouvre le panneau
+       sur « focusin » et le referme sur « focusout », en passant comme le
+       survol par le compte à rebours et par la fermeture des autres. Un seul
+       chemin, donc un seul panneau. */
+    :root.rail-reduit .nav-volet.flyout-on .nav-flyout,
+    :root.rail-reduit .nav-volet.flyout-pin .nav-flyout { display: block; }
+    :root.rail-reduit .nav-flyout-nom {
+        display: block; padding: 4px 10px 8px;
+        font-size: var(--fs-basic); font-weight: 800; color: var(--ink);
+    }
+    /* Dans le panneau, les pages du volet ouvert comme celles d'un module
+       fermé : c'est le survol qui décide ce qu'on voit, plus l'état du volet. */
+    :root.rail-reduit .nav-flyout .nav-pages { display: block; padding: 0; }
+    /* ⚠️ La hauteur du panneau est BORNÉE, et c'est la liste des pages qui
+       défile — pas le panneau. Déplier les sous-pages d'un onglet le fait
+       grandir, et le script a beau le remonter, un panneau plus haut que la
+       fenêtre dépasse quoi qu'on fasse. Borner .nav-pages et non .nav-flyout :
+       un conteneur de défilement rogne ses enfants en position absolue, et le
+       ::before qui fait le pont vers la vignette en est un — le panneau
+       deviendrait inatteignable à la souris. */
+    :root.rail-reduit .nav-flyout .nav-pages {
+        max-height: calc(100vh - 80px); overflow-y: auto; scrollbar-width: thin;
+    }
+
+    /* Le pied, en colonne : la pastille du compte, et tout en bas le seul
+       logo Lasso — le crédit sans ses mots, qui ne tiennent pas dans 68px.
+       column-REVERSE parce que l'ordre du document met le crédit avant la
+       pastille : à l'écran large il est à gauche, en replié il doit être
+       dessous. Un second balisage pour l'y mettre, c'eût été deux crédits à
+       tenir d'accord.
+       Le logo s'y lit seul : son alt porte « Lasso » et le numéro de version
+       (views/layout.php), et il grandit un peu — à 12px, isolé, il n'était
+       plus qu'une tache. */
+    :root.rail-reduit .side-bottom { flex-direction: column-reverse; justify-content: center; gap: 12px; }
+    /* ⚠️ Portées au RAIL : le même crédit vit sur l'écran de connexion
+       (.auth-powered), qui n'a pas de rail — et la classe rail-reduit, elle,
+       est sur <html> et le suit partout. Sans ce .sidebar, se déconnecter
+       avec un rail replié effaçait les mots du crédit sur la page de
+       connexion. */
+    :root.rail-reduit .sidebar .side-powered-txt { display: none; }
+    :root.rail-reduit .sidebar .side-powered-logo { height: 16px; }
+    :root.rail-reduit .side-avatar-menu { right: auto; left: 8px; min-width: 230px; }
+}
+
+.side-nav .nav-badge {
+    position: static; top: auto; right: auto; border: 0;
+    background: var(--vignette, var(--primary));
+    color: var(--vignette-encre, #fff);
+}
+/* Pas d'animation d'entrée sur les entrées du rail : chaque clic dans l'appli est un
+   rechargement complet de page (pas de SPA), donc une animation « le menu
+   prend vie » rejouerait à CHAQUE navigation, pas seulement au premier
+   chargement — perçu comme un rail qui « recharge/scintille » sans arrêt
+   plutôt que comme un effet d'entrée agréable. Testé et retiré suite à ce
+   retour. Seule la pulsation du badge reste (petit détail continu, pas un
+   effet de rechargement de tout le rail). */
+@media (prefers-reduced-motion: no-preference) {
+    .nav-badge { animation: nav-badge-pulse 2.2s ease-in-out infinite; }
+    @keyframes nav-badge-pulse {
+        0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--vignette, var(--danger)) 55%, transparent); }
+        50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--vignette, var(--danger)) 0%, transparent); }
+    }
+}
+/* Pastille de comptage : posée en absolu au-dessus de son icône (le rail
+   réduit, où il n'y a plus de ligne où la ranger). Couleur du module
+   (--vignette, posé en style inline) plutôt qu'un rouge fixe — repli sur
+   --danger là où aucun module ne la pose. Dans le rail large, c'est
+   .side-nav .nav-badge qui la reprend en ligne. */
+.nav-badge { position: absolute; top: 2px; right: 10px; background: var(--vignette, var(--danger)); color: #fff; font-size: var(--fs-tiny); font-weight: 700; min-width: 18px; height: 18px; border-radius: 9px; border: 2px solid var(--card); display: inline-flex; align-items: center; justify-content: center; padding: 0 4px; box-sizing: border-box; }
+/* Attributs de tracé posés ICI et non sur les <symbol> du sprite : sur le
+   symbole, ils l'emporteraient sur toute surcharge CSS visant l'icône (la loupe
+   des champs de recherche est volontairement plus épaisse, .search-go .ico).
+   En CSS ils restent hérités par le contenu du <use>, donc surchargeables. */
+.ico { width: 16px; height: 16px; flex-shrink: 0; vertical-align: middle;
+       fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.ico-tiny .ico { width: 11px; height: 11px; vertical-align: -1px; }
+.sidebar .ico { width: 19px; height: 19px; }
+
+/* Icône d'info + infobulle (survol/focus sur ordinateur, tap sur mobile —
+   voir le script dans layout.php et info_tip() dans lib/helpers.php). Point
+   unique de style pour toutes les infobulles du site. */
+.info-tip { position: relative; display: inline-flex; align-items: center; color: var(--muted); cursor: pointer; vertical-align: middle; margin-left: 4px; }
+.info-tip .ico { width: 15px; height: 15px; }
+.info-tip:hover, .info-tip:focus { color: var(--primary); outline: none; }
+.info-tip-bulle {
+    position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); z-index: 60;
+    display: none; width: max-content; max-width: min(280px, calc(100vw - 32px));
+    background: var(--brand-surface); color: #fff; font-size: var(--fs-small); font-weight: 400;
+    text-transform: none; letter-spacing: normal; line-height: 1.5;
+    padding: 10px 12px; border-radius: var(--radius-sm); box-shadow: var(--shadow);
+}
+.info-tip:hover .info-tip-bulle, .info-tip:focus .info-tip-bulle, .info-tip.open .info-tip-bulle { display: block; }
+
+/* Réinitialisation de mot de passe : champ, bouton en dessous */
+/* Matrice de permissions (écran Utilisateurs) : colonnes de module réduites
+   au strict nécessaire et de largeur strictement identique. table-layout:
+   fixed est nécessaire — en layout auto, un mot non coupable comme
+   « COMPTABILITÉ » dépasse 60px et élargit sa seule colonne malgré une
+   largeur déclarée identique aux autres ; fixed + overflow-wrap force le
+   respect de la largeur (l'en-tête passe sur plusieurs lignes si besoin).
+   Les colonnes non-module reçoivent donc aussi une largeur explicite
+   (E-mail prend le reste de la place, seule colonne sans largeur fixée). */
+.perm-table { table-layout: fixed; }
+.perm-table th:first-child, .perm-table td:first-child { width: auto; }
+/* Largeurs des trois dernières colonnes (table-layout: fixed) : dernière
+   connexion — qui porte une date ET une heure —, création, puis les actions
+   (crayon + corbeille). */
+.perm-table th:nth-last-child(3), .perm-table td:nth-last-child(3) { width: 132px; }
+.perm-table th:nth-last-child(2), .perm-table td:nth-last-child(2) { width: 88px; }
+.perm-table th:nth-last-child(1), .perm-table td:nth-last-child(1) { width: 78px; }
+/* (la rangée d'édition occupe toute la largeur : voir .compte-edit-cell) */
+/* La ligne d'édition occupe toute la largeur : elle échappe aux largeurs fixes.
+   La ligne de création aussi — sa cellule unique est la dernière de sa rangée,
+   et hériterait donc des 78px réservés à la colonne des actions. */
+.perm-table .compte-edit-row > td { width: auto; }
+.perm-table #compte-ajout-row > td { width: auto; }
+/* Les droits d'un compte : une ligne par module dans le panneau d'édition, et
+   non une colonne par module dans la liste. À onze modules, la matrice
+   réclamait onze colonnes de 70px dont les en-têtes se chevauchaient hors
+   plein écran — pour deux comptes qu'on règle deux fois l'an. Ici le nom du
+   module est en toutes lettres, le niveau aussi, et le douzième module ne
+   changera rien. */
+.perm-liste td:first-child { width: 100%; }
+.perm-toggle { display: inline-flex; border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; }
+.perm-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    height: 30px; padding: 0 11px; white-space: nowrap;
+    background: var(--card); border: none; border-right: 1px solid var(--line); border-radius: 0;
+    color: var(--muted); cursor: pointer; font-size: var(--fs-small); font-weight: 500; box-shadow: none;
+}
+.perm-btn:last-of-type { border-right: none; }
+.perm-btn .ico { width: 13px; height: 13px; }
+.perm-btn:hover { background: var(--surface); }
+.perm-btn.on { background: var(--highlight-tint); color: var(--highlight-d); font-weight: 700; }
+/* Le raccourci « tout mettre sur », dans l'en-tête de la section : il pose les
+   onze lignes d'un coup. margin-left:auto le pousse à droite, au-dessus de la
+   colonne de boutons qu'il commande — .section-head est une rangée souple sans
+   justify-content, et ce décalage-ci ne regarde qu'elle. */
+.perm-tous { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+/* Le panneau d'édition d'un compte occupe toute la rangée : ses champs
+   d'identité se rangent en grille, le reste coule normalement. */
+.compte-edit-cell { background: var(--surface); vertical-align: top; padding: 18px var(--card-pad) 22px; }
+.compte-edit-cell .compte-edit-identite {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+    gap: 0 18px; align-items: end;
+}
+/* Le rattachement à une personne est un <div> et non un <label> — son champ
+   cherchable porte une liste déroulante, qu'un <label> englobant refermerait au
+   premier clic. Il doit donc redire ici ce que le <label> obtient plus bas,
+   sans quoi la troisième colonne portait un intitulé d'une autre taille et son
+   champ ne s'alignait pas sur les deux autres. */
+.compte-edit-cell .compte-edit-personne { min-width: 0; }
+
+/* (Ici vivaient les deux rangées d'onglets de la page Paramètres — les
+   groupes, puis les sections du groupe ouvert. Le rail porte les trois
+   niveaux depuis la 3.2 ; voir docs/UI.md § 9 ter.) */
+
+/* Vue carte des lieux (?p=lieux&vue=carte), voir views/_lieux_carte.php. Bascule
+   Liste/Carte : .seg-picker (icon_picker(), lib/helpers.php) en liens de
+   navigation plutôt qu'en radios de formulaire — voir views/lieux_liste.php.
+   La carte occupe tout l'espace disponible à droite de la sidebar (position:
+   fixed, hors du flux normal — .content n'a donc plus besoin de hauteur en
+   dessous du bandeau) ; le bandeau d'en-tête flotte par-dessus, fond
+   semi-transparent plutôt que le fond plein habituel — fond factorisé dans
+   .blur-glass, appliqué à .page-head-band partout (pas seulement en mode
+   carte) depuis l'ajout de l'image de fond personnalisable (Apparence), et
+   réutilisé par l'en-tête flottant de la carte « Localisation »
+   (?p=evenement, cf. plus bas). */
+.page-head-band.carte-header,
+.blur-glass { background: var(--glass); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.carte-lieux-wrap { position: fixed; top: 0; right: 0; bottom: 0; left: var(--rail-width); z-index: 1; }
+.carte-lieux { width: 100%; height: 100%; }
+.carte-banner {
+    position: absolute; bottom: 16px; right: 16px; z-index: 1001; max-width: 340px;
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-sm);
+    box-shadow: var(--shadow); padding: 14px 16px;
+}
+.carte-popup-liste { margin: 4px 0 0; padding-left: 18px; max-height: 180px; overflow-y: auto; }
+.carte-popup-liste li { margin-bottom: 2px; }
+/* Pastilles de carte (?p=structures/évenements&vue=carte) : même couleur pour
+   tous les points, légèrement plus grandes quand le point regroupe plusieurs
+   fiches (même ville, voir carte_points_grouper()) pour repérer les villes
+   denses sans ouvrir chaque popup. */
+.carte-pin {
+    background: var(--highlight); border: 2px solid #fff; border-radius: 50%;
+    box-shadow: 0 1px 4px rgb(0 0 0 / .35);
+}
+@media (max-width: 800px) {
+    .carte-lieux-wrap { left: 0; }
+}
+
+/* Mini-carte de localisation (?p=lieu, ?p=structure, ?p=evenement), voir
+   views/_mini_carte.php — un seul marqueur, pas de fond plein écran. */
+.mini-carte { width: 100%; height: 200px; border-radius: var(--radius-sm); border: 1px solid var(--line); }
+
+/* Carte sans marge interne : son contenu (ex. mini-carte plein cadre) occupe
+   tout l'espace jusqu'aux coins arrondis — carte « Localisation » de
+   ?p=evenement, seul usage actuel. .card-disp y reste un simple bloc de
+   bascule (voir .card-editable plus bas) : c'est .loc-map-bg, positionné en
+   absolu par rapport à .card-flush, qui remplit réellement la carte — d'où le
+   z-index explicite sur .loc-header pour rester au-dessus malgré l'ordre DOM. */
+/* Sélecteur à deux classes (pas juste .card-flush) : garantit la priorité sur
+   le padding: 26px de .card ci-dessous, quel que soit l'ordre des règles dans
+   la feuille de style (même spécificité en un seul sélecteur de classe —
+   .card-flush seul serait écrasé par .card, déclaré plus loin). */
+.card.card-flush { padding: 0; overflow: hidden; position: relative; }
+/* Le formulaire reprend le retrait d'une carte ordinaire — 26px de tous les
+   côtés : le bandeau d'en-tête se lit comme le bord haut de la carte, et le
+   premier champ doit s'en écarter d'autant que de ses bords. Les 96px
+   d'autrefois dégageaient un en-tête posé en absolu au-dessus de la carte ; il
+   est depuis dans le flux, et ils ne laissaient plus qu'un grand vide. */
+.card-flush .card-edit { padding: 26px; }
+.loc-header { position: relative; z-index: 1; display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin: 0; padding: 26px; }
+.loc-header strong { font-size: var(--fs-huge); }
+
+/* Carte « Informations » (?p=evenement) : sans titre de cadre, la date et le
+   projet en tiennent lieu visuellement. Le crayon/enregistrer/annuler
+   flottent en superposition (haut droite) plutôt que dans une ligne d'en-tête
+   dédiée — sinon cette ligne, même sans titre, laisse un vide entre le haut
+   de la carte et la date. */
+.card-editable { position: relative; }
+/* Transition douce à l'ouverture d'une carte en édition (crayon cliqué) — un
+   <form>/<div> qui passe de [hidden] à visible entre dans l'arbre de rendu,
+   ce qui redéclenche l'animation à chaque bascule (pas besoin de JS). */
+.card-editable .card-edit:not([hidden]) { animation: card-edit-in .18s ease-out; }
+@keyframes card-edit-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+.card-actions-overlay { position: absolute; top: 26px; right: 26px; z-index: 1; }
+.info-date, .info-projet { padding-right: 110px; } /* dégage les boutons flottants (.card-actions-overlay) même pour un long nom de projet */
+/* Même traitement visuel que le titre de page (h1, .page-head h1 — dégradé
+   de couleur en clip-text, gras, tracking resserré) : la date et le nom de
+   ville (carte Localisation, .loc-header strong) en tiennent lieu depuis que
+   le titre de page a été retiré en mode édition. */
+.info-date, .loc-header strong {
+    background: linear-gradient(150deg, var(--brand), var(--brand-2));
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 800;
+    letter-spacing: -.02em;
+    line-height: 1.2;
+}
+.info-date { font-size: var(--fs-huge); }
+/* L'horaire suit la date dans la même ligne, d'un corps plus discret : c'est la
+   même information — quand — mais la date reste ce qu'on lit en premier. */
+/* L'horaire, sous la date : son propre interligne, serré, et non celui de la
+   date — hérité, il aurait creusé un blanc de la hauteur du grand corps. */
+.info-heure {
+    font-size: var(--fs-basic); color: var(--muted); font-variant-numeric: tabular-nums;
+    line-height: 1.3; margin-top: 2px; padding-right: 110px;
+}
+.info-projet { font-size: var(--fs-large); font-weight: 700; color: var(--ink); margin-top: 2px; }
+.kv-table { width: 100%; border-collapse: collapse; margin-top: 18px; }
+.kv-table th { text-align: left; font-weight: 500; color: var(--muted); font-size: var(--fs-basic); padding: 11px 14px 11px 0; white-space: nowrap; vertical-align: top; width: 1%; }
+.kv-table td { padding: 11px 0; border-top: 1px solid var(--line); font-size: var(--fs-basic); line-height: 1.5; }
+.kv-table tr:first-child th, .kv-table tr:first-child td { border-top: none; }
+
+/* ── Mini-cartes : une liste d'ENREGISTREMENTS dans une carte ──────────────
+   Un tableau clé-valeur dit les champs d'UN enregistrement ; quand une carte
+   liste plusieurs objets — les rattachements d'une personne : ses structures,
+   son emploi, son compte, ses pièces —, chacun est un objet qu'on va ouvrir,
+   pas la valeur d'un libellé. Même idiome que la liste des structures en
+   cartes : le nom en grand, son détail en dessous, les pastilles à droite,
+   des filets d'un bord à l'autre. Les deux se reconnaissent ainsi d'un écran
+   à l'autre.
+
+   ⚠️ Ce n'est PAS .liste-cartes, et ce n'est pas un oubli : cette mécanique-là
+   est une requête de conteneur (@container liste, 700px) qui retourne un
+   TABLEAU en cartes, avec sa case à cocher, son icône de statut et sa colonne
+   de dates hors flux. Ici il n'y a pas de tableau à retourner, et la forme
+   carte est voulue à TOUTES les largeurs — un conteneur de 1100px dans une
+   fiche n'aurait jamais déclenché la bascule. */
+.mini-cartes { list-style: none; margin: 10px 0 0; padding: 0; }
+/* À fleur de carte, comme un tableau (docs/UI.md § 9) : les filets courent
+   d'un bord à l'autre, et c'est la ligne qui rend la gouttière. */
+.mini-cartes > li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "nom cote" "detail cote";
+    column-gap: 12px;
+    align-items: start;
+    margin: 0 calc(-1 * var(--card-pad));
+    padding: 10px var(--card-pad);
+    border-top: 1px solid var(--line);
+}
+.mini-cartes > li.inactif { opacity: .62; }
+.mini-carte-nom {
+    grid-area: nom; min-width: 0;
+    font-size: var(--fs-large); font-weight: 700; line-height: 1.3;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.mini-carte-detail {
+    grid-area: detail; min-width: 0;
+    font-size: var(--fs-small); line-height: 1.45; color: var(--muted);
+}
+/* Les pastilles et le montant, calés à droite et sur la ligne du nom : c'est
+   la place qu'ils tiennent déjà dans la liste des structures. */
+.mini-carte-cote {
+    grid-area: cote; display: flex; flex-wrap: wrap; justify-content: flex-end;
+    align-items: center; gap: 4px 6px; font-size: var(--fs-basic);
+}
+/* « voir tout » d'un texte tronqué (> 200 caractères, ex. Remarques) — voir
+   le délégué click générique .voir-tout-btn dans assets/app.js. */
+/* Un bouton qui se lit comme un lien : .lien-bouton est le nom général,
+   .voir-tout-btn le premier usage, resté sous son nom pour ce que le délégué de
+   assets/app.js cible. Une seule déclaration, pas deux styles à tenir. */
+.voir-tout-btn, .lien-bouton { background: none; border: none; padding: 0; margin-left: 4px; color: var(--highlight); text-decoration: underline; cursor: pointer; font-size: inherit; font-weight: 600; }
+.voir-tout-btn:hover, .lien-bouton:hover { color: var(--highlight-d); }
+/* Dans la fenêtre « Contacter », il vit sous le destinataire : discret, au corps
+   de la ligne qu'il prolonge — au corps courant et en gras, il se lisait comme
+   un titre au milieu du formulaire. */
+.contacter-copies-lien { margin: 2px 0 0; font-size: var(--fs-small); font-weight: 500; }
+/* Pas de règle de position pour le message d'enregistrement de ce cadre : il
+   porte la classe .flash comme tous les autres de l'application et reste donc
+   une pastille flottante en haut de la page. Une règle le ramenait ici en flux
+   (position:relative) de peur que la carte géographique, en absolu plein cadre,
+   ne le recouvre — mais une pastille en position:fixed, à z-index 200, passe
+   au-dessus de tout, et le message se retrouvait enfermé dans le cadre de la
+   ville au lieu de s'afficher comme partout ailleurs. */
+/* .loc-map-bg enveloppe _mini_carte.php telle quelle (partagée avec ?p=lieu/
+   ?p=structure, non modifiée) : sa carte, quand elle existe, remplit tout le
+   cadre en absolu (sous l'en-tête flottant) ; sinon (ville pas encore
+   géocodée/absente) son message + bouton restent en flux normal, avec assez
+   de marge en haut pour ne pas passer sous l'en-tête. */
+.loc-map-bg:has(.mini-carte) { position: absolute; inset: 0; z-index: 0; }
+.loc-map-bg .mini-carte { width: 100%; height: 100%; border: 0; border-radius: 0; }
+.loc-map-bg:not(:has(.mini-carte)) { padding: 96px 16px 20px; }
+/* La carte, en absolu (inset:0), ne contribue à aucune hauteur pour .card-flush
+   — sans ce plancher, la carte visible se limiterait à la hauteur de
+   .loc-header (la carte Leaflet serait présente dans le DOM mais invisible,
+   hauteur nulle). */
+.card.card-flush:has(.loc-map-bg .mini-carte) { min-height: 340px; }
+
+/* Icônes de valeur (statut/audience en lecture, carte « Informations » de
+   ?p=evenement) : mêmes couleurs que les usages existants ailleurs dans
+   l'appli (--amber = « à faire »/en attente, --ok = confirmé/positif). */
+.ico-amber { color: var(--amber); }
+.ico-muted { color: var(--muted); }
+.ico-ok { color: var(--ok); }
+.ico-danger { color: var(--danger); }
+.ico-pink { color: var(--rose); }
+.ico-label { display: inline-flex; align-items: center; gap: 6px; }
+
+/* Icône de statut de ?p=structures, en masque plutôt qu'en <svg> dans chaque
+   ligne. Le tracé est choisi par le data-statut que la ligne porte déjà (il y
+   sert aussi à colorer la case à cocher en mini-cartes) : la cellule n'a donc
+   plus qu'un <span> vide, avec son title, et la ligne perd deux nœuds.
+   La couleur vient de currentColor, donc des classes .ico-ok/.ico-danger/…
+   posées sur ce même <span> — thème sombre compris, comme avant. */
+/* Sélecteur ancré sur tr[data-statut] : la classe .col-statut sert aussi à
+   l'EN-TÊTE « Statut » de ?p=evenements, dont le <span> se voyait alors
+   coiffé de ce bloc de 16px — un carré gris plein, faute de masque à lui
+   appliquer. Seule une ligne portant un statut mérite l'icône. */
+tr[data-statut] .col-statut > span::before {
+    content: ""; display: inline-block; width: 16px; height: 16px; vertical-align: middle;
+    background-color: currentColor;
+    -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+    -webkit-mask-size: contain; mask-size: contain;
+    -webkit-mask-position: center; mask-position: center;
+}
+tr[data-statut="actif"] .col-statut > span::before { -webkit-mask-image: var(--ico-m-actif); mask-image: var(--ico-m-actif); }
+tr[data-statut="contact_privilegie"] .col-statut > span::before { -webkit-mask-image: var(--ico-m-privilegie); mask-image: var(--ico-m-privilegie); }
+tr[data-statut="a_verifier"] .col-statut > span::before { -webkit-mask-image: var(--ico-m-a-verifier); mask-image: var(--ico-m-a-verifier); }
+tr[data-statut="ne_pas_contacter"] .col-statut > span::before { -webkit-mask-image: var(--ico-m-ne-pas-contacter); mask-image: var(--ico-m-ne-pas-contacter); }
+tr[data-statut="inactif"] .col-statut > span::before { -webkit-mask-image: var(--ico-m-inactif); mask-image: var(--ico-m-inactif); }
+/* Fond très légèrement teinté selon le statut de l'événement (carte
+   Informations, ?p=evenement) — mêmes couleurs que evenement_statut_icone()/
+   les 3 classes .ico-*, à un pourcentage assez faible pour rester discret sur
+   une carte entière plutôt que sur un simple badge. */
+/* Sélecteur à deux classes : même piège que .card-flush plus haut (.card,
+   déclaré plus loin, écraserait sinon ce background avec le même var(--card)
+   à spécificité égale). */
+.card.card-statut-confirme { background: linear-gradient(color-mix(in srgb, var(--ok) 10%, var(--card)), var(--card)); }
+.card.card-statut-annule { background: linear-gradient(color-mix(in srgb, var(--muted) 10%, var(--card)), var(--card)); }
+.card.card-statut-option { background: linear-gradient(color-mix(in srgb, var(--amber) 10%, var(--card)), var(--card)); }
+
+/* Carte « Lieux liés » (?p=structure) : même dégradé teinté que les cartes
+   statut ci-dessus, mais légèrement transparent + flouté (esprit .blur-glass)
+   plutôt qu'opaque — mise en évidence discrète sans figer le fond de la carte. */
+.card.card-lieux-liees {
+    background: linear-gradient(160deg, color-mix(in srgb, var(--highlight) 25%, var(--card)), color-mix(in srgb, var(--card) 50%, transparent));
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+/* Barre mobile + burger (cachés sur bureau). .mobile-bar reste sur fond
+   sombre (--brand) — texte/burger blancs, inchangé ; .side-close vit lui
+   dans le tiroir (.sidebar), passé clair — couleurs distinctes, d'où deux
+   règles plutôt qu'une seule .burger, .side-close comme avant. */
+.mobile-bar { display: none; }
+.burger { background: none; border: none; box-shadow: none; padding: 6px; cursor: pointer; color: #fff; }
+.burger:hover { background: rgba(255,255,255,.12); }
+.side-close { background: none; border: none; box-shadow: none; padding: 6px; cursor: pointer; color: var(--ink); }
+.side-close:hover { background: var(--line); }
+.burger .ico, .side-close .ico { width: 24px; height: 24px; }
+.side-close { display: none; }
+.scrim { display: none; }
+
+.side-avatar-wrap { margin-top: auto; padding: 12px 8px 0; border-top: 1px solid var(--line); position: relative; }
+/* Le pied du rail tient sur UNE ligne : le crédit à gauche, la pastille du
+   compte à droite, poussés aux deux bords par space-between.
+   `margin: 0` sur .side-avatar (au lieu du `margin: 0 auto` d'avant, quand
+   elle était seule et centrée) : en contexte flex une marge automatique
+   absorbe l'espace libre et déciderait de l'écart à la place de la rangée. */
+.side-bottom { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.side-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--surface); border: none; cursor: pointer; color: var(--ink); font-size: var(--fs-basic); font-weight: 700; letter-spacing: .03em; display: flex; align-items: center; justify-content: center; margin: 0; transition: background .15s; }
+.side-avatar:hover { background: var(--line); }
+.side-avatar-menu { position: absolute; bottom: calc(100% + 8px); left: 0; right: 0; background: var(--card); border-radius: var(--radius); box-shadow: 0 8px 28px rgba(0,0,0,.18); overflow: hidden; z-index: 300; }
+.side-avatar-id { padding: 12px 14px 10px; border-bottom: 1px solid var(--line); }
+.side-avatar-id strong { display: block; font-size: var(--fs-basic); color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.side-avatar-id span { font-size: var(--fs-small); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.side-avatar-menu a { display: block; padding: 9px 14px; font-size: var(--fs-basic); font-weight: 500; color: var(--ink); text-decoration: none; }
+.side-avatar-menu a:hover, .side-avatar-menu a.on { background: var(--bg); color: var(--primary); }
+/* Règle de base pensée pour le fond sombre de la page de connexion
+   (.auth-wrap, seul autre endroit qui réutilise .side-powered) — dans le
+   rail, devenu clair, .sidebar .side-powered ci-dessous la surcharge. */
+.side-powered { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 6px; margin-top: 10px; font-size: var(--fs-tiny); color: rgba(255,255,255,.4); }
+/* Dans la rangée du pied, le crédit ne porte plus ni marge ni retour à la
+   ligne : la marge haute appartenait à l'empilement d'avant, et un crédit qui
+   passe à la ligne ferait grandir la rangée sous la pastille. */
+.sidebar .side-powered { margin-top: 0; flex-wrap: nowrap; min-width: 0; }
+.side-powered:hover { color: rgba(255,255,255,.7); text-decoration: none; }
+.side-powered-logo { height: 12px; width: auto; opacity: .7; }
+.sidebar .side-powered { color: var(--muted); }
+.sidebar .side-powered:hover { color: var(--ink); }
+.side-version { opacity: .7; }
+
+.content { flex: 1; min-width: 0; padding: 40px var(--content-pad); max-width: 1120px; }
+

@@ -75,7 +75,7 @@ const STRUCTURE_STATUTS_ICONES = [
     'inactif'             => 'circle-dashed',
 ];
 
-// Classe CSS de couleur de l'icône (assets/app.css) — utilisée par la colonne
+// Classe CSS de couleur de l'icône (assets/css/) — utilisée par la colonne
 // « Statut » de ?p=structures (icône seule, voir views/structures.php).
 const STRUCTURE_STATUTS_CLASSES_ICONE = [
     'contact_privilegie' => 'ico-pink',

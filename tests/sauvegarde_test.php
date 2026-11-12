@@ -8,6 +8,9 @@
 // fabriquent une arborescence de fichiers déposés, la sauvegardent, et
 // rouvrent l'archive pour vérifier qu'elle rend exactement ce qui y est entré.
 
+// Une archive chiffrée emporte la clé des secrets (lib/secrets.php), rangée à
+// côté de la base : un emplacement jetable, nettoyé en fin de test.
+define('APP_DB_PATH', sys_get_temp_dir() . '/lasso_sauvegarde_' . bin2hex(random_bytes(6)) . '.sqlite');
 require_once __DIR__ . '/../lib/sauvegarde.php';
 
 $tests = 0;
@@ -103,6 +106,32 @@ check('la base extraite porte les données', 'sauvegarde', (string) $relu->query
 unset($relu);
 unlink($chemin);
 
+echo "\n4 bis) Archive ZIP protégée par une phrase secrète\n";
+if (!sauvegarde_chiffrement_possible('zip')) {
+    echo "  (chiffrement AES indisponible sur ce serveur, ignoré)\n";
+} else {
+    [$cheminC, ] = sauvegarde_construire('essai', '9.9.9', 'zip', 'une phrase assez longue');
+    $zc = new ZipArchive();
+    $zc->open($cheminC);
+    check('la base est chiffrée', true, (int) $zc->statName('base.sqlite')['encryption_method'] !== 0);
+    check('la note reste lisible', 0, (int) $zc->statName('SAUVEGARDE.txt')['encryption_method']);
+    check('la note dit qu\'il faut la phrase', true, str_contains((string) $zc->getFromName('SAUVEGARDE.txt'), 'phrase secrète'));
+    check('sans la phrase, la base ne se lit pas', false, $zc->getFromName('base.sqlite'));
+    $zc->setPassword('une phrase assez longue');
+    $extraitC = $racine . '/extrait-chiffre.sqlite';
+    file_put_contents($extraitC, (string) $zc->getFromName('base.sqlite'));
+    $zc->close();
+    check('avec la phrase, la base est intègre', 'ok', (string) (new PDO('sqlite:' . $extraitC))->query('PRAGMA integrity_check')->fetchColumn());
+    unlink($cheminC);
+}
+$refus = '';
+try {
+    sauvegarde_construire('essai', '9.9.9', 'tar.gz', 'une phrase assez longue');
+} catch (RuntimeException $e) {
+    $refus = $e->getMessage();
+}
+check('une phrase sur un format qui ne sait pas chiffrer est refusée', true, $refus !== '');
+
 echo "\n5) Archive TAR.GZ (hébergement sans l'extension zip)\n";
 [$cheminTar, $nomTar] = sauvegarde_construire('essai', '9.9.9', 'tar.gz');
 check('le nom porte le format', true, str_ends_with($nomTar, '.tar.gz'));
@@ -166,7 +195,7 @@ foreach (array_intersect($avant, $apres) as $t) {
 }
 check('chaque table rend exactement ses lignes', [], $ecarts);
 
-// Nommément, les tables des modules que la description de ?p=export ne citait
+// Nommément, les tables des modules que la description de la sauvegarde ne citait
 // pas — c'est ce qui avait fait douter, et ce doute a maintenant une réponse
 // qui se vérifie toute seule.
 $vides = [];
@@ -194,4 +223,5 @@ foreach ($it as $f) {
 @rmdir($racine);
 
 echo "\n$tests tests, $fails échec(s)\n";
+@unlink(APP_DB_PATH . '.cle.php');
 exit($fails > 0 ? 1 : 0);

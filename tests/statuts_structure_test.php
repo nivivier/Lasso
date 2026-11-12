@@ -41,7 +41,7 @@ function check(string $label, $attendu, $obtenu): void
     printf("  FAIL  %s\n        attendu %s\n        obtenu  %s\n", $label, var_export($attendu, true), var_export($obtenu, true));
 }
 
-$css = (string) file_get_contents($racine . '/assets/app.css');
+$css = css_source();
 
 // Les statuts qu'une famille de règles CSS déclare réellement, dans l'ordre de
 // référence — c'est la comparaison de DEUX ensembles, pas la vérification

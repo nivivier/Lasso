@@ -1,0 +1,176 @@
+/* ============================================================================
+   Pièces comptables (?p=pieces, ?p=piece, ?p=piece_form)
+   ========================================================================= */
+/* L'icône du type, au début de la ligne : elle dit d'un coup d'œil ce qu'on
+   regarde — une facture, un ticket, une quittance — là où le mot aurait pris
+   une colonne. Au gris du texte secondaire : elle accompagne l'intitulé, elle
+   ne le concurrence pas. */
+.piece-type, .piece-attache { color: var(--muted); display: inline-flex; vertical-align: -2px; }
+.piece-type .ico, .piece-attache .ico { width: 15px; height: 15px; }
+.piece-attache { margin-left: 5px; }
+
+/* La colonne « Pièce » de ?p=compta_ecritures : une colonne d'ICÔNES, serrée
+   sur son contenu. C'est l'ABSENCE qu'on y cherche — une ligne sans
+   justificatif —, donc rien ne s'y affiche quand il manque : l'œil descend la
+   colonne et s'arrête sur les trous. L'inverse aurait fait clignoter les
+   lignes en ordre, qui sont la majorité. */
+/* Une colonne d'icônes n'a pas besoin du retrait d'une colonne de texte : son
+   contenu fait 16px et son intitulé cinq lettres. Serrée, parce que la place
+   qu'elle prend est enlevée au libellé d'une écriture — et parce qu'au-delà de
+   1280px de fenêtre le tableau cesse de défiler horizontalement (voir la règle
+   de l'en-tête collant) : chaque colonne de plus rapproche du moment où il
+   déborde. */
+.col-piece { width: 1%; white-space: nowrap; text-align: center; padding-left: 6px; padding-right: 6px; }
+.col-piece .col-th { gap: 2px; }
+.piece-etat { display: inline-flex; color: var(--muted); }
+.piece-etat .ico { width: 16px; height: 16px; }
+/* Le trombone d'une pièce comptable prend la couleur de MISE EN ÉVIDENCE —
+   celle que l'employeur règle dans Apparence, et qui ne suit pas la couleur du
+   module : elle dit « regarde ici » de la même façon sur tout l'écran.
+   Pourquoi celui-là et pas les deux autres icônes de la colonne : la fiche de
+   salaire et la facture émise sont produites PAR l'application, elles existent
+   forcément. Le justificatif, lui, est déposé à la main — c'est le seul dont
+   la présence est une nouvelle, et le seul dont l'absence est une tâche. Dans
+   un écran où l'on cherche ce qui manque, c'est ce contraste qui sert. */
+.piece-etat-piece { color: var(--highlight); }
+/* L'icône mène à la preuve quand il y en a une (ecriture_piece_href()). Elle
+   reste discrète au repos — la colonne doit se lire d'un coup d'œil, pas
+   clignoter en bleu sur chaque ligne justifiée — et se colore au survol, comme
+   l'en-tête triable d'à côté. */
+a.piece-etat:hover { color: var(--primary); }
+a.piece-etat:focus-visible { color: var(--primary); outline: 2px solid var(--primary); outline-offset: 2px; border-radius: var(--radius-sm); }
+/* Une dispense n'est pas un justificatif : le tiret se tient en retrait des
+   trois icônes qui, elles, désignent une preuve. */
+.piece-etat-dispensee { opacity: .45; }
+/* Le bouton de dépôt est un .row-edit-btn ordinaire : il ne paraît qu'au
+   survol de sa cellule, comme les crayons voisins — une colonne pleine de
+   trombones gris aurait dit « il manque partout » là où elle doit dire « il
+   manque ICI ». La règle de survol est celle de .row-edit-btn, élargie à
+   .piece-cell plutôt que redite ici. */
+
+/* « Pièce attendue », dans l'édition d'une ligne du plan comptable : sur une
+   seule ligne, sans quoi la case et son libellé se coupent en deux au milieu
+   d'un formulaire déjà horizontal. */
+.plan-piece { white-space: nowrap; flex: 0 0 auto; }
+
+/* Le bénéficiaire d'une quittance : un champ qui n'existe que pour UN type de
+   pièce, et qui occupe toute la largeur quand il paraît — c'est un nom et une
+   adresse, pas une valeur courte à ranger dans une grille à deux colonnes. */
+.piece-champ-quittance > label { display: block; }
+
+/* Le fichier joint, sur la fiche : un trombone, le nom d'origine, le poids. */
+.piece-fichier { display: flex; align-items: center; gap: 8px; }
+.piece-fichier .ico { width: 16px; height: 16px; color: var(--muted); }
+
+/* L'aperçu du justificatif sur ?p=piece. Assez grand pour LIRE un montant et
+   une date sans ouvrir le fichier ailleurs : c'est tout l'objet de la carte.
+   La hauteur suit la fenêtre (vh) et non une valeur fixe — un portable 13
+   pouces et un écran de bureau n'ont pas la même idée d'« assez grand » — avec
+   un plafond, au-delà duquel une facture A4 serait plus haute que large et ne
+   tiendrait plus d'un regard. */
+.piece-apercu { display: block; width: 100%; height: min(74vh, 880px); border-radius: var(--radius-sm); }
+/* Le damier : un scan a souvent le fond blanc, et un PNG détouré n'en a aucun.
+   Sans cette surface, l'un se confondait avec la carte et l'autre laissait voir
+   au travers. Elle sert aussi de repère quand l'image ne remplit pas le cadre. */
+.piece-apercu-image {
+    display: flex; align-items: center; justify-content: center;
+    background: var(--surface); border: 1px solid var(--line); padding: 10px;
+}
+/* contain : l'image entière, jamais recadrée — sur un justificatif, ce qu'on
+   rogne est justement le total ou la date, en bas de page. */
+.piece-apercu-image img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.piece-apercu-cadre { border: 1px solid var(--line); background: var(--surface); }
+/* Sur un téléphone, 74 % de la hauteur ne laisse plus voir ce qui suit : on
+   descend à une demi-fenêtre, et « Agrandir » prend le relais pour la lecture. */
+@media (max-width: 760px) {
+    .piece-apercu { height: 52vh; }
+}
+
+/* Les deux portes du dépôt — un fichier, ou l'appareil photo — côte à côte sur
+   un écran large, l'une sous l'autre sur un téléphone, où c'est la seconde
+   qu'on vise. */
+.piece-depot { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+/* L'intitulé d'un champ qui n'est pas un <label> autour d'un <input> : le
+   bouton de prise de vue en a besoin, et il a la même allure que les autres. */
+.lbl-champ { display: block; margin-bottom: 6px; font-size: var(--fs-basic); font-weight: 500; color: var(--muted); }
+
+/* La prise de vue, sur toute la largeur sous les deux portes : un flux vidéo
+   se regarde, il ne se range pas dans une colonne. Plafonné en hauteur — une
+   caméra d'ordinateur rend du 16:9 qui, à pleine largeur, pousserait le reste
+   du formulaire hors de l'écran. */
+.piece-camera { grid-column: 1 / -1; }
+.piece-camera video {
+    display: block; width: 100%; max-height: 42vh;
+    background: var(--ink); border-radius: var(--radius-sm); object-fit: contain;
+}
+.piece-camera-actions { display: flex; gap: 10px; margin-top: 10px; }
+.piece-camera-err { grid-column: 1 / -1; margin: 0; }
+
+.piece-photo-apercu { grid-column: 1 / -1; display: flex; align-items: flex-start; gap: 12px; }
+.piece-photo-apercu img {
+    max-width: 180px; max-height: 240px;
+    border: 1px solid var(--line); border-radius: var(--radius-sm);
+}
+@media (max-width: 800px) {
+    .piece-depot { grid-template-columns: 1fr; }
+}
+
+/* Le bénéficiaire : un nom, pas un paragraphe. Plafonné plutôt que fixé à la
+   moitié (.champ-court), parce qu'une moitié de carte sur un téléphone donne
+   un champ de 155px où un nom cherché ne tient pas — ici il prend toute la
+   largeur disponible jusqu'à ce plafond. */
+.piece-benef { max-width: 340px; }
+
+/* Les quatre champs du dépôt sur une rangée (.champs-rangee). Les deux premiers
+   s'étirent, les deux derniers ont une longueur connue : un montant tient en
+   « 12'345.60 CHF », une date en « jj.mm.aaaa » plus son calendrier. Leur
+   laisser une colonne entière, c'était de la place prise à l'intitulé, le seul
+   des quatre dont la longueur soit libre.
+   Base des flexibles tenue basse (160 + 180) pour que les quatre tiennent sur
+   une ligne dans une carte de 700px : mesuré, 160+180+145+150 et trois écarts
+   de 12 = 671. */
+.champs-rangee > .pf-tiers   { flex: 2 1 160px; }
+.champs-rangee > .pf-libelle { flex: 3 1 180px; }
+.champs-rangee > .pf-montant { flex: 0 0 145px; }
+.champs-rangee > .pf-sens    { flex: 1 1 190px; }
+.champs-rangee > .pf-date    { flex: 0 0 150px; }
+/* .pct-input est plafonné à 150px pour son usage d'origine (un taux dans un
+   tableau) : ici c'est la cellule qui donne la largeur, et le plafond
+   l'empêcherait de la remplir. */
+.champs-rangee > .pf-montant .pct-input { max-width: none; }
+
+/* « Plus de détails » — le repli d'un formulaire dont la plupart des champs ne
+   servent qu'une fois sur dix (le dépôt d'une pièce : échéance, bénéficiaire,
+   catégorie, paiement, remarques). Les champs restent DANS le formulaire et
+   s'envoient repliés : un <details> cache à l'œil, pas au POST.
+   Nommé .form-plus et non .piece-plus : le prochain formulaire qui a trop de
+   champs rares ouvre le même repli plutôt qu'il n'en dessine un second
+   (docs/UI.md § 10). */
+.form-plus > summary {
+    display: inline-flex; align-items: center; gap: 7px; width: max-content;
+    padding: 4px 0; cursor: pointer; list-style: none;
+    font-size: var(--fs-small); font-weight: 600; color: var(--highlight);
+}
+.form-plus > summary::-webkit-details-marker { display: none; }
+/* Le chevron dessiné en bordures plutôt qu'en icône : il tourne, et une icône
+   inline ne tourne pas sans conteneur à elle. */
+.form-plus > summary::before {
+    content: ''; width: 0; height: 0; flex: 0 0 auto;
+    border-left: 5px solid currentColor;
+    border-top: 4px solid transparent; border-bottom: 4px solid transparent;
+    transition: transform .15s ease;
+}
+.form-plus[open] > summary::before { transform: rotate(90deg); }
+.form-plus > summary:hover { color: var(--highlight-d); }
+.form-plus > summary:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; border-radius: var(--radius-sm); }
+/* Les champs repliés se détachent du formulaire au-dessus d'eux : sans ce
+   filet, l'ouverture du repli ne se lit pas comme une section mais comme des
+   champs qui apparaissent au milieu de rien. */
+.form-plus-corps { margin-top: 14px; padding-top: 18px; border-top: 1px solid var(--line); }
+/* Le premier intitulé du repli ouvre la section : il n'a rien à écarter de
+   plus que le filet juste au-dessus. */
+.form-plus-corps > .lbl-champ:first-child { margin-top: 0; }
+/* La case « hors des comptes suivis » s'aligne sur le champ date d'à côté, pas
+   sur le haut de sa cellule : les deux disent la même chose du paiement. */
+.piece-hors-compte { align-self: end; padding-bottom: 9px; }
+

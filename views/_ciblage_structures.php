@@ -27,7 +27,7 @@
       // pour la sortir de la sélection. ?>
 <?php // Pas de cadre autour des filtres : la zone du module en est déjà un, et
       // .filters posé nu s'en dessinerait un second (voir .toolbar > .filters,
-      // assets/app.css). Même barre que ?p=structures. ?>
+      // assets/css/). Même barre que ?p=structures. ?>
 <h2 class="mt-22"><?= e($cibTitre) ?> <?= info_tip($cibAide) ?></h2>
 <div class="toolbar">
     <div class="filters">

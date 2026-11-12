@@ -27,6 +27,7 @@ require_once __DIR__ . '/lib/feuille_route.php';
 require_once __DIR__ . '/lib/geocodage.php';
 require_once __DIR__ . '/lib/dev.php';
 require_once __DIR__ . '/lib/routes_incoherences.php';
+require_once __DIR__ . '/lib/journal.php';
 
 // Redirection HTTPS forcée (avant tout traitement / sortie).
 if (FORCE_HTTPS && !is_https() && PHP_SAPI !== 'cli') {
@@ -43,14 +44,38 @@ $debug = (APP_ENV === 'dev');
 error_reporting(E_ALL);
 ini_set('display_errors', $debug ? '1' : '0');
 ini_set('log_errors', '1');
-if (!$debug) {
-    set_exception_handler(function (Throwable $e) {
-        error_log('[app] ' . $e);
-        http_response_code(500);
-        echo '<!doctype html><meta charset="utf-8"><p style="font-family:sans-serif;padding:2rem">'
-            . 'Une erreur est survenue. Réessayez ou contactez l\'administrateur.</p>';
-    });
-}
+// Les erreurs relevées aussi dans la base, montrées sur ?p=journal : en
+// production, le journal de PHP d'un hébergement mutualisé, personne ne le lit.
+journal_erreurs_armer();
+// Le verrou de clôture d'exercice est tenu par la base (lib/compta.php §
+// Clôture d'exercice) : une écriture d'un exercice clos qu'on tente de
+// modifier lève une exception, quelle que soit la route. Elle n'est pas une
+// panne — on revient d'où l'on vient avec un message, en dev comme en prod.
+set_exception_handler(function (Throwable $e) use ($debug) {
+    if (str_contains($e->getMessage(), 'LASSO_EXERCICE_CLOS')) {
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            $_SESSION['flash_err'] = "Cet exercice est clôturé : ses écritures ne se modifient plus. "
+                . "Un administrateur peut le rouvrir depuis les comptes annuels.";
+        }
+        $retour = (string) ($_SERVER['HTTP_REFERER'] ?? '');
+        $hote = (string) ($_SERVER['HTTP_HOST'] ?? '');
+        // Retour sur la page d'origine, mais seulement sur ce site.
+        $retour = $hote !== '' && parse_url($retour, PHP_URL_HOST) === explode(':', $hote)[0] ? $retour : '?p=compta_ecritures';
+        if (!headers_sent()) {
+            header('Location: ' . $retour, true, 303);
+        }
+        return;
+    }
+    error_log('[app] ' . $e);
+    journal_exception($e);
+    http_response_code(500);
+    if ($debug) {
+        echo '<pre>' . htmlspecialchars((string) $e, ENT_QUOTES) . '</pre>';
+        return;
+    }
+    echo '<!doctype html><meta charset="utf-8"><p style="font-family:sans-serif;padding:2rem">'
+        . 'Une erreur est survenue. Réessayez ou contactez l\'administrateur.</p>';
+});
 
 send_security_headers();
 // La base AVANT la session : start_session() lit la durée d'inactivité réglée
@@ -140,6 +165,7 @@ ajouter_routes_module($handlers, $routeModules, 'compta', [
     'compta_ecritures_exporter_csv'     => 'route_compta_ecritures_exporter_csv',
     'compta_ecritures_exporter_camt053' => 'route_compta_ecritures_exporter_camt053',
     'compta_ecritures_importer_valider'         => 'route_compta_ecritures_importer_valider',
+    'compta_exercice_cloturer'  => 'route_compta_exercice_cloturer',
 ]);
 
 // Les justificatifs. Module à part de « compta » exprès : c'est ainsi qu'on
@@ -225,6 +251,8 @@ ajouter_routes_module($handlers, $routeModules, 'carnet', [
     'personne'             => 'route_personne',
     'personne_enregistrer' => 'route_personne_enregistrer',
     'personnes_fusionner'  => 'route_personnes_fusionner',
+    'personne_structure_lier'   => 'route_personne_structure_lier',
+    'personne_structure_delier' => 'route_personne_structure_delier',
 ]);
 
 ajouter_routes_module($handlers, $routeModules, 'booking', [
@@ -355,11 +383,10 @@ if (peut_lire('coeur')) {
     $handlers += [
         'employeur'       => 'route_employeur',
         'emails'          => 'route_emails',
-        'emails_booking'  => 'route_emails_booking',
         'export'          => 'route_export',
         'pays' => 'route_pays',
     ];
-    foreach (['parametres', 'employeur', 'emails', 'emails_booking', 'export', 'pays'] as $r) {
+    foreach (['parametres', 'employeur', 'emails', 'export', 'pays'] as $r) {
         $routeModules[$r] = ['coeur'];
     }
 }
@@ -376,9 +403,16 @@ if (peut_ecrire('coeur')) {
         'diagnostic'          => 'route_diagnostic',
         'apparence'           => 'route_apparence',
         'apparence_fond_supprimer' => 'route_apparence_fond_supprimer',
+        'sauvegardes'             => 'route_sauvegardes',
         'sauvegarde'              => 'route_sauvegarde',
         'sauvegarde_restaurer'    => 'route_sauvegarde_restaurer',
+        'sauvegarde_rappel_enregistrer' => 'route_sauvegarde_rappel_enregistrer',
+        'sauvegarde_copie_enregistrer'  => 'route_sauvegarde_copie_enregistrer',
+        'sauvegarde_copie_supprimer'    => 'route_sauvegarde_copie_supprimer',
+        'sauvegarde_copie_restaurer'    => 'route_sauvegarde_copie_restaurer',
         'incoherences'        => 'route_incoherences',
+        'journal'             => 'route_journal',
+        'journal_erreurs_acquitter' => 'route_journal_erreurs_acquitter',
     ];
 }
 
@@ -402,6 +436,9 @@ if ($route === null) {
 // tests/permissions_test.php (§ 6) interdit, en partant des routes qui appellent
 // check_csrf() plutôt que d'une liste à tenir à jour.
 if (isset($handlers[$route])) {
+    // Journal d'activité (lib/journal.php) : armé AVANT le contrôle de droits,
+    // pour qu'un POST refusé laisse aussi sa trace.
+    journal_armer($route);
     if (isset($routeModules[$route]) && !route_autorisee($routeModules[$route])) {
         require_login();
         redirect(route_defaut(), ['refuse' => 1]);

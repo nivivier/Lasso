@@ -108,7 +108,7 @@ function route_connexion(): void
             // avec date(), donc elle doit venir de la même horloge (datetime('now')
             // rend de l'UTC, ce qui décalerait l'heure affichée).
             db()->prepare('UPDATE utilisateurs SET derniere_connexion_le = ? WHERE id = ?')
-                ->execute([date('Y-m-d H:i:s'), (int) $u['id']]);
+                ->execute([horodatage_maintenant(), (int) $u['id']]);
             session_regenerate_id(true);
             $_SESSION['uid']           = (int) $u['id'];
             $_SESSION['login_time']    = time();
@@ -866,7 +866,7 @@ function route_apparence_fond_supprimer(): void
     redirect('apparence', ['ok' => 1]);
 }
 
-// Enregistre UNE boîte d'expédition du mailing (?p=emails_booking) : création
+// Enregistre UNE boîte d'expédition du mailing (?p=emails) : création
 // si $id vaut 0, mise à jour sinon. Le mot de passe n'est écrasé que s'il est
 // saisi — il n'est jamais réaffiché, donc jamais renvoyé par le navigateur, et
 // un champ vide signifie « inchangé », pas « effacé ».
@@ -878,7 +878,7 @@ function emails_enregistrer_expediteur(int $id, array $ligne): void
         db()->prepare('UPDATE mailing_expediteurs SET nom = ?, email = ?, smtp_host = ?, smtp_port = ?, smtp_secure = ?, smtp_user = ? WHERE id = ?')
             ->execute([$champ('nom'), $champ('email'), $champ('smtp_host'), $champ('smtp_port'), $secure, $champ('smtp_user'), $id]);
         if ($champ('smtp_pass') !== '') {
-            db()->prepare('UPDATE mailing_expediteurs SET smtp_pass = ? WHERE id = ?')->execute([$champ('smtp_pass'), $id]);
+            db()->prepare('UPDATE mailing_expediteurs SET smtp_pass = ? WHERE id = ?')->execute([secret_chiffrer($champ('smtp_pass')), $id]);
         }
         return;
     }
@@ -886,87 +886,101 @@ function emails_enregistrer_expediteur(int $id, array $ligne): void
     db()->prepare('INSERT INTO mailing_expediteurs (nom, email, smtp_host, smtp_port, smtp_secure, smtp_user, smtp_pass, ordre)
                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
         ->execute([$champ('nom'), $champ('email'), $champ('smtp_host'), $champ('smtp_port'), $secure,
-                   $champ('smtp_user'), $champ('smtp_pass'), $ordre]);
+                   $champ('smtp_user'), secret_chiffrer($champ('smtp_pass')), $ordre]);
 }
 
-// Envois généraux : les adresses et le serveur SMTP des fiches de salaire et des
-// factures — les deux seuls envois qui les empruntent. Le mailing du booking a
-// ses propres boîtes, sur ?p=emails_booking.
+// Paramètres → E-mails : un seul écran pour tout ce qui part de l'application.
+//
+//   « Boîte d'envois internes »  l'adresse et le serveur SMTP de tout ce qui passe
+//                             par envoyer_email() : fiches de salaire, factures,
+//                             feuilles de route, lien de réinitialisation du
+//                             mot de passe ;
+//   « Boîtes d'envois externes » celles du booking, chacune avec son SMTP — pour
+//                             les envois groupés comme pour le bouton
+//                             « Contacter » d'une fiche structure ;
+//   « Débit d'envoi »         le rythme de la file des envois groupés.
+//
+// Ce furent deux écrans (« Envois pour le booking » portait les deux dernières) :
+// deux entrées de menu pour régler des e-mails. Rien n'est PARTAGÉ entre ces
+// cartes — ni adresse, ni serveur, ni rythme —, mais tout se cherche au même
+// endroit.
+//
+// ⚠️ Chaque carte du booking n'existe que pour qui voit son module
+// (module_accessible()), et le POST de sa section le revérifie : le
+// dispatcher ne contrôle que le droit « coeur » de la route, qui ne dit rien
+// du booking. Masquer la carte sans refuser la section laisserait écrire ce
+// qu'on ne voit pas.
 function route_emails(): void
 {
     require_login();
+    $voirBoites = module_accessible('booking');
+    $voirDebit  = module_accessible('mailing');
+    $donnees = fn (?string $err = null): array => [
+        'saved' => $err === null && isset($_GET['ok']),
+        'err' => $err,
+        'voirBoites' => $voirBoites,
+        'voirDebit' => $voirDebit,
+        'expediteurs' => $voirBoites ? mailing_expediteurs() : [],
+    ];
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         check_csrf();
-        $champs = ['employeur_email_contact', 'employeur_email_expediteur',
-                   'smtp_host', 'smtp_port', 'smtp_secure', 'smtp_user'];
-        $emailContact = trim($_POST['employeur_email_contact'] ?? '');
-        $emailExp     = trim($_POST['employeur_email_expediteur'] ?? '');
-        // smtp_user n'est PAS validé comme une adresse : l'identifiant d'une
-        // boîte SMTP n'en est pas toujours une (« u123456 » chez certains
-        // hébergeurs), et le refuser rendait la configuration impossible.
-        if (($emailContact !== '' && !filter_var($emailContact, FILTER_VALIDATE_EMAIL))
-            || ($emailExp !== '' && !filter_var($emailExp, FILTER_VALIDATE_EMAIL))) {
-            render('emails', ['saved' => null, 'err' => 'Adresse e-mail invalide.'], 'E-mails — Envois généraux');
-            return;
-        }
-        $stmt = db()->prepare('INSERT OR REPLACE INTO parametres (cle, valeur) VALUES (?, ?)');
-        foreach ($champs as $k) {
-            $stmt->execute([$k, trim($_POST[$k] ?? '')]);
-        }
-        // Mot de passe SMTP : mis à jour uniquement s'il est saisi (jamais réaffiché).
-        $smtpPass = (string) ($_POST['smtp_pass'] ?? '');
-        if ($smtpPass !== '') {
-            $stmt->execute(['smtp_pass', $smtpPass]);
-        }
-        redirect('emails', ['ok' => 1]);
-    }
-    render('emails', ['saved' => isset($_GET['ok']), 'err' => null], 'E-mails — Envois généraux');
-}
-
-// Envois pour le booking : les boîtes d'expédition des campagnes (chacune avec
-// son propre SMTP) et le débit d'envoi. Écran séparé des envois généraux : rien
-// n'y est partagé, ni les adresses, ni le serveur, ni le rythme.
-function route_emails_booking(): void
-{
-    require_login();
-    if (!module_actif('booking')) {
-        redirect('emails');
-    }
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        check_csrf();
-        $section = $_POST['section'] ?? '';
-        if ($section === 'expediteur_save') {
-            $ligne = (array) ($_POST['exp'] ?? []);
-            $email = trim((string) ($ligne['email'] ?? ''));
-            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                render('emails_booking', [
-                    'saved' => null,
-                    'err' => 'Adresse d\'expéditeur invalide : « ' . $email . ' ».',
-                    'expediteurs' => mailing_expediteurs(),
-                ], 'E-mails — Envois pour le booking');
+        $section = (string) ($_POST['section'] ?? '');
+        // Sections NOMMÉES, et rien pour « tout le reste » : un POST sans
+        // section reconnue écrasait autrefois le débit par ses valeurs par
+        // défaut, sans que personne ne l'ait demandé.
+        if ($section === 'internes') {
+            $emailContact = trim($_POST['employeur_email_contact'] ?? '');
+            $emailExp     = trim($_POST['employeur_email_expediteur'] ?? '');
+            // smtp_user n'est PAS validé comme une adresse : l'identifiant d'une
+            // boîte SMTP n'en est pas toujours une (« u123456 » chez certains
+            // hébergeurs), et le refuser rendait la configuration impossible.
+            if (($emailContact !== '' && !filter_var($emailContact, FILTER_VALIDATE_EMAIL))
+                || ($emailExp !== '' && !filter_var($emailExp, FILTER_VALIDATE_EMAIL))) {
+                render('emails', $donnees('Adresse e-mail invalide.'), 'E-mails');
                 return;
             }
-            emails_enregistrer_expediteur((int) ($_POST['id'] ?? 0), $ligne);
-        } elseif ($section === 'expediteur_delete') {
-            // Les modèles et campagnes qui la désignaient repassent à
-            // l'expéditeur par défaut (ON DELETE SET NULL, migration_71) — une
-            // campagne en file ne reste jamais sans boîte d'envoi.
-            db()->prepare('DELETE FROM mailing_expediteurs WHERE id = ?')->execute([(int) ($_POST['id'] ?? 0)]);
+            $stmt = db()->prepare('INSERT OR REPLACE INTO parametres (cle, valeur) VALUES (?, ?)');
+            foreach (['employeur_email_contact', 'employeur_email_expediteur',
+                      'smtp_host', 'smtp_port', 'smtp_secure', 'smtp_user'] as $k) {
+                $stmt->execute([$k, trim($_POST[$k] ?? '')]);
+            }
+            // Mot de passe SMTP : mis à jour uniquement s'il est saisi (jamais
+            // réaffiché), et chiffré (lib/secrets.php).
+            $smtpPass = (string) ($_POST['smtp_pass'] ?? '');
+            if ($smtpPass !== '') {
+                $stmt->execute(['smtp_pass', secret_chiffrer($smtpPass)]);
+            }
+        } elseif (in_array($section, ['expediteur_save', 'expediteur_delete'], true)) {
+            if (!$voirBoites) {
+                http_response_code(403);
+                exit('Accès refusé.');
+            }
+            if ($section === 'expediteur_save') {
+                $ligne = (array) ($_POST['exp'] ?? []);
+                $email = trim((string) ($ligne['email'] ?? ''));
+                if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    render('emails', $donnees('Adresse d\'expéditeur invalide : « ' . $email . ' ».'), 'E-mails');
+                    return;
+                }
+                emails_enregistrer_expediteur((int) ($_POST['id'] ?? 0), $ligne);
+            } else {
+                // Les modèles et campagnes qui la désignaient repassent à
+                // l'expéditeur par défaut (ON DELETE SET NULL, migration_71) — une
+                // campagne en file ne reste jamais sans boîte d'envoi.
+                db()->prepare('DELETE FROM mailing_expediteurs WHERE id = ?')->execute([(int) ($_POST['id'] ?? 0)]);
+            }
         } elseif ($section === 'debit') {
-            // Section nommée, et non « tout le reste » : un POST sans section
-            // reconnue écrasait le délai et le plafond par leurs valeurs par
-            // défaut, sans que personne ne l'ait demandé.
+            if (!$voirDebit) {
+                http_response_code(403);
+                exit('Accès refusé.');
+            }
             $stmt = db()->prepare('INSERT OR REPLACE INTO parametres (cle, valeur) VALUES (?, ?)');
             $stmt->execute(['mailing_delai_secondes', (string) max(0, (int) ($_POST['mailing_delai_secondes'] ?? 10))]);
             $stmt->execute(['mailing_max_par_jour', (string) max(1, (int) ($_POST['mailing_max_par_jour'] ?? 200))]);
         }
-        redirect('emails_booking', ['ok' => 1]);
+        redirect('emails', ['ok' => 1]);
     }
-    render('emails_booking', [
-        'saved' => isset($_GET['ok']),
-        'err' => null,
-        'expediteurs' => mailing_expediteurs(),
-    ], 'E-mails — Envois pour le booking');
+    render('emails', $donnees(), 'E-mails');
 }
 
 
@@ -987,8 +1001,42 @@ function route_export(): void
         'annees' => array_map('intval', $annees), 'anneesCompta' => $anneesCompta, 'comptesCamt' => $comptesCamt,
         'anneesEvenements' => $anneesEvenements,
         'errCamt' => ($_GET['err'] ?? '') === 'camt_compte',
-        'errSauvegarde' => ($_GET['err'] ?? '') === 'sauvegarde',
+        // Lien direct vers un type (?p=export&type=certificats&annee=2025) :
+        // la vue n'y donne suite que si le type et l'année existent.
+        'typeDemande'   => (string) ($_GET['type'] ?? ''),
+        'anneeDemandee' => (int) ($_GET['annee'] ?? 0),
     ], 'Exporter les données');
+}
+
+// « Sauvegardes » (administrateurs) : tout ce qui protège la base ENTIÈRE,
+// réuni sur une page — la télécharger (chiffrée ou non), savoir quand on l'a
+// fait et quand le tableau de bord le rappellera, les copies que l'application
+// garde d'elle-même sur le serveur, et la restauration. Ces outils vivaient
+// en type de données de ?p=export et de ?p=import : une sauvegarde n'est pas
+// une donnée parmi d'autres (ni année ni format au choix), et restaurer
+// REMPLACE là où tous les imports ajoutent. Les deux pages ne disent plus
+// que ce qu'elles font, chacune sous un seul droit — la lecture du cœur pour
+// l'export, l'écriture du cœur (l'administration) ici.
+//
+// Les gestes gardent leur route verbale (sauvegarde, sauvegarde_restaurer,
+// sauvegarde_rappel_enregistrer, sauvegarde_copie_*) et reviennent ici.
+function route_sauvegardes(): void
+{
+    require_login();
+    $err = (string) ($_GET['err'] ?? '');
+    render('sauvegardes', [
+        'err'           => $err,
+        'ok'            => (string) ($_GET['ok'] ?? ''),
+        'copies'        => sauvegardes_serveur(),
+        'derniereSauvegarde' => (string) param('sauvegarde_telechargee_le', ''),
+        'rappelJours'   => sauvegarde_rappel_jours(),
+        // Retour de ?p=sauvegarde_restaurer quand elle a refusé : la
+        // restauration réussie, elle, ne revient jamais ici — elle déconnecte.
+        'errRestaure'   => (string) ($_GET['err_restaure'] ?? ''),
+        'motifRestaure' => (string) ($_GET['motif'] ?? ''),
+        // La carte d'où venait la restauration refusée : le motif s'y affiche.
+        'carteRestaure' => ($_GET['depuis_carte'] ?? '') === 'copies-serveur' ? 'copies-serveur' : 'restaurer',
+    ], 'Sauvegardes');
 }
 
 // « Importer des données » : LA page d'import, partagée par tous les modules
@@ -1015,10 +1063,6 @@ function rendre_import(array $vars = []): void
         'errFactures' => null, 'resultatsFactures' => null, 'resumeFactures' => null, 'simuleFactures' => true,
         'msgEcritures' => null,
         'errEvenements' => null, 'resultatsEvenements' => null, 'resumeEvenements' => null, 'simuleEvenements' => true,
-        // Retour de ?p=sauvegarde_restaurer quand elle a refusé : la
-        // restauration réussie, elle, ne revient jamais ici — elle déconnecte.
-        'errRestaure' => (string) ($_GET['err_restaure'] ?? ''),
-        'motifRestaure' => (string) ($_GET['motif'] ?? ''),
     ], 'Importer');
 }
 
@@ -1027,23 +1071,37 @@ function rendre_import(array $vars = []): void
 // Restaurer une sauvegarde complète : l'opération la plus destructrice de
 // l'application, et la seule qui remplace la base entière.
 //
-// Trois raisons pour qu'elle vive ici et non dans le formulaire unifié de
-// ?p=import : elle n'appartient à aucun module mais à l'administration
-// (écriture « coeur », comme la sauvegarde) ; elle REMPLACE au lieu d'ajouter,
-// là où tous les autres imports fusionnent ; et elle n'a rien à simuler. Une
-// entrée de plus dans le menu déroulant des types de données aurait rangé « je
-// remplace tout » au milieu de « j'ajoute quelques lignes ».
+// Elle part de la carte « Restaurer » de ?p=sauvegardes et non du formulaire
+// unifié de ?p=import : elle n'appartient à aucun module mais à
+// l'administration (écriture « coeur », comme la sauvegarde) ; elle REMPLACE
+// au lieu d'ajouter, là où tous les autres imports fusionnent ; et elle n'a
+// rien à simuler.
 //
 // La session tombe à la fin : les comptes de la base restaurée ne sont pas
 // ceux d'avant, et l'identifiant en session ne désigne plus forcément
 // quelqu'un. Se retrouver devant l'écran de connexion est d'ailleurs le signal
 // le plus clair que la base n'est plus la même.
+// Délai du rappel de sauvegarde (?p=sauvegardes) : combien de jours sans
+// téléchargement avant que le tableau de bord le rappelle aux administrateurs.
+function route_sauvegarde_rappel_enregistrer(): void
+{
+    check_csrf();
+    $n = filter_var($_POST['jours'] ?? '', FILTER_VALIDATE_INT,
+        ['options' => ['min_range' => SAUVEGARDE_RAPPEL_MIN, 'max_range' => SAUVEGARDE_RAPPEL_MAX]]);
+    if ($n === false) {
+        redirect('sauvegardes', ['err' => 'rappel']);
+    }
+    db()->prepare('INSERT OR REPLACE INTO parametres (cle, valeur) VALUES (?, ?)')
+        ->execute(['sauvegarde_rappel_jours', (string) $n]);
+    redirect('sauvegardes', ['ok' => 'rappel']);
+}
+
 function route_sauvegarde_restaurer(): void
 {
     require_login();
     check_csrf();
 
-    // Le champ du formulaire unifié de ?p=import, partagé par tous les types.
+    // Le champ de la carte « Restaurer » de ?p=sauvegardes.
     $f = $_FILES['fichier'] ?? null;
     if (!$f || ($f['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK || !is_uploaded_file($f['tmp_name'])) {
         // UPLOAD_ERR_INI_SIZE / FORM_SIZE : le fichier dépasse ce que le serveur
@@ -1052,14 +1110,39 @@ function route_sauvegarde_restaurer(): void
         // défaut — d'où un message qui le dit au lieu d'un « échec ».
         $code = (int) ($f['error'] ?? UPLOAD_ERR_NO_FILE);
         $trop = in_array($code, [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true);
-        redirect('import', ['err_restaure' => $trop ? 'taille' : 'fichier']);
+        redirect('sauvegardes', ['err_restaure' => $trop ? 'taille' : 'fichier'], 'restaurer');
     }
 
+    restauration_executer($f['tmp_name'], (string) ($_POST['phrase'] ?? ''), 'restaurer');
+}
+
+// Restaurer une COPIE du serveur (carte « Copies sur le serveur ») : la même
+// opération que le téléversement d'un .sqlite, sans passer par le navigateur
+// — et sans la limite de téléversement de l'hébergeur, qu'une base dépasse
+// vite. Le nom posté est résolu par sauvegarde_serveur_chemin(), jamais pris
+// pour un chemin. La base actuelle est mise de côté AVANT, comme toujours :
+// restaurer la mauvaise copie se rattrape en restaurant la copie
+// « Avant une restauration » qui vient d'apparaître dans la liste.
+function route_sauvegarde_copie_restaurer(): void
+{
+    require_login();
+    check_csrf();
+    $chemin = sauvegarde_serveur_chemin((string) ($_POST['nom'] ?? ''));
+    if ($chemin === null) {
+        redirect('sauvegardes', ['err' => 'copie_restauree'], 'copies-serveur');
+    }
+    restauration_executer($chemin, '', 'copies-serveur');
+}
+
+// Fin commune des deux restaurations. Refusée : retour à la carte d'où l'on
+// vient, avec le motif — rien n'a été remplacé. Réussie : la session tombe.
+function restauration_executer(string $chemin, string $phrase, string $ancre): void
+{
     try {
-        $resultat = sauvegarde_restaurer($f['tmp_name']);
+        $resultat = sauvegarde_restaurer($chemin, null, $phrase);
     } catch (Throwable $e) {
         error_log('Lasso — restauration refusée : ' . $e->getMessage());
-        redirect('import', ['err_restaure' => 'refus', 'motif' => $e->getMessage()]);
+        redirect('sauvegardes', ['err_restaure' => 'refus', 'motif' => $e->getMessage(), 'depuis_carte' => $ancre], $ancre);
     }
 
     // Le chemin de la base d'avant voyage par la session… qu'on détruit juste
@@ -1070,27 +1153,60 @@ function route_sauvegarde_restaurer(): void
     redirect('connexion', ['restaure' => '1', 'fichiers' => (string) $resultat['fichiers'], 'avant' => $avant]);
 }
 
+// Copies de la base sur le serveur (lib/sauvegarde.php § Copies), depuis
+// ?p=sauvegardes. Réservé à l'administration, comme la sauvegarde elle-même.
+function route_sauvegarde_copie_enregistrer(): void
+{
+    require_login();
+    check_csrf();
+    redirect('sauvegardes', sauvegarder_base('manuelle') !== null ? ['ok' => 'copie'] : ['err' => 'copie'], 'copies-serveur');
+}
+
+function route_sauvegarde_copie_supprimer(): void
+{
+    require_login();
+    check_csrf();
+    $ok = sauvegarde_serveur_supprimer((string) ($_POST['nom'] ?? ''));
+    redirect('sauvegardes', $ok ? ['ok' => 'copie_supprimee'] : ['err' => 'copie_supprimee'], 'copies-serveur');
+}
+
 function route_sauvegarde(): void
 {
     require_login();
+    // Un POST, et non plus un lien : la phrase secrète facultative ne doit
+    // jamais passer par l'URL (historique, journaux du serveur), et la route
+    // ÉCRIT la date du téléchargement. Un ancien lien GET revient à la page.
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        redirect('sauvegardes');
+    }
+    check_csrf();
+    // Saisie deux fois : une faute de frappe rendrait l'archive à jamais
+    // illisible, et personne ne s'en apercevrait avant le jour de restaurer.
+    // Case « Chiffrer la sauvegarde » : cochée, la phrase est exigée ;
+    // décochée, une phrase envoyée quand même est ignorée.
+    $phrase = !empty($_POST['chiffrer']) ? (string) ($_POST['phrase'] ?? '') : '';
+    if (!empty($_POST['chiffrer']) && (!hash_equals($phrase, (string) ($_POST['phrase_confirmation'] ?? '')) || mb_strlen($phrase) < SAUVEGARDE_PHRASE_MIN)) {
+        redirect('sauvegardes', ['err' => 'phrase']);
+    }
     // La base ET les fichiers déposés, dans une archive (lib/sauvegarde.php) :
     // la base ne mémorise que l'emplacement des logos, photos, icônes et pièces
     // jointes, jamais leur contenu.
     $slug = trim(preg_replace('/[^A-Za-z0-9]+/', '_', (string) param('employeur_nom')) ?? '', '_') ?: 'sauvegarde';
     try {
-        [$tmp, $nom] = sauvegarde_construire($slug, maj_version_locale());
+        [$tmp, $nom] = sauvegarde_construire($slug, maj_version_locale(), null, $phrase);
     } catch (Throwable $e) {
         // Disque plein, droits manquants, archive impossible à finaliser : mieux
-        // vaut revenir sur la page d'export avec un message qu'un téléchargement
+        // vaut revenir sur la page des sauvegardes avec un message qu'un téléchargement
         // tronqué que rien ne distingue d'une sauvegarde valide.
         error_log('Lasso — sauvegarde impossible : ' . $e->getMessage());
-        redirect('export', ['err' => 'sauvegarde']);
+        journal_exception($e);
+        redirect('sauvegardes', ['err' => 'sauvegarde']);
     }
     // Date du dernier téléchargement : c'est elle que le tableau de bord
-    // compare à SAUVEGARDE_RAPPEL_JOURS. Notée quand l'archive part, faute de
+    // compare au délai de rappel (sauvegarde_rappel_jours()). Notée quand l'archive part, faute de
     // pouvoir savoir si le navigateur l'a bien reçue jusqu'au bout.
     db()->prepare('INSERT OR REPLACE INTO parametres (cle, valeur) VALUES (?, ?)')
-        ->execute(['sauvegarde_telechargee_le', date('Y-m-d H:i:s')]);
+        ->execute(['sauvegarde_telechargee_le', horodatage_maintenant()]);
     header('Content-Type: application/octet-stream');
     header('Content-Disposition: attachment; filename="' . $nom . '"');
     header('Content-Length: ' . filesize($tmp));
@@ -1271,7 +1387,9 @@ function route_tableau_bord(): void
         'fondsDash' => $fondsDash,
         // Réservé aux administrateurs : eux seuls peuvent télécharger la
         // sauvegarde (route du cœur en écriture), le rappel ne parle qu'à eux.
-        'rappelSauvegarde' => est_admin() ? sauvegarde_rappel((string) param('sauvegarde_telechargee_le', '')) : null,
+        'rappelSauvegarde' => est_admin() ? sauvegarde_rappel((string) param('sauvegarde_telechargee_le', ''), null, sauvegarde_rappel_jours()) : null,
+        // Le journal est réservé aux administrateurs : l'avis aussi.
+        'erreursNouvelles' => est_admin() ? journal_erreurs_nouvelles() : 0,
     ], 'Tableau de bord');
 }
 
@@ -1335,4 +1453,48 @@ function route_recherche(): void
         'total'   => recherche_total($groupes),
         'tropCourt' => $q !== '' && mb_strlen($q) < RECHERCHE_MIN,
     ], $q !== '' ? "Recherche : $q" : 'Recherche');
+}
+
+// Journal d'activité (lib/journal.php) : réservé aux administrateurs, comme
+// les comptes dont il raconte les gestes. Filtre par compte ; les plus récents
+// d'abord.
+// Les erreurs du serveur, marquées vues : l'avis du tableau de bord se tait
+// jusqu'à la prochaine. Rien n'est effacé — une erreur qui revient redevient
+// nouvelle, et son historique (première fois, nombre) reste.
+function route_journal_erreurs_acquitter(): void
+{
+    check_csrf();
+    db()->exec('UPDATE journal_erreurs SET vue = 1 WHERE vue = 0');
+    redirect('journal');
+}
+
+function route_journal(): void
+{
+    require_login();
+    $uid = (int) ($_GET['utilisateur'] ?? 0);
+    $where = $uid ? ' WHERE utilisateur_id = ?' : '';
+    $params = $uid ? [$uid] : [];
+    $stmt = db()->prepare('SELECT COUNT(*) FROM journal_activite' . $where);
+    $stmt->execute($params);
+    $pgTotal = (int) $stmt->fetchColumn();
+    $pgTaille = pagination_taille('journal_taille');
+    $pgPage = pagination_page();
+    [$limitSql, $limitParams] = pagination_sql($pgPage, $pgTaille);
+    $stmt = db()->prepare('SELECT * FROM journal_activite' . $where . ' ORDER BY id DESC' . $limitSql);
+    $stmt->execute(array_merge($params, $limitParams));
+    $lignes = $stmt->fetchAll();
+    // Les auteurs : ceux du journal (un compte supprimé y reste), pas la table
+    // des comptes.
+    $auteurs = db()->query('SELECT utilisateur_id, MAX(utilisateur) AS nom FROM journal_activite
+        GROUP BY utilisateur_id ORDER BY nom COLLATE NOCASE')->fetchAll();
+    // Les erreurs du serveur (lib/journal.php § Erreurs) : les nouvelles
+    // d'abord, puis les plus récentes. Cinquante suffisent — au-delà, c'est la
+    // même panne qui se répète, et son compteur le dit déjà.
+    $erreurs = db()->query('SELECT * FROM journal_erreurs ORDER BY vue, dernier_le DESC, id DESC LIMIT 50')->fetchAll();
+    render('journal', [
+        'erreurs' => $erreurs,
+        'lignes' => $lignes, 'auteurs' => $auteurs, 'uid' => $uid,
+        'pgRoute' => 'journal', 'pgParams' => array_filter(['utilisateur' => $uid]),
+        'pgPage' => $pgPage, 'pgTaille' => $pgTaille, 'pgTotal' => $pgTotal,
+    ], 'Journal d\'activité');
 }

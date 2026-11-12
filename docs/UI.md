@@ -124,6 +124,10 @@ bloc `.head-actions` dans sa barre d'outils ; c'est le script de
 dessous, où le bandeau n'a pas la largeur de l'accueillir. Un déplacement et non
 une réécriture des trente vues concernées : le bandeau est rendu AVANT le
 contenu, il ne peut pas connaître des boutons qui n'existent pas encore.
+Une page **sans barre d'outils** (`?p=mailing`) pose son `.head-actions` juste
+après le bandeau (`.page-head-band + .head-actions`) : même remontée, même
+action principale dans la barre du téléphone — jamais un second `.page-head`
+rendu sous le bandeau pour l'y loger.
 
 La raison est de fond : une barre d'outils de liste portait deux choses de
 nature différente — ce qui **filtre** ce qu'on voit et ce qui **agit** dessus.
@@ -145,6 +149,17 @@ il continue d'ouvrir son formulaire depuis le menu. Seules les classes de bouton
 tombent au passage : dans le panneau, une entrée est une ligne de menu. Un
 `.menu-deroulant` déjà posé par la vue n'est pas déplacé — on n'imbrique pas un
 menu dans un menu.
+
+**Une vue peut ranger une action d'office** : `data-plus` sur l'élément. Sans
+action pleine, la règle « le dernier du bloc » ferait d'un simple « Aperçu »
+l'action principale (`?p=compta_bilan`) ; `data-plus` l'écarte du choix.
+
+**Sur téléphone, « … » monte dans la barre supérieure**, à droite de l'action
+principale (`.mbar-plus`, dessiné à plat comme le burger) : toutes les actions
+de la page au même endroit, en haut. ⚠️ L'action principale y est déjà partie
+quand le script de « … » s'exécute : il la reconnaît dans la barre au lieu de
+promouvoir la secondaire restée seule — c'est ce qui laissait « Exporter pour
+certificats » et « Écriture manuelle » hors du menu sur téléphone.
 
 `.page-head` porte le titre de la page — sauf sur le tableau de bord, où le rail
 dit déjà où l'on est : la barre de recherche y prend la place du titre, le
@@ -463,7 +478,10 @@ Un crayon d'en-tête bascule `.editing` sur la section ; tout ce qui porte
 `.edit-only` apparaît alors, `.read-only` disparaît. Le bouton devient une croix
 et son `title`/`aria-label` passent à « Annuler ». Sert quand une section entière
 change de mode — ajouter, lier, délier, supprimer (colonne de droite de
-`?p=structure`).
+`?p=structure`, carte « Rattachements » de `?p=personne`, carte « Copies sur
+le serveur » de `?p=sauvegardes`). Le geste est câblé
+une fois pour toutes dans `assets/app.js` (délégué au document) : il suffit du
+balisage, aucun script de page.
 
 ### c. Un bloc répété — `lassoInitBlocEdition()`
 
@@ -1454,6 +1472,32 @@ dans `data/emails_envoyes.log`, ce qui rend l'envoi vérifiable.
   écrire deux fois, c'est les voir diverger. Le bouton suit la recherche — sans
   rien à filtrer, ni l'un ni l'autre n'a de raison d'être là —, sauf quand un
   filtre est actif, sinon on ne pourrait plus le retirer.
+- **Un tableau de CHIFFRES passe en cartes avec `.cartes-chiffres`**, pas
+  `.liste-cartes` : un intitulé, puis des montants ou des comptes qui
+  reprennent leur libellé par `data-libelle`, posé par la vue sur la cellule
+  (« Confirmés », « Taux 2026 », « Recettes »). Les projets, les lignes du
+  décompte, l'analyse par axe, les lignes d'une facture, les copies du
+  serveur (dont la carte garde son bouton « Restaurer » à portée, la date et
+  la taille passant sous le motif), les cotisations, les campagnes d'une
+  structure, les factures et les employés d'un événement (ces derniers
+  restent éditables en carte : l'axe et la durée prennent toute la largeur).
+  La liste des fiches d'un employé reprend, elle, la carte de `?p=fiches`
+  (`.cartes-fiches-employe`) : le même objet ne se dessine pas deux fois.
+  Le seuil est celui du CONTENEUR : une carte étroite sur ordinateur (les
+  factures liées, les campagnes d'une structure, 339px) passe en cartes
+  elle aussi, plutôt que de défiler de biais. Même procédé — une
+  grille écrite par tableau (`.cartes-projets`, `.cartes-postes`…), chaque
+  cellule placée par sa classe `col-*` —, autre seuil : **560px** de
+  conteneur au lieu de 700, parce que trois à cinq colonnes courtes tiennent
+  en tableau bien en dessous, et qu'à 700 la carte des lignes du décompte
+  passait en cartes clairsemées sur un écran de 1024. Le pied (un total)
+  devient une carte de plus. Un corps partagé avec l'impression
+  (`_compta_analyse_body.php`) ne pose la classe qu'à l'écran.
+- **La sélection d'une liste est mémorisée le temps de l'onglet**
+  (`sessionStorage`, une clé par route) pour survivre à l'ouverture d'une
+  fiche ; elle est **effacée par toute page hors session** (connexion, mot
+  de passe oublié). Sans cela, une reconnexion dans le même onglet, par le
+  même compte ou un autre, retrouvait des lignes cochées la veille.
 
 ## 9 quater. Un écran qui porte plusieurs outils
 
@@ -1560,7 +1604,7 @@ Trois décisions qui la font tenir :
 
 **Le rail porte les trois niveaux** — module, page, sous-page — et c'est le seul
 endroit où la navigation se décide sur un écran large (`views/layout.php`,
-`.nav-volet` dans `assets/app.css`).
+`.nav-volet` dans `assets/css/`).
 
 Le dessin tient en une phrase : **le module ouvert est un volet teinté de sa
 couleur qui enveloppe ses pages, et la page affichée est une capsule de la même
@@ -1819,6 +1863,12 @@ que d'afficher depuis le POST : un rechargement ne doit pas rejouer l'action.
 `redirect()` accepte une **ancre** — sur une fiche longue, revenir en haut
 oblige à redescendre.
 
+Un refus qui ne vient pas d'une route mais de la base — un exercice clôturé —
+passe par **`$_SESSION['flash_err']`** : le gestionnaire d'exceptions
+d'`index.php` y pose le message et renvoie à la page précédente, que
+`layout.php` affiche en `.err.flash`. À réserver à ce cas : une route qui sait
+refuser le dit par son drapeau d'URL.
+
 **Côté script, `lassoToast(texte, classe)`** pose la même pastille `.flash`
 (classe `ok`, `err` ou `warn`). **Jamais `alert()`** : la boîte du navigateur
 bloque la page, ne ressemble à rien d'autre dans l'application, et sur une
@@ -1856,7 +1906,7 @@ Le vocabulaire est fixe :
 
 ⚠️ **Une icône rendue en MASQUE CSS ne se voit pas dans le balisage.** La
 colonne « Statut » de `?p=structures` dessine ses quatre états par
-`--ico-m-*` (`assets/app.css`), pour ne pas écrire six mille `<svg>` dans une
+`--ico-m-*` (`assets/css/`), pour ne pas écrire six mille `<svg>` dans une
 page : changer `icone_table()` seul n'y change rien. Les deux doivent bouger
 ensemble — et un tracé plein (un point, un cœur) y a besoin de son `fill`, un
 masque ne gardant que l'alpha du dessin.
@@ -1988,6 +2038,22 @@ Le balisage **déclare l'intention**, le comportement vit dans `app.js`. Aucun
 attribut `onclick` : c'est du script inline, que la CSP ne peut autoriser
 qu'avec `'unsafe-inline'`.
 
+**Le script propre à un écran vit dans `assets/<écran>.js`, pas dans la vue.**
+La vue ne lui passe que ses données, dans un bloc JSON placé juste avant :
+
+```php
+<script type="application/json" id="evenement-donnees"><?= json_encode($donnees, JSON_HEX_TAG | JSON_UNESCAPED_UNICODE) ?></script>
+<script src="assets/evenement.js?v=<?= filemtime(…) ?>" nonce="<?= e(csp_nonce()) ?>"></script>
+```
+
+Le fichier se met en cache, la page n'en porte plus le poids à chaque
+affichage, et il compile dans `tests/javascript_test.php` comme les autres.
+Sans `defer` : il tourne là où était le script inline, avec le même DOM sous la
+main. `JSON_HEX_TAG` empêche une donnée contenant `</script>` de fermer le
+bloc. Modèles : `gabarit.js`, `compta_ecritures.js`, `evenement.js`,
+`structure_contacter.js`. Les petits scripts de vue restent tolérés — on les
+sort quand on y touche.
+
 **Un réglage qui n'engage que sa propre ligne n'a pas à recharger la page.**
 `data-ajax` sur le formulaire suffit : l'envoi part en `fetch` avec
 `retour=json`, la route répond `{"ok":true}` au lieu de rediriger, et si l'appel
@@ -1997,7 +2063,7 @@ plutôt que de laisser un interrupteur basculé à l'écran et pas en base.
 Ce qui change à l'écran doit alors suivre **sans rendu** : une classe ou un
 badge se pilotent depuis la case elle-même (`:has(.regle-actif-cb:checked)`),
 jamais en réécrivant la ligne. Attention, `[hidden]` porte un `!important` dans
-`app.css` : une règle CSS ne le lèvera pas, c'est la vue qui doit s'abstenir de
+`assets/css/` : une règle CSS ne le lèvera pas, c'est la vue qui doit s'abstenir de
 poser l'attribut.
 
 **À l'inverse, on recharge** dès que le geste change autre chose que sa ligne :

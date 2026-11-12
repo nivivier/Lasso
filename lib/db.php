@@ -6,7 +6,8 @@
 // le point d'entrée — db(), param(), sauvegarde — et délègue le reste :
 //
 //   lib/db/schema.php      init_schema() + les seed_*()
-//   lib/db/migrations.php  run_migrations() + les migration_N()
+//   lib/db/migrations.php  run_migrations(), et les migration_N() par tranches
+//                          dans lib/db/migrations/
 //
 // Les deux sont chargés ici et jamais requis directement ailleurs : db() reste
 // l'unique porte d'entrée de la base.
@@ -83,14 +84,18 @@ function db(): PDO
 // risquée (import…) pour pouvoir revenir en arrière. Renvoie le chemin du
 // fichier créé, ou null en cas d'échec (sans interrompre l'opération). Les
 // fichiers .bak sont exclus du versionnement (.gitignore).
-function sauvegarder_base(string $etiquette): ?string
+// $pdo : la connexion à copier, quand ce n'est pas db() — une migration
+// jouée sur une base fraîchement restaurée (sauvegarde_restaurer()) tourne sur
+// sa propre connexion, et db() désignerait encore l'ancien fichier.
+function sauvegarder_base(string $etiquette, ?PDO $pdo = null): ?string
 {
     $etiquette = preg_replace('/[^a-z0-9]+/i', '_', $etiquette);
     $etiquette = trim((string) $etiquette, '_') ?: 'sauvegarde';
     $chemin = dirname(APP_DB_PATH) . '/' . basename(APP_DB_PATH, '.sqlite')
         . '_' . $etiquette . '_' . date('Ymd_His') . '.sqlite.bak';
     try {
-        db()->exec('VACUUM INTO ' . db()->quote($chemin));
+        $pdo = $pdo ?? db();
+        $pdo->exec('VACUUM INTO ' . $pdo->quote($chemin));
     } catch (\Throwable $e) {
         return null;
     }
@@ -99,6 +104,14 @@ function sauvegarder_base(string $etiquette): ?string
     }
     sauvegardes_auto_purger($chemin);
     return $chemin;
+}
+
+// Le motif des copies de sauvegarder_base() : même dossier et même préfixe que
+// la base. Partagé par la purge et par la liste de ?p=sauvegardes
+// (sauvegardes_serveur()), pour qu'elles parlent des mêmes fichiers.
+function sauvegardes_auto_motif(): string
+{
+    return dirname(APP_DB_PATH) . '/' . basename(APP_DB_PATH, '.sqlite') . '_*.sqlite.bak';
 }
 
 // Ne garde que les SAUVEGARDES_AUTO_MAX copies automatiques les plus récentes
@@ -111,7 +124,7 @@ function sauvegarder_base(string $etiquette): ?string
 function sauvegardes_auto_purger(string $garder = ''): int
 {
     $max = max(1, (int) SAUVEGARDES_AUTO_MAX);
-    $fichiers = glob(dirname(APP_DB_PATH) . '/' . basename(APP_DB_PATH, '.sqlite') . '_*.sqlite.bak') ?: [];
+    $fichiers = glob(sauvegardes_auto_motif()) ?: [];
     $autres = array_values(array_filter($fichiers, fn ($f) => $f !== $garder));
     $place = count($autres) < count($fichiers) ? $max - 1 : $max;
     // Le nom porte la date (…_AAAAMMJJ_HHMMSS.sqlite.bak) mais après une

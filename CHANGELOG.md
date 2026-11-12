@@ -9,6 +9,214 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+### Modifié
+- **Les n° AVS sont chiffrés dans la base**, comme les mots de passe d'envoi
+  (`lib/secrets.php`) : ceux des employés et la copie figée sur chaque fiche
+  de salaire (la valeur ne change pas, seule sa forme stockée). Une copie de la
+  base est posée avant la conversion (« Avant le chiffrement des n° AVS »).
+  Une sauvegarde **protégée par une phrase secrète** emporte désormais la clé :
+  restaurée sur un autre serveur, tout reste lisible. Sans phrase, la clé
+  reste hors de l'archive : restaurée ailleurs, les n° AVS sont à ressaisir.
+- **Sur téléphone, toutes les actions de la page sont en haut** : le menu « … »
+  rejoint la barre supérieure, à droite de l'action mise en évidence.
+- **« … » range enfin les actions secondaires sur téléphone** : l'export pour
+  certificats de salaire (`?p=fiches`), l'écriture manuelle
+  (`?p=compta_ecritures`) restaient dehors, prises pour l'action principale
+  une fois celle-ci montée dans la barre. L'« Aperçu » des comptes annuels
+  (`?p=compta_bilan`) y passe aussi, sur ordinateur comme sur téléphone.
+- **Campagne de démarchage sur téléphone** (`?p=booking_campagne`) : « Modifier »
+  n'y est plus que l'icône du crayon, comme les autres boutons d'en-tête.
+- **Comptes annuels** (`?p=compta_bilan`) : le bouton « Aperçu » quitte la
+  barre des filtres pour rejoindre les actions de la page, à droite du titre,
+  comme sur l'analyse.
+- **« Suivi » devient « Envois groupés »** (`?p=mailing`), dans le rail, le
+  titre et l'onglet du navigateur. Le bouton « Nouvel envoi groupé » rejoint
+  les actions de la page, à droite du titre, au lieu d'une ligne à lui sous
+  le bandeau.
+- **Paramètres → E-mails réunit tous les réglages d'envoi** : l'ancienne page
+  « E-mails booking » (`?p=emails_booking`) y est fondue, et le menu perd une
+  entrée. Trois cartes, chacune avec une phrase d'explication : « Boîte
+  d'envois internes » (fiches, factures, feuilles de route, mots de passe
+  oubliés), « Boîtes d'envois externes » (ex-« Boîtes d'expédition »), visible
+  seulement avec l'accès au booking, et « Débit d'envoi », seulement avec
+  l'accès aux envois groupés — le serveur refuse aussi l'enregistrement sans
+  ces droits.
+- **Pièce justificative** (`?p=piece`) : le bouton « Pas encore payée »
+  disparaît, il faisait doublon avec « Modifier ». Vider la date de paiement
+  dans la fenêtre de modification défait désormais aussi le lien avec
+  l'écriture, comme le faisait le bouton.
+- **Le crayon d'une section modifiable** (`.edit-toggle-btn`) est câblé une
+  fois pour toutes dans `assets/app.js` au lieu du script d'une seule vue.
+- Après un ajout sans rechargement (`data-ajout`), le champ de recherche se
+  vide vraiment : il gardait le choix précédent, et un second envoi reliait la
+  même chose.
+
+- **Une fiche payée ne se supprime plus, même par une requête directe** : la
+  règle tenait jusqu'ici à l'absence du bouton. Le serveur refuse désormais la
+  suppression d'une fiche qui porte une date de paiement, et le dit.
+- **Téléphone (375 px)** : plus aucune page ne déborde de l'écran — le
+  paiement d'une fiche, les employés d'un événement, les cellules d'une
+  structure (une longue adresse web passe à la ligne), les envois groupés, et
+  les grilles de formulaire qui s'élargissaient à leur plus long contenu.
+- **La page des écritures s'allège** (`?p=compta_ecritures`) : le tableau perd
+  les blancs entre ses cellules et son script passe dans un fichier que le
+  navigateur garde en cache — un quart de poids en moins.
+- **Les scripts quittent les vues** : celui du gabarit de toutes les pages,
+  des écritures, d'un événement et de la fenêtre « Contacter » sont désormais
+  des fichiers `assets/*.js`, mis en cache ; la vue ne leur passe plus que ses
+  données, en JSON.
+- **Les sauvegardes ont leur page** (Paramètres → Données → Sauvegardes,
+  administrateurs) : quatre cartes rangées par objet — d'abord la sauvegarde :
+  « Télécharger une sauvegarde » (avec la case « Chiffrer », juste sous la
+  description), « Rappel de sauvegarde » (date du dernier téléchargement, et
+  le délai du rappel sur une ligne quand la place le permet) et « Restaurer
+  une sauvegarde », dont l'avertissement tient en trois points ; ensuite
+  « Copies sur le serveur ». La sauvegarde complète n'est plus un type de données
+  d'Exporter, ni sa restauration un type d'Importer : les deux pages ne gardent
+  que des données. Le rappel du tableau de bord y mène, et le bouton
+  « Restaurer la sauvegarde » est rouge — il ne l'était pas, faute de la bonne
+  classe.
+- **Exporter : le bouton de téléchargement monte sur la ligne du choix**, à
+  droite du type de données et de l'année, pour tous les types — il passe
+  dessous quand la place manque.
+- **Les migrations sont découpées** : `lib/db/migrations.php` (3 600 lignes)
+  ne garde que leur ordonnancement, les `migration_N()` vivent par tranches de
+  vingt-cinq dans `lib/db/migrations/`, déplacées telles quelles.
+- **Accessibilité** : un lien « Aller au contenu », visible au clavier, saute le
+  rail ; le tableau de bord et la recherche ont un titre de page pour les
+  lecteurs d'écran.
+- **Téléphone : plus aucun tableau ne défile de biais.** Dix passent en
+  cartes — les projets, les lignes du décompte, l'analyse par axe, les lignes
+  d'une facture, les copies du serveur, les cotisations, les campagnes d'une
+  structure, les factures et les employés d'un événement (encore éditables
+  en carte), et les fiches d'un employé, qui reprennent la carte de la liste
+  des fiches. Chaque carte porte son intitulé, puis ses chiffres avec leur
+  libellé (« Confirmés », « Taux 2026 », « Recettes », « Qté »…) ; le total
+  devient une carte de plus. Ils restent des tableaux dès que la place le
+  permet — et une carte étroite sur ordinateur (factures liées, campagnes
+  d'une structure) passe en cartes elle aussi.
+- **Tableau de bord** : dans « Salaires à verser », « Factures émises » et
+  « Pièces à payer », la date passe sous le nom au lieu de lui prendre une
+  colonne — le nom de l'employé ou de la structure ne se coupe plus en
+  « Joaq… ». Les boutons « Déposer une pièce » et « Créer » portent leur
+  libellé (une icône seule sur téléphone).
+- **Le titre de l'onglet du navigateur** suit une seule règle, déduite du
+  menu : « Module — Onglet » (« Salaires — Fiches »), « Paramètres —
+  Section ». « Mailing » disparaît des derniers titres qui le portaient.
+- **La feuille de style est découpée** en seize fichiers par domaine
+  (`assets/css/`), chargés dans l'ordre de l'ancien `app.css` ; aucune règle
+  ne change.
+- **Une sélection ne survit plus à la session** : les lignes cochées d'une
+  liste étaient retrouvées après une déconnexion et une reconnexion dans le
+  même onglet — par le même compte ou un autre —, prêtes pour une action
+  groupée. La page de connexion les efface.
+
+### Ajouté
+- **Test du JavaScript dans un vrai navigateur** (`tests/navigateur_test.php`) :
+  un Chrome sans fenêtre parcourt l'application en suivant ses liens, ouvre
+  menus et crayons, tape dans les recherches, et relève toute erreur
+  JavaScript, de console ou de CSP. Sans dépendance : le protocole de Chrome
+  est piloté depuis PHP.
+- **Copies sur le serveur** (Paramètres → Sauvegardes) : la liste
+  des copies de la base que l'application garde à côté d'elle — date, motif
+  (« Avant une mise à jour », « Clôture 2025 », « Sauvegarde manuelle »…) et
+  taille, le nom du fichier au survol —, un bouton « Créer une copie » pour
+  en forcer une, et, au crayon, la suppression d'une copie.
+- **Restaurer une copie du serveur** : un bouton rouge sur chaque copie,
+  comme celui de la restauration d'une archive. La base actuelle devient
+  d'abord une copie de plus, puis l'on est déconnecté ; les fichiers déposés
+  ne changent pas. Quand la copie la plus récente est celle qu'une
+  restauration vient de poser, le bouton s'intitule « Annuler la
+  restauration ».
+- **Mots de passe des boîtes d'envoi chiffrés en base** : ils n'étaient
+  enregistrés qu'en clair, et passaient donc dans chaque sauvegarde. Ils sont
+  désormais chiffrés avec une clé qui reste sur le serveur, à côté de la base
+  (ou fixée dans `lib/config.local.php`) ; les mots de passe existants sont
+  convertis à la mise à jour. Une sauvegarde restaurée sur un autre serveur les
+  rend illisibles : Paramètres → E-mails affiche « mot de passe à ressaisir ».
+- **Chiffrer la sauvegarde** (Paramètres → Sauvegardes) : une case sous la
+  description ; cochée, elle demande une phrase secrète, saisie deux fois, qui
+  chiffre l'archive ZIP en AES-256 et n'est conservée nulle part. La restauration la demande ; à la main, l'archive s'ouvre avec
+  7-Zip ou Keka. Le téléchargement de la sauvegarde passe par un formulaire
+  au lieu d'un lien.
+- **Nouvelle personne** (`?p=personnes`) : un bouton crée une personne seule,
+  sans structure, depuis sa fiche en mode création — nom, prénom ou adresse
+  électronique requis.
+- **Rattachements d'une personne modifiables** (`?p=personne`) : le crayon de
+  la carte « Rattachements » permet de lier une structure (avec un rôle
+  facultatif) ou d'en délier une. Délier retire le lien seulement, jamais la
+  personne.
+- **Nouvel employé à partir d'une personne existante** (`?p=employe_form`) :
+  un champ « Personne existante » cherche dans l'annuaire les personnes qui
+  n'ont pas encore d'emploi. La choisir préremplit l'identité, et l'emploi se
+  rattache à elle au lieu de créer un doublon. Ce qu'on corrige dans le
+  formulaire l'est sur sa fiche.
+- **Sauvegarde** (`?p=sauvegardes`) : la page affiche la date de la dernière
+  sauvegarde téléchargée, et les administrateurs y règlent le délai du rappel
+  du tableau de bord (1 à 365 jours, 30 par défaut — la constante
+  `SAUVEGARDE_RAPPEL_JOURS` n'est plus que la valeur par défaut).
+- **Exporter pour certificats de salaire** (`?p=fiches`, menu « … ») : mène à
+  `?p=export` avec ce type de données déjà choisi. L'export accepte désormais un
+  lien direct, `?p=export&type=certificats&annee=2025` — le type et l'année
+  n'y sont repris que s'ils existent.
+- **Clôture d'exercice** (`?p=compta_bilan`, administrateurs) : « Clôturer
+  2025 » verrouille les écritures de l'année et des précédentes — montant,
+  date, compte, catégorie, axe, ventilations, ajout et suppression. Le verrou
+  est tenu par la base elle-même (déclencheurs SQLite), donc aucun chemin ne
+  le contourne ; l'import et le lettrage automatique écartent d'eux-mêmes les
+  années closes. Une sauvegarde précède la clôture. Seule la dernière année
+  close peut être rouverte.
+- **Erreurs du serveur dans le journal** (Paramètres → Application → Journal,
+  administrateurs) : une page qui plante ou avertit en production y laisse le
+  message, le fichier et la ligne, la page et le compte — elle n'était visible
+  que dans le journal d'erreurs de PHP, que personne ne lit sur un hébergement
+  mutualisé. La même erreur répétée reste une ligne dont le compteur monte. Le
+  tableau de bord signale aux administrateurs les erreurs pas encore vues ;
+  « Marquer comme vues » le fait taire jusqu'à la suivante. Jamais la pile
+  d'appels, qui porte les valeurs traitées.
+- **Journal d'activité** (Paramètres → Application → Journal,
+  administrateurs) : chaque enregistrement, suppression ou envoi, avec le
+  compte, la date, la cible et l'issue (fait ou refusé). Relevé une fois pour
+  toutes par le dispatcher, il couvre toute l'application ; il ne garde jamais
+  ce qui a été saisi (mots de passe, salaires, n° AVS). Conservé cinq ans.
+- **Test de toutes les pages** (`tests/pages_test.php`) : un serveur intégré
+  sur une base de démonstration neuve ouvre chaque route GET, ses tris et sa
+  recherche, connecté en administrateur. Il envoie aussi **chaque formulaire**
+  des pages rendues (plus de 160, suppressions en dernier), vérifie que la file
+  des envois groupés part aux bonnes adresses, puis **injecte une balise** dans
+  chaque colonne de texte libre de la base et rouvre toutes les pages : une
+  donnée affichée sans échappement le fait échouer.
+
+### Corrigé
+- **Sur téléphone, les liens du menu ne répondaient pas toujours** : avec le
+  rail réduit sur l'ordinateur (réglage gardé par le navigateur), toucher un
+  module qui a des pages ouvrait un panneau invisible au lieu de naviguer.
+- **« Ventilation chargesCharges »** dans le menu « … » de l'analyse sur
+  téléphone : le libellé court et le libellé long s'y affichaient côte à côte.
+- **Les heures avaient une heure de retard** (deux en été). Deux causes : un
+  serveur dont PHP est réglé en UTC — le fuseau est désormais fixé par
+  l'application (`APP_FUSEAU`, `Europe/Zurich` par défaut) —, et les
+  horodatages écrits par la base, toujours en UTC, que l'affichage prenait
+  pour de l'heure locale (création d'un envoi groupé, d'une structure, d'un
+  compte, date d'un import, d'envoi d'une facture, journal). La base est
+  désormais en UTC d'un bout à l'autre, et l'affichage convertit.
+- **Une bande pleine largeur barrait les pages de paramètres** à hauteur
+  fixe, par-dessus le contenu (le tableau des copies, par exemple) : le filet
+  sous l'en-tête de page se positionnait par rapport à la fenêtre depuis que
+  cet en-tête ne défile plus avec un conteneur. Il est retiré ; l'espace sous
+  l'en-tête demeure.
+- **Les envois groupés étaient cassés depuis la refonte des personnes** :
+  « Envoyer » tombait en erreur (une colonne disparue), et la file d'attente,
+  quand elle tournait, envoyait à l'adresse de la STRUCTURE au lieu de celle
+  du contact choisi. Trouvé par l'envoi des formulaires du test des pages.
+- **Supprimer un axe analytique utilisé** (par une fiche, une facture ou un
+  projet) tombait en erreur : la suppression est refusée avec un message, qui
+  propose de désactiver l'axe.
+- Trois pages tombaient en erreur, trouvées par ce test : le recalcul des
+  fiches, la recherche et le tri par employé de la liste des fiches (une
+  colonne d'identité restée sur `employes`), le tri des factures par date de
+  paiement et celui des événements par statut SUISA.
+
 ## [3.2.6] — 2026-11-11
 
 ### Modifié

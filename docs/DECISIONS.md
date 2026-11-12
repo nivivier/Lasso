@@ -29,6 +29,34 @@ aucune réécriture ailleurs. Voir `migration_21` pour un cas réel.
 **Filet.** `tests/migrations_test.php` exécute `PRAGMA foreign_key_check` après
 toute la chaîne : une migration qui retomberait dans le piège échoue en CI.
 
+### Horodatages : UTC en base, heure locale à l'affichage (2026-11)
+
+Deux horloges cohabitaient. SQLite écrit en UTC : `datetime('now')` est le
+défaut de trente-sept colonnes horodatées (`cree_le`, `importe_le`,
+`envoye_le`…). PHP écrivait en heure locale (`date()`), et le journal, ajouté
+plus tard, avec `datetime('now', 'localtime')` — le fuseau du SYSTÈME de
+l'hébergeur, qui n'est pas forcément celui de l'application. Relue par
+`strtotime()`, une valeur UTC passait pour de l'heure locale : la date de
+création d'un envoi groupé, d'une structure, d'un import s'affichait avec une
+heure de retard, deux en été. Le poste de développement, dont PHP était réglé
+en UTC, ne le montrait pas : tout y était faux de la même façon.
+
+La convention retenue suit la majorité : **la base est en UTC**. Recréer
+trente-sept colonnes pour changer leur défaut aurait été disproportionné ;
+il suffisait que PHP écrive comme SQLite. `horodatage_maintenant()` écrit
+(`gmdate`), `horodatage()` / `horodatage_ts()` lisent et convertissent vers
+`APP_FUSEAU` (Europe/Zurich, fixé par `lib/config.php` au lieu d'être laissé
+à `php.ini`). Une valeur qui porte son décalage (`date('c')`, utilisé pour
+`email_envoye_le`) se lit telle quelle. Les DATES sans heure (échéance,
+`dernier_contact_le`) ne sont pas concernées : un jour n'a pas de fuseau.
+
+Les rares valeurs déjà écrites en heure locale par PHP (dernière connexion,
+dernière sauvegarde téléchargée, date de clôture) ne sont pas converties :
+les deux premières se réécrivent d'elles-mêmes au prochain usage, la troisième
+n'affiche qu'un jour. `tests/horodatage_test.php` interdit d'écrire un
+horodatage avec `date()` et de relire une colonne horodatée par `strtotime()`
+seul.
+
 ### Portée de l'idempotence des migrations
 
 Une étape doit pouvoir être rejouée **à sa propre version**, pas à n'importe
@@ -50,6 +78,141 @@ les deux fichiers extraits ne sont jamais requis directement.
 Piège rencontré pendant l'extraction, signalé immédiatement par les tests :
 `__DIR__` change de valeur quand un fichier se déplace. Le seul `require`
 relatif de la chaîne (`migration_8` → `compta.php`) a dû remonter d'un cran.
+
+### Découpage de `lib/db/migrations.php` (2026-11)
+
+3 656 lignes : `migrations.php` ne garde que `run_migrations()` (la table
+`$steps`) et `migrate_taux()`, et charge `lib/db/migrations/etapes_*.php`, des
+tranches de vingt-cinq migrations rangées **par numéro** — le fichier d'origine
+ne l'était plus (101 à 105 avaient été insérées au-dessus de 100). Déplacement
+textuel, vérifié ligne à ligne ; les deux `require` relatifs vers `compta.php`
+remontent d'un cran de plus. `tests/decoupage_test.php` tient la porte comme
+pour `helpers.php` et `booking.php`.
+
+### Clôture d'exercice : le verrou est dans la base (2026-11)
+
+`compta_cloture_annee` (paramètre) dit jusqu'à quelle année les écritures sont
+figées. Le verrou est posé par des **déclencheurs SQLite** (`migration_104`,
+SQL dans `compta_cloture_declencheurs_sql()`), pas par les routes : une dizaine
+de routes écrivent dans `ecritures`, plus les cascades (`ON DELETE SET NULL`
+d'une catégorie ou d'un compte bancaire) et les scripts. Un contrôle par route
+en aurait oublié une ; la base, non. Les déclencheurs lèvent
+`RAISE(ABORT, 'LASSO_EXERCICE_CLOS')`, que le gestionnaire d'exceptions
+d'`index.php` transforme en message et en retour à la page précédente.
+
+Ce qui reste libre sur une écriture close : ce qui ne change aucun montant de
+l'exercice — contre-partie, lien vers une facture ou une fiche, dispense de
+justificatif. Un `UPDATE` qui réécrit la même valeur passe aussi (les
+déclencheurs comparent `OLD` et `NEW`), sans quoi tout formulaire qui
+renvoie la ligne entière buterait.
+
+Les chemins qui parcourent large — l'import d'un relevé, le lettrage par
+règles — filtrent les années closes eux-mêmes (`compta_ouvert_sql()`) : buter
+sur le verrou au milieu d'un lot annulerait tout le lot.
+
+⚠️ **Une migration qui recrée `ecritures` ou `ecritures_ventilations`** (motif
+`x_new` → `RENAME`) **supprime leurs déclencheurs** avec l'ancienne table : elle
+doit rejouer `compta_cloture_declencheurs_sql()`. `tests/cloture_test.php`
+compte les cinq déclencheurs.
+
+### Secrets : chiffrés en base, clé hors de la base (2026-11)
+
+Les mots de passe SMTP étaient en clair dans `parametres` et
+`mailing_expediteurs` — et donc dans chaque sauvegarde téléchargée. Ils ne
+peuvent pas être hachés (le serveur de messagerie veut le mot de passe) : ils
+sont chiffrés (`lib/secrets.php`, AES-256-GCM via openssl, déjà requis pour le
+SMTP chiffré), `migration_106` convertit l'existant.
+
+**Où vit la clé.** Ni dans la base (ce serait ne rien protéger), ni dans le
+dépôt. `SECRETS_CLE` dans `config.local.php` si on veut la maîtriser, sinon un
+fichier `<APP_DB_PATH>.cle.php` créé au premier besoin, à côté de la base : le
+dossier est forcément inscriptible (SQLite y écrit son WAL), et c'est le seul
+emplacement que toute installation connaît. Un `.php` qui ne fait que
+`return '…'` : servi par erreur, il n'affiche rien. Créé en mode `x` pour que
+deux requêtes simultanées ne tirent pas deux clés.
+
+**Le prix, accepté.** L'archive ne contient pas la clé — c'est le but. Une
+base restaurée sur un AUTRE serveur arrive donc avec des mots de passe
+illisibles : `secret_dechiffrer()` rend `null` (jamais une exception),
+l'envoi passe au niveau suivant de la cascade SMTP, et Paramètres → E-mails
+affiche « mot de passe à ressaisir ». On perd une ressaisie, pas une donnée.
+
+**Les n° AVS suivent (2026-11).** `employes.numero_avs` et la copie figée
+`fiches.employe_avs`, convertis par `migration_108` après une copie de la base
+— chiffrer seulement l'employé aurait laissé chaque fiche livrer le numéro.
+Écriture par `avs_stocker()`, lecture par `avs_lire()`/`avs_affiche()`. Le
+prix : SQL ne voit plus le numéro, l'import de fiches apparie l'employé en PHP
+(`avs_trouver_employe()`), et aucune recherche ne portera jamais sur ce champ.
+`tests/secrets_test.php` § 10 interdit l'affichage, la recherche et l'écriture
+en clair.
+
+**La clé voyage dans l'archive chiffrée, et seulement là.** Perdre les n° AVS
+d'une base restaurée ailleurs n'est pas « une ressaisie » comme un mot de
+passe : il y en a un par employé et un par fiche. Une archive protégée par une
+phrase secrète porte donc `CLE_SECRETS.txt` (chiffré par la même phrase), et
+la restauration l'AJOUTE au fichier de clés avant de rejouer les migrations.
+Le fichier accepte une liste (`return ['…', '…'];`) : la première chiffre,
+toutes déchiffrent. Ajouter et jamais remplacer, parce que la copie « avant
+restauration » posée sur le serveur reste chiffrée avec l'ancienne clé — la
+remplacer rendrait illisible la seule porte de retour. Une archive sans phrase
+ne porte pas la clé : ce serait remettre le numéro en clair à côté de sa
+serrure.
+
+**Les jetons ne sont pas chiffrés** (`desinscription_secret`,
+`mailing_traiter_token`, `maj_token`, `evenements_*_token`) : ils authentifient
+des requêtes entrantes et figurent dans des liens déjà envoyés. Les rendre
+illisibles après une restauration casserait les liens de désinscription en
+circulation. Ils restent dans la base, donc dans la sauvegarde.
+
+### Sauvegarde : phrase secrète facultative, jamais conservée (2026-11)
+
+Le ZIP chiffré AES-256 (`ZipArchive::setEncryptionName`) se rouvre avec 7-Zip
+ou Keka, et dans Lasso ; le TAR.GZ et la base seule n'ont pas d'équivalent
+qu'un outil courant sache rouvrir, d'où « ZIP seulement ». Facultative, parce
+qu'une phrase perdue rend la sauvegarde inutilisable : pour une association de
+deux utilisateurs, c'est un risque réel, à choisir en connaissance de cause.
+Saisie deux fois pour la même raison. La route passe de GET à POST : une
+phrase n'a rien à faire dans une URL (historique, journaux du serveur), et la
+route écrivait déjà la date du téléchargement — un GET qui écrit.
+
+### Sauvegardes : une page à part, et non un type de données (2026-11)
+
+La sauvegarde complète était un « type » du menu d'Exporter, et sa
+restauration un « type » du menu d'Importer. Ni l'une ni l'autre n'en est un :
+pas d'année, pas de format au choix, et restaurer REMPLACE là où tous les
+imports ajoutent. Il fallait que la page d'export masque l'année, affiche trois
+blocs et une carte de copies pour ce seul type, et que celle d'import colore
+son bouton en rouge pour lui seul. Ce sont aussi deux droits différents :
+l'export se lit avec le cœur, tout ce qui touche la base entière est réservé à
+l'administration. `?p=sauvegardes` réunit télécharger, le rappel et la
+restauration d'une sauvegarde, puis les copies du serveur — rangées par
+objet, chacun avec sa restauration ; Exporter et Importer ne
+gardent que des données. Pas de redirection depuis l'ancien lien
+`?p=export&type=sauvegarde` : le type inconnu est simplement ignoré.
+
+Deux mots, tenus sur toute la page et ses boutons : la **sauvegarde** est
+l'archive complète qu'on télécharge, la **copie** la base seule gardée sur le
+serveur. Ils se restaurent tous les deux, et le même geste porte le même
+signal : un bouton rouge, qu'il vienne d'une copie ou d'une archive. Le bouton
+d'une copie s'intitule « Annuler la restauration » seulement si c'est la plus
+récente et qu'une restauration l'a posée : une copie plus récente (une
+clôture, un import) ferait annuler davantage que la restauration.
+
+### Journal d'activité : relevé par le dispatcher, sans le contenu (2026-11)
+
+La table `historique` du carnet d'adresses est écrite route par route ; elle
+couvrait les structures et les lieux, et rien d'autre. Le journal
+(`journal_activite`, `lib/journal.php`) est armé **une fois**, dans
+`index.php`, pour toute requête POST d'un compte connecté : une route ajoutée
+demain est journalisée sans qu'on y pense. L'issue est lue sur la réponse,
+dans une fonction d'arrêt (`register_shutdown_function`) : redirection vers
+`err=`/`refuse=`, code ≥ 400 ou message d'erreur en session → « refusé ».
+
+Il ne garde **jamais** le formulaire : les mêmes POST portent des mots de
+passe, des salaires, des n° AVS. Seulement un identifiant (`id`, `fiche_id`…,
+liste fermée `JOURNAL_CIBLES`) et un sous-geste qui a la forme d'un mot-clé.
+Le détail d'une modification (avant → après) n'y est donc pas : pour une
+fiche, la copie figée y pourvoit ; pour le reste, la sauvegarde.
 
 ---
 
@@ -313,6 +476,24 @@ fois.
 
 ## Performance
 
+### La feuille de style en seize fichiers (2026-11)
+
+`assets/app.css` faisait 7 600 lignes d'un seul tenant. Il est découpé à ses
+intertitres en `assets/css/01-base.css` … `16-accessibilite.css`, **sans
+qu'aucune règle ne bouge** : les fichiers mis bout à bout redonnent l'ancien
+texte, dans l'ordre de la cascade. `CSS_FICHIERS` (lib/helpers.php) en tient
+la liste ; `css_liens_html()` pose les `<link>` (page, impression, export) et
+`css_source()` rend la feuille entière à ce qui l'embarque (un e-mail) ou la
+lit (les tests). `tests/css_test.php` vérifie que le dossier et la liste
+disent la même chose.
+
+Le prix : seize requêtes au premier chargement au lieu d'une. Il est faible —
+les fichiers sont mis en cache un an (`immutable`, versionnés par leur date
+via `asset_url()`), et HTTP/2 les sert sur une seule connexion. Pas d'étape de
+construction pour les recoller : le déploiement reste un `git pull`.
+`assets/app.js` n'est pas découpé : c'est une suite plate de fonctions et
+d'écouteurs, que l'on parcourt sans peine.
+
 ### Ce qui est mis en cache, et pourquoi
 
 `asset_data_uri_mini()` et `param_logo_data_uri()` ne servent que dans
@@ -524,6 +705,16 @@ d'échelle (beaucoup d'utilisateurs simultanés), pas la recherche de ces 6 ms.
 
 ## Interface
 
+### Le titre de l'onglet du navigateur se déduit de la navigation (2026-11)
+
+Les titres étaient écrits route par route et avaient divergé : « Paramètres —
+Pays » mais « Employeur » tout court, et « Mailing — Modèles » longtemps après
+que le mot eut quitté l'interface. `titre_onglet()` (lib/modules.php) les
+déduit désormais de `nav_groupes()` et `parametres_groupes()` : « Module —
+Onglet », « Paramètres — Section ». `render()` l'applique à toute route qui
+EST un onglet ; une fiche garde le titre que lui donne sa route, le nom de son
+objet.
+
 ### La rangée d'onglets du téléphone, et ce qu'elle emportait
 
 Quand le rail a pris la navigation, la rangée d'onglets en tête de page
@@ -580,6 +771,21 @@ fonction `check()` globale, les inclure ensemble déclencherait un
 « Cannot redeclare ». Un sous-processus convertit en prime toute erreur fatale
 en code de sortie 255, donc en échec visible. La CI lance exactement la même
 commande.
+
+### Le JavaScript exécuté dans un vrai navigateur
+
+`javascript_test.php` compile les scripts sans les exécuter ; `pages_test.php`
+ouvre les pages sans navigateur. Une erreur qui ne survient qu'à l'exécution —
+une fonction renommée, un élément disparu, un script inline que la CSP bloque —
+passait entre les deux : la bande pleine largeur des pages de paramètres en est
+un exemple. `tests/navigateur_test.php` pilote un Chrome sans fenêtre par son
+protocole de débogage (une WebSocket, écrite en PHP pur : aucune
+bibliothèque), parcourt l'application en suivant ses liens — une page par
+route —, y fait les gestes qui ne soumettent rien (menus, crayons, recherches)
+et relève exceptions, erreurs de console et blocages CSP. Chrome est un outil
+de la machine qui teste, comme Node : absent, le test le dit et passe, sauf en
+CI où il échoue. Il ne voit que ce que ses gestes déclenchent : un glisser-
+déposer, un envoi de formulaire en arrière-plan restent hors de sa portée.
 
 ### Les listes que le CSS doit connaître, mais ne peut pas lire
 

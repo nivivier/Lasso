@@ -378,7 +378,7 @@ function lien_liste_filtree(string $route, array $filtres, array $params = []): 
 
 // Filtre de colonne à cases à cocher (EXPÉRIMENTAL, ?p=fiches — Paiement/
 // Date/Employé) : bouton entonnoir + panneau (voir .col-filter* dans
-// assets/app.css), plutôt qu'un <select> dans la barre d'outils, pour que
+// assets/css/), plutôt qu'un <select> dans la barre d'outils, pour que
 // le filtre reste visuellement rattaché à la colonne qu'il filtre. $page :
 // route courante (p=…), sinon ce <form> sans action= soumettrait sans
 // paramètre 'p' et retomberait sur la route par défaut de l'appli au lieu
@@ -530,7 +530,7 @@ function filtre_colonne_html(string $page, string $champ, array $options, array 
 {
     // Un filtre porteur d'actions a besoin de plus de place : un champ de
     // renommage plus trois icônes ne tiennent pas dans les 200px du panneau
-    // ordinaire (voir .col-filter-menu, assets/app.css).
+    // ordinaire (voir .col-filter-menu, assets/css/).
     $h = '<details class="col-filter' . ($actionsParOption ? ' col-filter-large' : '') . '">'
        . filtre_bouton_html($libelle, count($actives) > 0, count($actives))
        . '<form method="get" class="col-filter-menu">'
@@ -566,7 +566,7 @@ function filtre_colonne_html(string $page, string $champ, array $options, array 
 
     // Les descendants d'une rangée sont EMBOÎTÉS dans une branche à elle, et
     // non laissés frères dans une liste plate : c'est ce qui permet de déplier
-    // en animant la hauteur du groupe (grid-template-rows, assets/app.css)
+    // en animant la hauteur du groupe (grid-template-rows, assets/css/)
     // plutôt que de faire apparaître les rangées une à une. La pile retient le
     // niveau de chaque branche ouverte ; on les ferme dès qu'une rangée
     // revient à ce niveau ou plus haut.
@@ -691,7 +691,7 @@ function filtre_colonne_lieu_html(string $page, array $actifs, array $autresPara
 // ⚠️ NE JAMAIS envelopper ce bloc dans un <label>. Cliquer un <label> active
 // son premier contrôle : ici la case « Tout », qui coche alors TOUT. Le geste
 // se produit dès qu'on clique le libellé du champ ou l'espace vide à côté du
-// bouton — donc sans cesse. Utiliser <div class="field-group"> (assets/app.css),
+// bouton — donc sans cesse. Utiliser <div class="field-group"> (assets/css/),
 // qui a la même apparence sans être un label.
 // $attrsParValeur : des attributs HTML à poser sur le <label> d'une option
 // donnée — « data-projet-inactif » pour les projets mis de côté, que la case
@@ -766,7 +766,7 @@ function filtre_pille_groupe_html(string $page, string $label, array $autresPara
 
 // Variante de filtre_colonne_html() pour un panneau au contenu libre (pas des
 // cases à cocher) — même enveloppe .col-filter/.col-filter-menu (bouton
-// entonnoir + <details>, voir assets/app.css), mais $contenu est du HTML déjà
+// entonnoir + <details>, voir assets/css/), mais $contenu est du HTML déjà
 // construit par l'appelant (ex. deux <select> « De »/« à » pour une plage de
 // mois, un <input type="date"> + une case à cocher pour ?p=mailing_campagne).
 // Pas de marqueur « _set » ni de case « Tout » : ces notions n'ont de sens

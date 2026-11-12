@@ -3,7 +3,6 @@
 /** @var ?string $errFactures */ /** @var ?array $resultatsFactures */ /** @var ?array $resumeFactures */ /** @var bool $simuleFactures */
 /** @var ?array $msgEcritures */
 /** @var ?string $errEvenements */ /** @var ?array $resultatsEvenements */ /** @var ?array $resumeEvenements */ /** @var bool $simuleEvenements */
-/** @var string $errRestaure */ /** @var string $motifRestaure */
 
 // Types de données importables : un seul formulaire, la logique (route cible,
 // formats acceptés, champ de saisie, boutons) change selon la sélection. La
@@ -77,23 +76,6 @@ if (module_actif('booking') && peut_ecrire('booking')) {
         'saisie'  => true,
     ];
 }
-// La sauvegarde complète est un type comme les autres dans ce menu, et le
-// DERNIER : c'est le seul qui REMPLACE au lieu d'ajouter, et le seul réservé à
-// l'administration (écriture « coeur », comme la sauvegarde dont il est
-// l'inverse — le dispatcher le vérifie, cet affichage ne fait que suivre).
-// Rien à simuler : on ne prévisualise pas un remplacement intégral. D'où
-// 'simuler' => false, et un bouton rouge que 'danger' allume pour lui seul.
-if (est_admin()) {
-    $types['sauvegarde'] = [
-        'libelle' => 'Sauvegarde complète — remplace toutes les données',
-        'action'  => '?p=sauvegarde_restaurer',
-        'accept'  => '.zip,.gz,.tar.gz,.sqlite,application/zip,application/gzip',
-        'simuler' => false,
-        'bouton'  => 'Restaurer la sauvegarde',
-        'confirm' => "Remplacer TOUTE la base par cette sauvegarde ?\n\nLes données actuelles seront mises de côté dans un fichier .bak, puis vous serez déconnecté : les comptes de la sauvegarde ne sont pas forcément ceux d'aujourd'hui.",
-        'danger'  => true,
-    ];
-}
 
 // Type actif : déduit des résultats affichés (la route qui vient de tourner),
 // sinon laissé au choix mémorisé côté navigateur (localStorage, voir plus bas).
@@ -102,7 +84,6 @@ if ($errFiches !== null || $resumeFiches !== null) $typeActif = 'fiches';
 elseif ($errFactures !== null || $resumeFactures !== null) $typeActif = 'factures';
 elseif ($msgEcritures !== null) $typeActif = 'ecritures';
 elseif ($errEvenements !== null || $resumeEvenements !== null) $typeActif = 'evenements';
-elseif ($errRestaure !== '') $typeActif = 'sauvegarde';
 ?>
 <?php require __DIR__ . '/_param_tabs.php'; ?>
 
@@ -111,18 +92,6 @@ elseif ($errRestaure !== '') $typeActif = 'sauvegarde';
 <?php else: ?>
 <div class="card form" id="import-unifie" data-type-actif="<?= e((string) $typeActif) ?>">
     <h2 class="mt-0">Importer des données</h2>
-    <?php // Retour d'une restauration REFUSÉE. Une restauration réussie ne
-          // repasse jamais par ici : elle déconnecte, et c'est l'écran de
-          // connexion qui l'annonce. ?>
-    <?php if ($errRestaure === 'taille'): $maxT = televersement_max(); ?>
-    <p class="err mb-8">Le fichier dépasse ce que ce serveur accepte de recevoir<?= $maxT ? ' (' . e(fichier_taille_lisible($maxT)) . ')' : '' ?>.
-        Rien n'a été touché. Posez l'archive sur le serveur par FTP et suivez la note <code>SAUVEGARDE.txt</code> qu'elle contient.</p>
-    <?php elseif ($errRestaure === 'refus'): ?>
-    <p class="err mb-8">Sauvegarde refusée : <?= e($motifRestaure) ?><br>
-        <strong>Rien n'a été remplacé</strong> — l'archive est vérifiée avant que la base ne soit touchée.</p>
-    <?php elseif ($errRestaure === 'fichier'): ?>
-    <p class="err mb-8">Aucun fichier reçu. Rien n'a été touché.</p>
-    <?php endif; ?>
     <?php // Sans JavaScript, le menu ne reconfigure rien : le formulaire part sur
           // le premier type disponible (et non sur les fiches de salaire en dur,
           // qui n'existent pas si le module est éteint). ?>
@@ -165,17 +134,6 @@ elseif ($errRestaure !== '') $typeActif = 'sauvegarde';
         <?php if (module_actif('booking')): ?>
         <p class="muted small import-aide" data-for="structures" hidden>Carnet d'adresses <strong>CSV</strong> à colonnes libres : la correspondance des colonnes se fait à l'écran suivant, puis regroupements par organisateur et résolution des conflits un par un.</p>
         <p class="muted small import-aide" data-for="exclusions" hidden>Une adresse par ligne (ou séparées par des virgules). Chacune est <strong>désinscrite immédiatement</strong> du mailing, sans jamais pouvoir être réimportée par erreur. N'ajoute ni ne modifie aucune structure.</p>
-        <?php endif; ?>
-        <?php if (est_admin()): $maxTeleversement = televersement_max(); ?>
-        <p class="warn small import-aide" data-for="sauvegarde" hidden><?= icon('info') ?> <strong>Remplace toute la base</strong>
-            par celle de la sauvegarde — employés, fiches, écritures, carnet d'adresses, et <strong>les comptes de connexion</strong>,
-            qui remplacent ceux d'aujourd'hui, chacun avec son propre mot de passe.
-            Avant de remplacer quoi que ce soit, l'archive est vérifiée, puis <strong>la base actuelle est mise de côté</strong>
-            dans un fichier <code>.sqlite.bak</code> à côté d'elle. Les logos, photos et pièces jointes de l'archive sont
-            <strong>ajoutés</strong> aux dossiers existants, jamais substitués. Une sauvegarde plus ancienne est mise à jour
-            automatiquement. Vous serez <strong>déconnecté</strong> à la fin : reconnectez-vous avec un compte de cette sauvegarde-là.
-            Archive produite par <a href="?p=export">Exporter les données</a> : <code>.zip</code>, <code>.tar.gz</code> ou <code>.sqlite</code><?php
-            if ($maxTeleversement): ?>, jusqu'à <strong><?= e(fichier_taille_lisible($maxTeleversement)) ?></strong> par envoi<?php endif; ?>.</p>
         <?php endif; ?>
 
         <div class="form-actions">
@@ -226,10 +184,6 @@ elseif ($errRestaure !== '') $typeActif = 'sauvegarde';
         note.hidden = !c.simuler;
         lblGo.textContent = c.bouton;
         btnGo.dataset.confirm = c.confirm || '';
-        // Rouge pour le seul type qui REMPLACE au lieu d'ajouter : dans un menu
-        // où tout se ressemble, la couleur du bouton est ce qui distingue
-        // « j'ajoute quelques lignes » de « je remplace tout ».
-        btnGo.classList.toggle('danger', !!c.danger);
         // Assistant structures : le POST d'upload attend etape=mapper.
         if (c.etape) { etape.value = c.etape; etape.disabled = false; } else { etape.disabled = true; }
         // Un type se colle (la liste « ne pas contacter »), les autres se
