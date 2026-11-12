@@ -9,6 +9,8 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+## [3.3.0] — 2026-11-12
+
 ### Modifié
 - **Les n° AVS sont chiffrés dans la base**, comme les mots de passe d'envoi
   (`lib/secrets.php`) : ceux des employés et la copie figée sur chaque fiche
