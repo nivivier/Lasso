@@ -9,6 +9,14 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+## [3.4.2] — 2026-11-14
+
+### Modifié
+- **Présentation de Lasso** : l'introduction du README et de `CLAUDE.md`
+  décrit désormais une gestion administrative en modules (carnet d'adresses,
+  salaires, comptabilité, facturation, événements, booking, recherche de
+  fonds), et non plus un simple outil de fiches de salaire.
+
 ## [3.4.1] — 2026-11-14
 
 ### Modifié
