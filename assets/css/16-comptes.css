@@ -1,0 +1,133 @@
+/* ==================================================================== */
+/* COMPTES ET DROITS — ?p=utilisateurs (views/_compte_ligne.php) */
+/* ==================================================================== */
+
+/* Matrice de permissions (écran Utilisateurs) : colonnes de module réduites
+   au strict nécessaire et de largeur strictement identique. table-layout:
+   fixed est nécessaire — en layout auto, un mot non coupable comme
+   « COMPTABILITÉ » dépasse 60px et élargit sa seule colonne malgré une
+   largeur déclarée identique aux autres ; fixed + overflow-wrap force le
+   respect de la largeur (l'en-tête passe sur plusieurs lignes si besoin).
+   Les colonnes non-module reçoivent donc aussi une largeur explicite
+   (E-mail prend le reste de la place, seule colonne sans largeur fixée). */
+.perm-table { table-layout: fixed; }
+.perm-table th:first-child, .perm-table td:first-child { width: auto; }
+/* Largeurs des trois dernières colonnes (table-layout: fixed) : dernière
+   connexion — qui porte une date ET une heure —, création, puis les actions
+   (crayon + corbeille). */
+.perm-table th:nth-last-child(3), .perm-table td:nth-last-child(3) { width: 132px; }
+.perm-table th:nth-last-child(2), .perm-table td:nth-last-child(2) { width: 88px; }
+.perm-table th:nth-last-child(1), .perm-table td:nth-last-child(1) { width: 78px; }
+/* (la rangée d'édition occupe toute la largeur : voir .compte-edit-cell) */
+/* La ligne d'édition occupe toute la largeur : elle échappe aux largeurs fixes.
+   La ligne de création aussi — sa cellule unique est la dernière de sa rangée,
+   et hériterait donc des 78px réservés à la colonne des actions. */
+.perm-table .compte-edit-row > td { width: auto; }
+.perm-table #compte-ajout-row > td { width: auto; }
+/* Les droits d'un compte : une ligne par module dans le panneau d'édition, et
+   non une colonne par module dans la liste. À onze modules, la matrice
+   réclamait onze colonnes de 70px dont les en-têtes se chevauchaient hors
+   plein écran — pour deux comptes qu'on règle deux fois l'an. Ici le nom du
+   module est en toutes lettres, le niveau aussi, et le douzième module ne
+   changera rien. */
+.perm-liste td:first-child { width: 100%; }
+.perm-toggle { display: inline-flex; border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; }
+.perm-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    height: 30px; padding: 0 11px; white-space: nowrap;
+    background: var(--card); border: none; border-right: 1px solid var(--line); border-radius: 0;
+    color: var(--muted); cursor: pointer; font-size: var(--fs-small); font-weight: 500; box-shadow: none;
+}
+.perm-btn:last-of-type { border-right: none; }
+.perm-btn .ico { width: 13px; height: 13px; }
+.perm-btn:hover { background: var(--surface); }
+.perm-btn.on { background: var(--highlight-tint); color: var(--highlight-d); font-weight: 700; }
+/* Le raccourci « tout mettre sur », dans l'en-tête de la section : il pose les
+   onze lignes d'un coup. margin-left:auto le pousse à droite, au-dessus de la
+   colonne de boutons qu'il commande — .section-head est une rangée souple sans
+   justify-content, et ce décalage-ci ne regarde qu'elle. */
+.perm-tous { display: flex; align-items: center; gap: var(--esp-2); flex-wrap: wrap; margin-left: auto; }
+/* Le panneau d'édition d'un compte occupe toute la rangée : ses champs
+   d'identité se rangent en grille, le reste coule normalement. */
+.compte-edit-cell { background: var(--surface); vertical-align: top; padding: 18px var(--card-pad) 22px; }
+.compte-edit-cell .compte-edit-identite {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+    gap: 0 18px; align-items: end;
+}
+/* Le rattachement à une personne est un <div> et non un <label> — son champ
+   cherchable porte une liste déroulante, qu'un <label> englobant refermerait au
+   premier clic. Il doit donc redire ici ce que le <label> obtient plus bas,
+   sans quoi la troisième colonne portait un intitulé d'une autre taille et son
+   champ ne s'alignait pas sur les deux autres. */
+.compte-edit-cell .compte-edit-personne { min-width: 0; }
+
+/* ?p=utilisateurs — l'identité d'un compte en tête de ligne, et son édition dans une
+   ligne dépliée par le crayon (aucun champ modifiable tant qu'elle est fermée,
+   comme sur les axes analytiques ou les lignes du décompte). */
+.compte-identite { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.compte-nom { font-weight: 600; }
+/* Les champs d'identité du panneau d'édition : intitulé en petites capitales
+   au-dessus de son champ, comme dans un formulaire ordinaire. */
+.compte-edit-identite label,
+.compte-edit-identite .compte-edit-personne { margin-bottom: var(--esp-3); display: flex; flex-direction: column; gap: 3px; }
+.compte-edit-identite label,
+.compte-edit-identite .lbl-champ { font-size: var(--fs-tiny); color: var(--muted); font-weight: 700; }
+.compte-edit-identite .lbl-champ { margin-bottom: 0; }
+.compte-edit-identite input { width: 100%; min-width: 0; }
+/* Ligne de création d'un compte, dépliée par le bouton de la carte. Elle vit
+   dans le tableau, hors d'un .form : ses champs n'héritent donc d'aucune mise
+   en forme et la portent eux-mêmes. Une rangée qui s'enroule — sur téléphone,
+   chaque champ prend la largeur. */
+.compte-ajout-form { display: flex; align-items: flex-end; gap: var(--esp-3); flex-wrap: wrap; }
+.compte-ajout-form label {
+    display: flex; flex-direction: column; gap: var(--esp-1); margin: 0; flex: 1 1 200px; min-width: 0;
+    font-size: var(--fs-small); font-weight: 600; color: var(--muted);
+}
+.compte-ajout-form input { width: 100%; }
+.compte-ajout-form > p { flex: 1 1 100%; margin: 0; }
+
+/* ?p=utilisateurs sur téléphone : onze colonnes ne tiennent pas, et les réduire les
+   rend illisibles. Le tableau se relit alors en BLOCS — un compte, un bloc —,
+   l'en-tête disparaît et chaque cellule porte son intitulé (data-label, posé
+   dans views/_compte_ligne.php). Même contenu, même balisage : c'est
+   l'affichage qui change de forme, pas la page. */
+@media (max-width: 700px) {
+    .perm-table, .perm-table tbody, .perm-table tr, .perm-table td { display: block; width: auto; }
+    /* Les largeurs fixes des trois dernières colonnes n'ont plus d'objet une
+       fois les cellules empilées — et elles sont plus spécifiques que la règle
+       ci-dessus, d'où ce rappel. */
+    .perm-table td:nth-last-child(1), .perm-table td:nth-last-child(2),
+    .perm-table td:nth-last-child(3), .perm-table td:first-child { width: auto; }
+    .perm-table thead { display: none; }
+    .perm-table { table-layout: auto; }
+    .perm-table tr.compte-row, .perm-table tr.compte-edit-row {
+        border: 1px solid var(--line); border-radius: var(--radius-sm);
+        padding: 12px 14px; margin-bottom: 10px; position: relative;
+    }
+    /* La ligne d'édition prolonge celle qu'elle remplace : elles ne s'affichent
+       jamais ensemble, d'où la même boîte. */
+    .perm-table > tbody > tr.compte-row > td, .perm-table > tbody > tr.compte-edit-row > td {
+        border: 0; padding: var(--esp-1) 0; white-space: normal;
+    }
+    /* Identité en tête du bloc, actions posées en face d'elle. */
+    .perm-table > tbody > tr.compte-row > td:first-child { padding-right: 46px; font-size: var(--fs-large); }
+    /* ⚠️ « > tbody > tr.compte-row > » et non « .perm-table td.actions » : le
+       panneau d'édition contient un SECOND tableau (.perm-liste), dont chaque
+       ligne porte aussi un td.actions. Sans cette borne, les trois boutons de
+       droits de la première ligne partaient se poser en absolu sur le champ
+       e-mail. Vu à l'écran. */
+    .perm-table > tbody > tr.compte-row > td.actions { position: absolute; top: 10px; right: 12px; padding: 0; }
+    /* Le module et son niveau l'un sous l'autre : côte à côte, les trois
+       niveaux en toutes lettres ne tiennent pas dans la largeur d'un
+       téléphone. */
+    .perm-liste td { display: block; width: auto; padding: 6px 0; }
+    .perm-liste tr { display: block; border-top: 1px solid var(--line); padding: 6px 0; }
+    .perm-liste td.actions { text-align: left; }
+    .perm-btn { padding: 0 9px; }
+    .perm-table td[data-label="Droits"]::before,
+    .perm-table td[data-label="Dernière connexion"]::before,
+    .perm-table td[data-label="Créé le"]::before {
+        content: attr(data-label) " : "; font-weight: 600;
+    }
+    .compte-edit-cell { padding: 12px 14px 16px; }
+}

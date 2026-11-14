@@ -1,0 +1,41 @@
+/* ==================================================================== */
+/* CARTE DES LIEUX (Leaflet) et mini-carte de localisation */
+/* ==================================================================== */
+
+/* Vue carte des lieux (?p=lieux&vue=carte), voir views/_lieux_carte.php. Bascule
+   Liste/Carte : .seg-picker (icon_picker(), lib/helpers.php) en liens de
+   navigation plutôt qu'en radios de formulaire — voir views/lieux_liste.php.
+   La carte occupe tout l'espace disponible à droite de la sidebar (position:
+   fixed, hors du flux normal — .content n'a donc plus besoin de hauteur en
+   dessous du bandeau) ; le bandeau d'en-tête flotte par-dessus, fond
+   semi-transparent plutôt que le fond plein habituel — fond factorisé dans
+   .blur-glass, appliqué à .page-head-band partout (pas seulement en mode
+   carte) depuis l'ajout de l'image de fond personnalisable (Apparence), et
+   réutilisé par l'en-tête flottant de la carte « Localisation »
+   (?p=evenement, cf. plus bas). */
+.page-head-band.carte-header,
+.blur-glass { background: var(--glass); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.carte-lieux-wrap { position: fixed; top: 0; right: 0; bottom: 0; left: var(--rail-width); z-index: 1; }
+.carte-lieux { width: 100%; height: 100%; }
+.carte-banner {
+    position: absolute; bottom: 16px; right: 16px; z-index: var(--z-sur-carte); max-width: 340px;
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-sm);
+    box-shadow: var(--shadow); padding: 14px 16px;
+}
+.carte-popup-liste { margin: var(--esp-1) 0 0; padding-left: 18px; max-height: 180px; overflow-y: auto; }
+.carte-popup-liste li { margin-bottom: 2px; }
+/* Pastilles de carte (?p=structures/évenements&vue=carte) : même couleur pour
+   tous les points, légèrement plus grandes quand le point regroupe plusieurs
+   fiches (même ville, voir carte_points_grouper()) pour repérer les villes
+   denses sans ouvrir chaque popup. */
+.carte-pin {
+    background: var(--highlight); border: 2px solid #fff; border-radius: var(--radius-rond);
+    box-shadow: 0 1px 4px rgb(0 0 0 / .35);
+}
+@media (max-width: 800px) {
+    .carte-lieux-wrap { left: 0; }
+}
+
+/* Mini-carte de localisation (?p=lieu, ?p=structure, ?p=evenement), voir
+   views/_mini_carte.php — un seul marqueur, pas de fond plein écran. */
+.mini-carte { width: 100%; height: 200px; border-radius: var(--radius-sm); border: 1px solid var(--line); }

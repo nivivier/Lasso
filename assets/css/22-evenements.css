@@ -9,7 +9,7 @@
    STRUCTURE_STATUTS_CLASSES_ICONE (lib/booking.php). */
 .mini-structures { list-style: none; margin: 0; padding: 0; }
 .mini-structure + .mini-structure { border-top: 1px solid var(--line); }
-.mini-structure.inactif { opacity: .62; }
+.mini-structure.inactif { opacity: var(--opacite-inactif); }
 .ms-lien {
     display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
     gap: 0 11px; padding: 10px 0; color: inherit; text-decoration: none;
@@ -17,12 +17,12 @@
 .ms-lien:hover .ms-nom { text-decoration: underline; }
 /* Un nombre suivi de son unité sur la même ligne (« 30 jours sans
    sauvegarde », ?p=sauvegardes) : le champ garde la largeur de quelques chiffres. */
-.champ-unite { display: flex; align-items: center; gap: 8px; }
+.champ-unite { display: flex; align-items: center; gap: var(--esp-2); }
 .form .champ-unite input { width: 6em; flex: none; }
 
 /* Un bouton à côté de la mini-fiche (« Délier » sur ?p=personne, en mode
    modification) : la fiche garde toute la largeur restante. */
-.mini-structure:has(> .ms-action) { display: flex; align-items: center; gap: 8px; }
+.mini-structure:has(> .ms-action) { display: flex; align-items: center; gap: var(--esp-2); }
 .mini-structure > .ms-lien { flex: 1; min-width: 0; }
 /* Le statut est porté par son ICÔNE, pas par un carré bordé : dans la liste,
    c'est la case à cocher qui prend la couleur, mais il n'y a rien à cocher ici
@@ -78,7 +78,7 @@
    colonnes — comme dans les fiches de la liste. */
 .ms-tags {
     grid-column: 1 / -1; grid-row: 2;
-    display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px;
+    display: flex; flex-wrap: wrap; gap: var(--esp-1); margin-top: 6px;
 }
 .ms-tags .badge { margin-left: 0; font-size: var(--fs-tiny); }
 .ms-maj::before { -webkit-mask-image: var(--ico-crayon); mask-image: var(--ico-crayon); }
@@ -95,7 +95,7 @@
    cellule ne suffit pas quand son contenu est un formulaire.
 --------------------------------------------------------------------------- */
 /* inline-flex pour le formulaire d'interrupteur : en flex (bloc), il passait
-   sous la poignée qui ouvre désormais la cellule. */
+   sous la poignée qui ouvre la cellule. */
 .postes-table .toggle-cell { display: inline-flex; align-items: center; min-height: 30px; vertical-align: middle; }
 .postes-table .taux-form { display: flex; align-items: center; min-height: 30px; }
 .postes-table .taux-form .pct-input { margin: 0; }
@@ -124,9 +124,9 @@
 .edit-toggle { gap: 7px; font-size: var(--fs-small); color: var(--muted); font-weight: 600; white-space: nowrap; }
 .edit-usage { white-space: nowrap; }
 /* Paliers d'âge, édités dans la ligne à laquelle ils appartiennent. */
-.bareme-bloc { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; width: 100%; padding: 4px 0; }
+.bareme-bloc { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; width: 100%; padding: var(--esp-1) 0; }
 .bareme-note { flex: 1 0 100%; }
-.bareme-palier { display: inline-flex; align-items: center; gap: 4px; }
+.bareme-palier { display: inline-flex; align-items: center; gap: var(--esp-1); }
 .bareme-palier input[type="number"] { width: 4rem; }
 .bareme-bloc .pct-input { max-width: 6.5rem; }
 
@@ -136,7 +136,7 @@
 /* Menu à cocher vivant dans un formulaire (choix_coches_html()) : même
    apparence que les filtres de colonne, sans le bouton « Appliquer » — la
    sélection part avec le formulaire qui l'entoure. */
-.choix-coches .col-filter-menu { padding-bottom: 8px; }
+.choix-coches .col-filter-menu { padding-bottom: var(--esp-2); }
 /* Le bouton nomme ce qui est coché : un nom de projet, ou deux, peuvent être
    longs — ils sont coupés plutôt que de déborder du champ qui les contient. */
 .choix-coches > .col-filter-btn-nomme { max-width: 100%; }
@@ -168,7 +168,7 @@
    ordonnables (voir docs/UI.md §2d et §4). */
 .feuille-item {
     display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
-    gap: 0 8px; align-items: center;
+    gap: 0 var(--esp-2); align-items: center;
     padding: 5px 0; border-top: 1px solid var(--line);
 }
 /* Le libellé de lecture reprend les règles communes (.plan-nom, masqué tant que
@@ -219,8 +219,8 @@
    feuille de route : le dépôt d'une pièce pose les quatre mêmes sortes de
    champs courts. Les deux sélecteurs partagent la règle plutôt que de la
    recopier — c'est un seul geste, pas deux (docs/UI.md § 10). */
-.feuille-form, .champs-rangee { display: flex; flex-wrap: wrap; gap: 0 12px; align-items: flex-end; margin-top: 10px; }
-.fr-champ, .champs-rangee > label { display: block; margin-bottom: 12px; min-width: 0; }
+.feuille-form, .champs-rangee { display: flex; flex-wrap: wrap; gap: 0 var(--esp-3); align-items: flex-end; margin-top: 10px; }
+.fr-champ, .champs-rangee > label { display: block; margin-bottom: var(--esp-3); min-width: 0; }
 .fr-champ input, .fr-champ select,
 .champs-rangee > label input, .champs-rangee > label select { width: 100%; }
 .fr-libelle  { flex: 2 1 170px; }
@@ -247,12 +247,12 @@
 .feuille-head { align-items: center; }
 /* Le bouton d'envoi termine la rangée quand il y reste de la place, et passe à
    la ligne sinon — comme n'importe quel champ. */
-.feuille-form .form-actions { display: flex; gap: 8px; margin: 0 0 12px auto; }
+.feuille-form .form-actions { display: flex; gap: var(--esp-2); margin: 0 0 var(--esp-3) auto; }
 
 /* Le menu d'ajout : un « + » qui déplie la liste des types, comme les
    entonnoirs des colonnes de liste. Cinq boutons alignés encombraient l'en-tête
    d'une carte qui n'en demandait qu'un. */
-.feuille-ajout { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-start; justify-content: flex-end; }
+.feuille-ajout { display: flex; flex-wrap: wrap; gap: var(--esp-2); align-items: flex-start; justify-content: flex-end; }
 /* Le MENU DÉROULANT de l'application (menu_deroulant_html(), lib/helpers.php) :
    un bouton qui déplie une courte liste de gestes voisins. Trois écrans
    l'emploient — le « + » du déroulé d'une date, « Charger un modèle » de la
@@ -269,7 +269,7 @@
 /* Aligné à DROITE du bouton, qui est d'ordinaire en bout de ligne : à gauche, le
    panneau sortirait de la carte. .menu-deroulant-gauche pour le cas inverse. */
 .menu-deroulant-panneau {
-    position: absolute; top: calc(100% + 4px); right: 0; z-index: 20;
+    position: absolute; top: calc(100% + 4px); right: 0; z-index: var(--z-collant);
     display: flex; flex-direction: column; gap: 2px; min-width: 190px;
     background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-sm);
     box-shadow: var(--shadow); padding: 6px;
@@ -279,7 +279,7 @@
    d'une date) ou un choix traité sur place (modèles de message, copie d'un lien
    de synchronisation). Même dessin dans les deux cas. */
 .menu-deroulant-panneau a, .menu-deroulant-panneau button {
-    display: flex; align-items: center; gap: 8px; padding: 7px 10px; width: 100%;
+    display: flex; align-items: center; gap: var(--esp-2); padding: 7px 10px; width: 100%;
     /* justify-content : la règle générale des <button> centre leur contenu, ce
        qui centrait le nom du modèle au milieu du menu. */
     background: none; border: 0; box-shadow: none; text-align: left; cursor: pointer;
@@ -300,8 +300,8 @@
     /* Les boutons passent sous le contenu : à trois colonnes sur un téléphone,
        le titre d'un élément n'avait plus que quelques caractères de large. */
     /* Sur téléphone, la ligne garde ses trois zones : renvoyer les actions à la
-       rangée suivante coûtait une ligne par élément — souvent pour le seul
-       crayon, alors que la place était là. Ce qui se réserve pour aligner les
+       rangée suivante coûterait une ligne par élément — souvent pour le seul
+       crayon, alors que la place est là. Ce qui se réserve pour aligner les
        colonnes sur grand écran est simplement rendu au texte. */
     /* DEUX pistes, et non trois : la poignée de glisser-déposer est masquée sur
        téléphone (plus bas), donc retirée de la grille. Les deux éléments
@@ -309,7 +309,7 @@
        dans la piste « auto », qui s'étire à son contenu, et les boutons dans le
        « 1fr » qui n'avait plus rien à leur donner. Une ligne un peu longue
        poussait ainsi les icônes hors de la carte. */
-    .feuille-item { grid-template-columns: minmax(0, 1fr) auto; gap: 0 4px; }
+    .feuille-item { grid-template-columns: minmax(0, 1fr) auto; gap: 0 var(--esp-1); }
     /* max-content, et non 0 : à 0 la colonne d'actions se réduisait à rien et
        ses boutons débordaient PAR-DESSUS le texte de la ligne — spectaculaire
        en édition, où ils sont cinq. Elle réserve donc exactement ce que ses
@@ -348,7 +348,7 @@
        la seule qui l'avait obtenue la première. */
     .dnd-on .plan-grip { display: none; }
     .dnd-on .plan-fallback { display: inline-flex; }
-    /* …et le point revient avec, puisque c'est la poignée qui l'avait remplacé. */
+    /* …et le point revient avec : c'est la poignée qui en tient la place. */
     .dnd-on .plan-puce-feuille { display: inline-flex; }
     .menu-deroulant-panneau { min-width: 170px; }
 }
@@ -382,7 +382,7 @@
 .fr-print-cadre .fr-print-table tr:first-child td { border-top: 0; }
 .fr-print-sub { color: var(--muted); font-size: var(--fs-small); }
 /* Le logo signe la feuille, en pied : il est là pour signer, pas pour ouvrir. */
-.fr-print-logo { height: 18px; width: auto; vertical-align: -4px; margin-right: 8px; opacity: .75; }
+.fr-print-logo { height: 18px; width: auto; vertical-align: -4px; margin-right: var(--esp-2); opacity: .75; }
 /* Deux colonnes : l'intitulé à gauche, ce qu'il recouvre à droite — c'est ainsi
    qu'on cherche une information sur une feuille, par son nom. */
 .fr-print-table { width: 100%; border-collapse: collapse; }

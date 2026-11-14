@@ -142,19 +142,19 @@ if ($vue === 'duo') { ob_start(); }
     <?php endif; ?>
         <?php $hrefLigne = $vue === 'duo' ? $lienDuo((int) $f['id']) : '?p=fiche&id=' . (int) $f['id']; ?>
         <tr class="row-link <?= $vue === 'duo' && (int) $f['id'] === $duoSel ? 'ligne-active' : '' ?>" tabindex="0" role="link" data-href="<?= e($hrefLigne) ?>">
-            <td class="col-date"><a href="<?= e($hrefLigne) ?>" class="titre-lien"><?= e(mois_nom((int) $f['mois'])) ?> <?= (int) $f['annee'] ?></a></td>
-            <td class="col-employe"><?= avatar_initiales((string) $f['employe_nom'], (string) ($f['avatar_couleur'] ?? ''), (string) ($f['avatar_photo'] ?? '')) ?><?= e($f['employe_nom']) ?></td>
+            <td class="carte-garde col-date"><a href="<?= e($hrefLigne) ?>" class="titre-lien"><?= e(mois_nom((int) $f['mois'])) ?> <?= (int) $f['annee'] ?></a></td>
+            <td class="carte-garde col-employe"><?= avatar_initiales((string) $f['employe_nom'], (string) ($f['avatar_couleur'] ?? ''), (string) ($f['avatar_photo'] ?? '')) ?><?= e($f['employe_nom']) ?></td>
             <?php if ($axesParFiche): ?>
             <?php // Étiquettes plutôt qu'une liste séparée par des virgules : un axe
                   // est une catégorie, pas une phrase — même composant que les
                   // étiquettes de structures. ?>
             <td class="col-axes"><?php foreach (array_filter(array_map('trim', explode(',', (string) ($axesParFiche[(int) $f['id']] ?? '')))) as $axe): ?><span class="badge muted-badge"><?= e($axe) ?></span><?php endforeach; ?></td>
             <?php endif; ?>
-            <td class="num col-brut"><?= chf_ou_zero((float) $f['salaire_brut']) ?></td>
-            <td class="num strong col-net <?= $apayer ? 'net-apayer' : (fiche_a_venir($f) ? 'net-avenir' : '') ?>"><?= chf_ou_zero((float) $f['salaire_net']) ?></td>
-            <td class="col-paiement"><?= badge_paiement($f) ?></td>
+            <td class="carte-garde num col-brut"><?= chf_ou_zero((float) $f['salaire_brut']) ?></td>
+            <td class="carte-garde num strong col-net <?= $apayer ? 'net-apayer' : (fiche_a_venir($f) ? 'net-avenir' : '') ?>"><?= chf_ou_zero((float) $f['salaire_net']) ?></td>
+            <td class="carte-garde col-paiement"><?= badge_paiement($f) ?></td>
             <td class="num col-cout"><?= cout_emp_affiche($f) ?></td>
-            <td class="center col-envoyee"><?php if (trim((string) ($f['email_envoye_le'] ?? '')) !== ''): ?><span class="mail-sent" title="Envoyée le <?= e(horodatage($f['email_envoye_le'], 'd.m.Y')) ?>"><?= icon('check') ?></span><?php endif; ?></td>
+            <td class="carte-garde center col-envoyee"><?php if (trim((string) ($f['email_envoye_le'] ?? '')) !== ''): ?><span class="mail-sent" title="Envoyée le <?= e(horodatage($f['email_envoye_le'], 'd.m.Y')) ?>"><?= icon('check') ?></span><?php endif; ?></td>
         </tr>
     <?php endforeach; ?>
     <?php endif; ?>

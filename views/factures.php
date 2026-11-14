@@ -108,10 +108,10 @@ if ($vue === 'duo') { ob_start(); }
             ? $lienDuo((int) $f['id'])
             : '?p=facture&id=' . (int) $f['id'] . suffixe_retour_liste($recherche, $pgPage); ?>
         <tr class="row-link <?= $vue === 'duo' && (int) $f['id'] === $duoSel ? 'ligne-active' : '' ?>" tabindex="0" role="link" data-href="<?= e($hrefLigne) ?>">
-            <td class="col-numero"><a href="<?= e($hrefLigne) ?>" class="titre-lien"><?= $f['numero'] !== '' ? e($f['numero']) : '<span class="muted">(brouillon)</span>' ?></a></td>
-            <td class="col-structure"><strong><?= e($f['structure_nom']) ?></strong></td>
+            <td class="carte-garde col-numero"><a href="<?= e($hrefLigne) ?>" class="titre-lien"><?= $f['numero'] !== '' ? e($f['numero']) : '<span class="muted">(brouillon)</span>' ?></a></td>
+            <td class="carte-garde col-structure"><strong><?= e($f['structure_nom']) ?></strong></td>
             <td class="muted small"><?= $f['date_emission'] !== '' ? e(date('d.m.Y', strtotime($f['date_emission']))) : '—' ?></td>
-            <td class="muted small col-echeance"><?= $f['date_echeance'] !== '' ? e(date('d.m.Y', strtotime($f['date_echeance']))) : '—' ?></td>
+            <td class="carte-garde muted small col-echeance"><?= $f['date_echeance'] !== '' ? e(date('d.m.Y', strtotime($f['date_echeance']))) : '—' ?></td>
             <?php if ($avecEvenements): ?>
                 <td class="muted small">
                     <?php if (!empty($f['evenement_date'])): ?>
@@ -119,8 +119,8 @@ if ($vue === 'duo') { ob_start(); }
                     <?php else: ?>—<?php endif; ?>
                 </td>
             <?php endif; ?>
-            <td class="num strong col-montant"><?= chf((float) $f['montant_total']) ?></td>
-            <td class="col-paiement"><?= facturation_badge($f) ?></td>
+            <td class="carte-garde num strong col-montant"><?= chf((float) $f['montant_total']) ?></td>
+            <td class="carte-garde col-paiement"><?= facturation_badge($f) ?></td>
         </tr>
     <?php endforeach; ?>
     <?php endif; ?>

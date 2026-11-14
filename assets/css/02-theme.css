@@ -1,0 +1,27 @@
+/* ============================================================================
+   Thème : clair, sombre ou automatique — docs/DECISIONS.md § Mode sombre
+
+   Les couleurs ne sont PAS ici : chaque token s'écrit une fois, dans
+   01-base.css, sous la forme light-dark(clair, sombre). Ce fichier ne fait
+   que dire au navigateur quel côté prendre, par color-scheme :
+     - automatique (aucun attribut) : « light dark », le système décide ;
+     - data-theme="clair" ou "sombre" (Paramètres → Apparence) : imposé.
+   color-scheme règle du même coup les contrôles natifs (barres de
+   défilement, listes déroulantes), qui suivent enfin le thème.
+
+   --sombre (0 ou 1) sert aux rares réglages qui ne sont pas des couleurs —
+   light-dark() ne vaut que pour une couleur : l'atténuation des décors,
+   l'éclat d'un bouton plein au survol. C'est la seule chose écrite deux fois,
+   parce qu'aucun sélecteur ne combine une media query et un attribut. Ce qui
+   ne s'exprime même pas en nombre (montrer tel logo, inverser les tuiles de
+   la carte) est rangé dans 20-theme-interrupteurs.css.
+
+   Les surfaces d'impression (.sheet, body.print-page) restent blanches : on
+   imprime sur du papier.
+   ========================================================================== */
+:root { color-scheme: light dark; --sombre: 0; }
+:root[data-theme="clair"] { color-scheme: light; }
+:root[data-theme="sombre"] { color-scheme: dark; --sombre: 1; }
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="clair"]) { --sombre: 1; }
+}

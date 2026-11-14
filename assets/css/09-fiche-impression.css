@@ -1,6 +1,6 @@
 /* =================== Payslip =================== */
 .payslip { max-width: 720px; }
-.ps-head { margin-bottom: 12px; }
+.ps-head { margin-bottom: var(--esp-3); }
 .ps-logo { height: 38px; width: auto; }
 .ps-title { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 2px solid var(--brand); padding-bottom: 7px; margin-bottom: 13px; }
 .ps-title h2 { margin: 0; font-size: var(--fs-big); }
@@ -11,7 +11,7 @@
 .ps-parties h3 { font-size: var(--fs-small); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 3px; }
 .ps-parties p { margin: 0; }
 /* Fiche d'identité employé : grille label/valeur (s'adapte au mobile, pas de table). */
-.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px; margin: 0; }
+.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 var(--esp-5); margin: 0; }
 .info-grid > div { display: flex; flex-direction: column; gap: 2px; padding: 7px 0; border-bottom: 1px solid var(--line); min-width: 0; }
 .info-grid dt { color: var(--muted); font-size: var(--fs-small); }
 .info-grid dd { margin: 0; font-size: var(--fs-basic); overflow-wrap: anywhere; }
@@ -47,15 +47,15 @@
 /* Le salaire brut d'un décompte : même règle que la colonne « Brut » d'une
    liste — un montant ne prend pas la couleur de l'action. Son lavis neutre et
    sa graisse suffisent à en faire une ligne de total. */
-.ps-table tr.brut-line td { background: var(--surface); color: var(--ink); border-top: none; padding-top: 8px; padding-bottom: 8px; }
+.ps-table tr.brut-line td { background: var(--surface); color: var(--ink); border-top: none; padding-top: var(--esp-2); padding-bottom: var(--esp-2); }
 .ps-table.net { margin-top: -2px; margin-bottom: 14px; }
 .ps-table .grand-total td { font-size: var(--fs-large); font-weight: 800; background: var(--teal-tint); color: var(--teal-d); padding: 10px 10px; border: none; }
 .ps-table .grand-total.apayer td { background: var(--amber-tint); color: var(--amber); } /* à payer → jaune */
 
 /* =================== Modal aperçu impression =================== */
 #preview-modal {
-    position: fixed; inset: 0; z-index: 500;
-    background: rgba(20,16,40,.35);
+    position: fixed; inset: 0; z-index: var(--z-apercu);
+    background: var(--voile);
     backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
     display: flex; align-items: stretch; justify-content: center;
     padding: 32px 24px;
@@ -78,8 +78,8 @@
 #preview-modal.preview-ajuste #preview-modal-inner { width: 100%; max-height: 100%; }
 #preview-modal.preview-ajuste #preview-modal-frame { width: 100%; max-width: none; min-height: 0; flex: 0 0 auto; }
 #preview-modal-close {
-    position: absolute; top: 10px; right: 10px; z-index: 502;
-    width: 30px; height: 30px; border-radius: 50%; padding: 0;
+    position: absolute; top: 10px; right: 10px; z-index: calc(var(--z-apercu) + 2);
+    width: 30px; height: 30px; border-radius: var(--radius-rond); padding: 0;
     background: rgba(41,33,80,.6); border: 1px solid rgba(255,255,255,.45);
     color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center;
     box-shadow: 0 1px 4px rgba(0,0,0,.3);
@@ -93,7 +93,7 @@
    premier coup de molette obligeait à remonter. sticky et non fixed : elle
    appartient au flux de la page imprimable, qu'elle soit vue dans l'iframe de
    l'aperçu ou seule dans un onglet. */
-.print-toolbar { position: sticky; top: 0; z-index: 5; padding: 13px 18px; background: var(--brand-surface); color: #fff; display: flex; gap: 16px; align-items: center; }
+.print-toolbar { position: sticky; top: 0; z-index: 5; padding: 13px 18px; background: var(--brand-surface); color: #fff; display: flex; gap: var(--esp-4); align-items: center; }
 /* « Fermer » ferme la rangée, à droite, séparé des actions du document —
    injecté par la fenêtre d'aperçu (views/layout.php), jamais écrit dans les
    vues d'impression elles-mêmes. */
@@ -141,25 +141,25 @@ body.print-page { background: #e9e9f2; }
     .cert { font-size: var(--fs-small); }
     .cert-table th, .cert-table td { padding: 2.5px 8px; }
     .cert-top { margin-bottom: 10px; }
-    .cert-id, .cert-checks { margin-bottom: 8px; }
-    .cert-foot { margin-top: 16px; }
+    .cert-id, .cert-checks { margin-bottom: var(--esp-2); }
+    .cert-foot { margin-top: var(--esp-4); }
 }
 
 /* =================== Certificat de salaire (Formulaire 11) =================== */
 /* Police standard exigée par le guide AFC (Arial / Helvetica / Verdana). */
 .cert { font-family: Arial, Helvetica, Verdana, sans-serif; color: #111; }
-.cert-top { display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid var(--brand); padding-bottom: 12px; margin-bottom: 18px; }
+.cert-top { display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid var(--brand); padding-bottom: var(--esp-3); margin-bottom: 18px; }
 .cert-logo { height: 34px; width: auto; }
 .cert-title { text-align: right; }
 .cert-title h2 { margin: 0; font-size: var(--fs-big); color: var(--brand); }
 .cert-ref { font-size: var(--fs-small); color: var(--muted); }
 .cert-lbl { display: block; font-size: var(--fs-tiny); text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 700; margin-bottom: 2px; }
-.cert-id { display: flex; justify-content: space-between; gap: 24px; margin-bottom: 14px; }
+.cert-id { display: flex; justify-content: space-between; gap: var(--esp-5); margin-bottom: 14px; }
 .cert-id-block { line-height: 1.5; }
-.cert-id-meta { text-align: right; display: grid; gap: 8px; }
+.cert-id-meta { text-align: right; display: grid; gap: var(--esp-2); }
 .cert-id-meta .cert-lbl { margin-bottom: 0; }
-.cert-checks { display: flex; flex-direction: column; gap: 5px; margin-bottom: 16px; font-size: var(--fs-small); }
-.cert-check { display: flex; align-items: center; gap: 8px; color: #333; }
+.cert-checks { display: flex; flex-direction: column; gap: 5px; margin-bottom: var(--esp-4); font-size: var(--fs-small); }
+.cert-check { display: flex; align-items: center; gap: var(--esp-2); color: #333; }
 .cert-check .box { width: 13px; height: 13px; border: 1.5px solid #888; border-radius: 2px; flex: 0 0 auto; }
 .cert-table { width: 100%; border-collapse: collapse; }
 .cert-table th { text-align: left; font-size: var(--fs-small); color: var(--muted); text-transform: uppercase; letter-spacing: .04em; border-bottom: 1.5px solid var(--line); padding: 6px 9px; }
@@ -168,7 +168,7 @@ body.print-page { background: #e9e9f2; }
 .cert-table .op { width: 22px; text-align: center; color: var(--muted); }
 .cert-table .amt { width: 130px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .cert-table .hint { color: var(--muted); font-weight: 400; }
-.cert-table tr.sub .n, .cert-table tr.sub td:nth-child(2) { padding-left: 16px; color: #555; font-size: var(--fs-small); }
+.cert-table tr.sub .n, .cert-table tr.sub td:nth-child(2) { padding-left: var(--esp-4); color: #555; font-size: var(--fs-small); }
 .cert-table tr.tot td { font-weight: 800; background: var(--primary-tint); color: var(--brand); border-bottom: none; }
 .cert-note { font-size: var(--fs-small); color: var(--muted); margin: 14px 0 0; line-height: 1.5; }
 .cert-foot { display: flex; gap: 28px; margin-top: 28px; }
@@ -177,7 +177,7 @@ body.print-page { background: #e9e9f2; }
 
 /* =================== Logos employeur =================== */
 /* Aperçus dans le formulaire employeur */
-.logo-preview { display: inline-flex; align-items: center; padding: 8px 10px; border-radius: var(--radius-sm); margin: 4px 0; }
+.logo-preview { display: inline-flex; align-items: center; padding: 8px 10px; border-radius: var(--radius-sm); margin: var(--esp-1) 0; }
 .logo-preview img { max-height: 40px; max-width: 200px; width: auto; display: block; }
 .logo-preview.clair { background: #fff; border: 1px solid var(--line); }
 .logo-preview.sombre { background: var(--brand-surface); }
@@ -186,15 +186,15 @@ body.print-page { background: #e9e9f2; }
 /* Pastille d'une couleur choisie, dans la lecture d'une carte de réglages :
    la valeur en toutes lettres ne dit pas ce qu'elle vaut à l'œil. */
 .pastille-couleur {
-    display: inline-block; width: 14px; height: 14px; border-radius: 4px;
+    display: inline-block; width: 14px; height: 14px; border-radius: var(--radius-xs);
     border: 1px solid var(--line); vertical-align: -2px; margin-right: 6px;
 }
 /* Sélecteur de couleur principale (Paramètres > Employeur) : :not() en plus pour
    égaler la spécificité de la règle générale .form input:not(...):not(...) et
    ne pas hériter de sa largeur/padding pensés pour les champs texte. */
-.color-field { display: flex; align-items: center; gap: 10px; margin: 4px 0; }
+.color-field { display: flex; align-items: center; gap: 10px; margin: var(--esp-1) 0; }
 .form input[type="color"]:not([type="checkbox"]):not([type="radio"]) {
-    width: 56px; height: 40px; padding: 4px; cursor: pointer; flex-shrink: 0;
+    width: 56px; height: 40px; padding: var(--esp-1); cursor: pointer; flex-shrink: 0;
 }
 .color-field code { font-size: var(--fs-basic); color: var(--muted); }
 /* Repli texte quand aucun logo n'est configuré */
@@ -212,7 +212,7 @@ abbr {
 }
 
 /* =================== Fiche de salaire : layout avec sidebar =================== */
-.fiche-wrapper { display: flex; gap: 24px; align-items: flex-start; }
+.fiche-wrapper { display: flex; gap: var(--esp-5); align-items: flex-start; }
 /* max-width : sur téléphone le gabarit passe en colonne, où min-width ne
    borne plus la LARGEUR ; une fiche au long libellé débordait alors de 28px. */
 .fiche-main { flex: 1; min-width: 0; max-width: 100%; }
@@ -221,43 +221,16 @@ abbr {
     background: transparent;
     padding: 0;
 }
-.fiche-aside .paiement-form { display: flex; flex-direction: column; align-items: stretch; gap: 12px; width: 100%; flex-wrap: nowrap; }
-.fiche-aside h2 { display: block; font-size: var(--fs-large); margin: 0 0 8px; font-weight: 700; text-align: left; }
+.fiche-aside .paiement-form { display: flex; flex-direction: column; align-items: stretch; gap: var(--esp-3); width: 100%; flex-wrap: nowrap; }
+.fiche-aside h2 { display: block; font-size: var(--fs-large); margin: 0 0 var(--esp-2); font-weight: 700; text-align: left; }
 .fiche-aside .paiement-form + h2 { margin-top: 32px; }
-.fiche-aside .paiement-date-row { display: flex; align-items: stretch; gap: 8px; flex-wrap: nowrap; }
+.fiche-aside .paiement-date-row { display: flex; align-items: stretch; gap: var(--esp-2); flex-wrap: nowrap; }
 .fiche-aside .paiement-date { flex: 1 1 auto; min-width: 0; width: auto; height: auto; padding: 7px 10px; border-radius: var(--radius-sm); border: 1px solid var(--line); font-size: var(--fs-basic); box-sizing: border-box; }
-.fiche-aside p { margin: 0 0 12px; }
+.fiche-aside p { margin: 0 0 var(--esp-3); }
 .fiche-aside .paid-check { flex: 0 0 auto; display: flex; align-items: center; color: var(--ok); font-weight: 700; font-size: var(--fs-large); }
 /* Bouton Enregistrer : icône save seule, à droite du datepicker (écran + mobile) */
 .fiche-aside .paiement-save { flex: 0 0 auto; width: auto; padding: 8px 11px; gap: 0; margin-top: 0; }
 .fiche-aside .paiement-save .lbl { display: none; }
-.fiche-aside button { width: 100%; margin-top: 4px; }
+.fiche-aside button { width: 100%; margin-top: var(--esp-1); }
 
-/* Aside "Marquer comme payée" (facture) : même style que la sidebar fiche, un peu plus large pour le champ écriture */
-.facture-aside { flex-basis: 260px; }
-.facture-aside h3.sub { margin-bottom: 4px; }
-/* Formulaire « Événement lié » : champ de recherche et bouton « lier » sur une
-   même ligne. L'empilement d'avant venait du couple <select> + bouton libellé,
-   qui ne tenait pas dans les 260px de la colonne ; l'icône seule, si.
-   Le width:100% des boutons de sidebar (.fiche-aside button) est neutralisé
-   ici, sinon l'icône s'étirerait sur toute la largeur. */
-.facture-aside .linked-add { flex-direction: row; align-items: center; gap: 8px; }
-.facture-aside .linked-add button { width: auto; margin-top: 0; flex: 0 0 auto; }
-.facture-aside .cat-search-input { padding: 7px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); font-size: var(--fs-basic); background: var(--card); }
-.facture-aside .cat-search-input:focus { outline: none; border-color: var(--primary); box-shadow: var(--focus-ring); }
-/* Liste des écritures : ancrée à droite et plus large que le champ si la place le permet (évite le scroll horizontal) */
-.ecr-search .cat-search-list { left: auto; right: 0; width: max(100%, 340px); max-width: min(420px, calc(100vw - 32px)); }
-.ecr-search .cat-search-list li { white-space: normal; display: flex; flex-direction: column; gap: 2px; }
-.ecr-opt-top { font-weight: 600; }
-.ecr-opt-texte { font-size: var(--fs-small); color: var(--muted); }
-/* Regroupe visuellement recherche + filtre montant + compteur, pour bien montrer que ces contrôles sont liés */
-.ecr-liee-box { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 12px; }
-.ecr-liee-box .ecr-search { margin-bottom: 10px; }
-.ecr-liee-box .check { margin-bottom: 6px; }
-.ecr-liee-box p { margin: 0; }
-
-/* Ligne logo + statut en haut du cadre de la facture */
-.facture-head-row { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 12px; }
-.facture-head-row .ps-head { margin-bottom: 0; }
-.facture-statut { margin: 0 0 0 auto; }
 

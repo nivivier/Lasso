@@ -9,6 +9,53 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+### Modifié
+- **Feuille de style plus facile à entretenir** (aucun changement visible
+  voulu, vérifié en comparant les styles calculés de 69 pages, sur ordinateur,
+  tablette et téléphone, en clair et en sombre) :
+  - le thème sombre n'est plus écrit deux fois : chaque couleur porte ses deux
+    valeurs (`light-dark()`, Safari ≥ 17.5, Chrome ≥ 123) ;
+  - les règles sont rangées par domaine : fenêtres, historique, tableau de
+    bord, recherche, comptes, carte des lieux, campagnes et facturation ont
+    leur fichier (`assets/css/`, vingt-quatre fichiers) ;
+  - une échelle d'espacements (`--esp-*`), des calques nommés (`--z-*`) et
+    sept points de rupture, tenus par `tests/css_test.php` ;
+  - l'anneau de focus des champs est une seule règle ;
+  - arrondis, ombre de panneau et voile ont leur jeton ; `:not()` enchaînés,
+    `:has()`, sélecteurs profonds et volume des commentaires sont plafonnés ;
+  - `scripts/releve_styles.php` relève et compare les styles calculés de
+    toutes les pages, pour vérifier qu'un rangement ne change rien ;
+  - les commentaires énoncent la règle, l'historique est passé dans
+    `docs/DECISIONS.md`.
+- **Un seul voile derrière ce qui s'ouvre par-dessus la page** : la fenêtre,
+  l'aperçu d'impression et le tiroir du téléphone avaient chacun le leur
+  (opacité de 35 à 50 %) ; ils prennent le même.
+- **Valeurs voisines rapprochées** : un élément inactif (structure, ligne,
+  compte archivé) a partout la même transparence, un bouton ou un champ
+  désactivé aussi ; les petits arrondis des menus de filtre, les durées
+  d'animation et l'ombre des menus flottants s'alignent sur une seule
+  valeur. Les écarts sont de l'ordre du pixel.
+- **Points de rupture regroupés** : quelques réglages changent de seuil de
+  quelques dizaines de pixels (768 → 800, 760/720/640 → 700, 1360 → 1401).
+
+### Sécurité
+- **Exports CSV protégés contre l'injection de formules** (écritures, SUISA,
+  index de l'archive des pièces) : une cellule qui commence par `=`, `+`, `-`
+  ou `@` n'est plus lue comme une formule par le tableur. Le texte d'un
+  virement importé, choisi par le payeur, pouvait sinon y placer un lien
+  piégé. Montants et numéros de téléphone sortent inchangés.
+
+### Corrigé
+- **Thème sombre choisi dans Apparence** : dix teintes (personnes, documents,
+  événements, état réglé) gardaient leur valeur claire.
+- **Bouton discret survolé en thème sombre** : il prenait le fond bleu d'un
+  bouton principal.
+- **Contrôles natifs en thème sombre** (cases à cocher, barres de défilement) :
+  ils suivent désormais le thème.
+- **Bouton de choix multiple** (filtres de colonne, projets d'un modèle) : son
+  texte prend la couleur d'encre des autres champs, et non plus le gris de
+  son libellé.
+
 ## [3.3.0] — 2026-11-12
 
 ### Modifié

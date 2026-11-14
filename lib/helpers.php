@@ -151,6 +151,33 @@ function e(?string $s): string
     return htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
 }
 
+// Une ligne d'export CSV (point-virgule, guillemets doubles), cellules
+// neutralisées. C'est la seule porte d'écriture d'un CSV : jamais fputcsv()
+// directement (tests/csv_test.php le vérifie).
+//
+// ⚠️ Un tableur lit comme une FORMULE toute cellule qui commence par =, +, -,
+// @, une tabulation ou un retour chariot. Or ces fichiers portent du texte
+// que l'association n'a pas écrit : la communication et le nom du payeur d'un
+// virement importé, l'intitulé d'une pièce déposée par un compte qui ne lit
+// pas les comptes. Ces cellules reçoivent une apostrophe en tête, qui en fait
+// du texte. Ce qui n'a ni lettre, ni =, ni @ — un montant « -12.50 », un
+// téléphone « +41 22 … » — passe tel quel : sans lettre, pas de fonction ni
+// de référence de cellule, donc rien à exploiter, et un montant négatif
+// resterait sinon du texte dans le tableur.
+function csv_cellule($v): string
+{
+    $v = (string) $v;
+    if (preg_match('/^[\d\s+\-.,()\/]*$/', $v)) {
+        return $v;
+    }
+    return str_contains("=+-@\t\r", $v[0]) ? "'" . $v : $v;
+}
+
+function csv_ecrire($flux, array $valeurs): void
+{
+    fputcsv($flux, array_map('csv_cellule', $valeurs), ';', '"', '\\');
+}
+
 // Placeholders "?,?,?..." (un par élément de $valeurs) pour une clause IN (...)
 // préparée — un seul point de vérité pour ce pattern, avant répété (copié à
 // la main : implode(',', array_fill(0, count($x), '?'))) plus de 40 fois
@@ -602,7 +629,8 @@ if ($l > 75) {
         // DE TEXTE sur une teinte (badges, onglets actifs, liens survolés) et
         // deux seulement comme fond de survol. On l'oriente donc vers l'usage
         // dominant : clair, pour être lisible sur les teintes sombres. Les deux
-        // fonds de survol sont traités à part dans le bloc sombre (assets/css/12-theme-sombre-composants.css).
+        // fonds de survol prennent l'accent lui-même en sombre (button:hover,
+        // assets/css/07-boutons-messages-filtres.css ; .col-filter-apply, 08-tableaux.css).
         'primary_d_sombre'    => hsl_vers_hex($h, min($s + 15, 95), 78),
     ];
 }
@@ -627,15 +655,6 @@ if ($l > 75) {
 // assets/css/ (body.has-sidebar::before). Sans image personnalisée (cas par
 // défaut), rien n'est émis ici : le fond calculé (.wave-decor, voir
 // views/_fond_decor.php) prend le relais, posé par views/layout.php.
-// Émet les deux blocs qui appliquent une palette sombre : l'un sous la media
-// query (mode « automatique »), l'autre sur l'attribut data-theme (choix
-// explicite). $valeurs : tokens réels => valeur sombre.
-//
-// Deux blocs et non un seul parce qu'aucun sélecteur CSS ne combine une media
-// query et un attribut ; la liste est donc construite ici, une fois, pour que
-// les deux versions ne puissent pas diverger. Le :not([data-theme="clair"])
-// est indispensable : sans lui, un thème clair choisi explicitement perdrait
-// face à un système réglé en sombre.
 // Thème choisi dans Paramètres → Apparence : 'auto' (suit le système), 'clair'
 // ou 'sombre'. Réglage commun à l'installation, comme les couleurs et le fond
 // — voir docs/DECISIONS.md § Thème.
@@ -676,16 +695,6 @@ function param_densite(): string
     return isset(DENSITES[$d]) ? $d : 'normal';
 }
 
-function css_palette_sombre(array $valeurs): string
-{
-    $decl = '';
-    foreach ($valeurs as $token => $valeur) {
-        $decl .= $token . ':' . $valeur . ';';
-    }
-    return '@media (prefers-color-scheme: dark){:root:not([data-theme="clair"]){' . $decl . '}}'
-        . ':root[data-theme="sombre"]{' . $decl . '}';
-}
-
 function couleurs_css_vars(): string
 {
     $c = couleurs_derivees((string) param('employeur_couleur_principale', '#6d4ade'));
@@ -705,33 +714,21 @@ function couleurs_css_vars(): string
         $filtreFond = $filtres ? 'filter:' . implode(' ', $filtres) . ';' : '';
         $styleFond = 'body.has-sidebar::before{background-image:url(' . json_encode($fondPerso) . ');' . $filtreFond . '}';
     }
-    // --primary-base : même valeur que --primary, mais que
-    // module_couleur_css_vars() ne réécrit JAMAIS. Sert là où il faut la
-    // couleur principale de l'employeur telle quelle, indépendamment du module
-    // consulté — l'icône du tableau de bord (views/layout.php), qui n'appartient
-    // à aucun module et doit rester un repère de teinte constante.
-    // Bloc clair, puis surcharge sombre. L'ordre compte : la media query vient
-    // après, elle l'emporte donc à spécificité égale quand elle s'applique.
-    $clair = ':root{--primary:' . $c['primary'] . ';--primary-d:' . $c['primary_d']
-        . ';--primary-tint:' . $c['primary_tint'] . ';--primary-rgb:' . $c['primary_rgb']
-        . ';--primary-base:' . $c['primary']
-        . ';--brand:' . $c['brand'] . ';--brand-2:' . $c['brand_2']
-        . ';--highlight:' . $h['primary'] . ';--highlight-d:' . $h['primary_d']
-        . ';--highlight-tint:' . $h['primary_tint'] . ';--highlight-rgb:' . $h['primary_rgb'] . ';}';
+    // Chaque couleur en light-dark(clair, sombre), comme dans 01-base.css :
+    // le navigateur prend le côté du thème en vigueur (color-scheme,
+    // 02-theme.css). Une seule déclaration par couleur, plus de bloc sombre.
+    $ld = fn (string $clair, string $sombre) => 'light-dark(' . $clair . ', ' . $sombre . ')';
+    $vars = ':root{--primary:' . $ld($c['primary'], $c['primary_sombre'])
+        . ';--primary-d:' . $ld($c['primary_d'], $c['primary_d_sombre'])
+        . ';--primary-tint:' . $ld($c['primary_tint'], $c['primary_tint_sombre'])
+        . ';--primary-rgb:' . $c['primary_rgb']
+        . ';--brand:' . $ld($c['brand'], $c['brand_sombre'])
+        . ';--brand-2:' . $ld($c['brand_2'], $c['brand_2_sombre'])
+        . ';--highlight:' . $ld($h['primary'], $h['primary_sombre'])
+        . ';--highlight-d:' . $ld($h['primary_d'], $h['primary_d_sombre'])
+        . ';--highlight-tint:' . $ld($h['primary_tint'], $h['primary_tint_sombre']) . ';}';
 
-    $sombre = css_palette_sombre([
-        '--primary'        => $c['primary_sombre'],
-        '--primary-base'   => $c['primary_sombre'],
-        '--primary-d'      => $c['primary_d_sombre'],
-        '--primary-tint'   => $c['primary_tint_sombre'],
-        '--brand'          => $c['brand_sombre'],
-        '--brand-2'        => $c['brand_2_sombre'],
-        '--highlight'      => $h['primary_sombre'],
-        '--highlight-d'    => $h['primary_d_sombre'],
-        '--highlight-tint' => $h['primary_tint_sombre'],
-    ]);
-
-    return '<style>' . $clair . $sombre . $styleFond . '</style>';
+    return '<style>' . $vars . $styleFond . '</style>';
 }
 
 
@@ -2599,7 +2596,7 @@ function asset_url(string $chemin): string
 // liste et le dossier disent la même chose.
 const CSS_FICHIERS = [
     'assets/css/01-base.css',
-    'assets/css/02-theme-sombre-palette.css',
+    'assets/css/02-theme.css',
     'assets/css/03-navigation.css',
     'assets/css/04-decors.css',
     'assets/css/05-entetes.css',
@@ -2609,11 +2606,19 @@ const CSS_FICHIERS = [
     'assets/css/09-fiche-impression.css',
     'assets/css/10-tiroir-mobile.css',
     'assets/css/11-comptabilite.css',
-    'assets/css/12-theme-sombre-composants.css',
-    'assets/css/13-mini-cartes.css',
-    'assets/css/14-evenements.css',
-    'assets/css/15-pieces.css',
-    'assets/css/16-accessibilite.css',
+    'assets/css/12-fenetres.css',
+    'assets/css/13-historique.css',
+    'assets/css/14-tableau-de-bord.css',
+    'assets/css/15-recherche.css',
+    'assets/css/16-comptes.css',
+    'assets/css/17-carte-lieux.css',
+    'assets/css/18-campagnes.css',
+    'assets/css/19-facturation.css',
+    'assets/css/20-theme-interrupteurs.css',
+    'assets/css/21-mini-cartes.css',
+    'assets/css/22-evenements.css',
+    'assets/css/23-pieces.css',
+    'assets/css/24-accessibilite.css',
 ];
 
 // Les <link> de la feuille de style : page, impression, export.

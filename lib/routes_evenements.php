@@ -493,9 +493,9 @@ function route_evenements_suisa_exporter(): void
 
     $out = fopen('php://output', 'w');
     fwrite($out, "\xEF\xBB\xBF"); // BOM UTF-8 pour compatibilité Excel
-    fputcsv($out, $entetes, ';', '"', '\\');
+    csv_ecrire($out, $entetes);
     foreach ($lignes as $ligne) {
-        fputcsv($out, $ligne, ';', '"', '\\');
+        csv_ecrire($out, $ligne);
     }
     fclose($out);
     exit;

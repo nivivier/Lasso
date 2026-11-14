@@ -543,8 +543,8 @@ function route_pieces_archive(): void
 
     $index = fopen('php://temp', 'r+');
     fwrite($index, "\xEF\xBB\xBF"); // BOM UTF-8, pour qu'Excel lise les accents
-    fputcsv($index, ['Date', 'Type', 'Intitulé', 'Tiers', 'Montant CHF', 'Échéance', 'Payée le',
-                     'Moyen', 'Catégorie', 'Écriture', 'Fichier'], ';', '"', '\\');
+    csv_ecrire($index, ['Date', 'Type', 'Intitulé', 'Tiers', 'Montant CHF', 'Échéance', 'Payée le',
+                     'Moyen', 'Catégorie', 'Écriture', 'Fichier']);
     $utilises = [];
     foreach ($pieces as $p) {
         $nomDansZip = '';
@@ -553,7 +553,7 @@ function route_pieces_archive(): void
             $nomDansZip = pieces_nom_archive($p, $fichier, $utilises);
             $zip->addFile(fichiers_prives_dir() . '/' . $fichier, $nomDansZip);
         }
-        fputcsv($index, [
+        csv_ecrire($index, [
             (string) $p['date_piece'],
             PIECE_TYPES[$p['type']]['libelle'] ?? (string) $p['type'],
             (string) $p['libelle'],
@@ -565,7 +565,7 @@ function route_pieces_archive(): void
             (string) ($p['categorie_nom'] ?? ''),
             $p['date_op'] ? $p['date_op'] . ' — ' . $p['ecriture_texte'] : '',
             $nomDansZip,
-        ], ';', '"', '\\');
+        ]);
     }
     rewind($index);
     $zip->addFromString('index.csv', (string) stream_get_contents($index));

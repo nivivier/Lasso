@@ -7,7 +7,7 @@
 }
 /* « Aller au contenu » : hors de l'écran, il y revient au premier Tab. Ses
    couleurs sont celles de .btn, qu'il porte aussi. */
-.lien-evitement { position: absolute; left: 12px; top: -60px; z-index: 1000; }
+.lien-evitement { position: absolute; left: 12px; top: -60px; z-index: var(--z-evitement); }
 .lien-evitement:focus { top: 12px; }
 
 /* ?p=sauvegardes, carte « Historique des sauvegardes » : la date, puis le
@@ -17,7 +17,7 @@
 .sauvegarde-rappel { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
 /* .form devant : « .form label » empile libellé et champ en colonne. */
 .form .sauvegarde-rappel label { margin: 0; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
-.sauvegarde-chiffrer { margin-top: 16px; }
+.sauvegarde-chiffrer { margin-top: var(--esp-4); }
 .sauvegarde-chiffrer .check { margin-bottom: 0; }
 .sauvegarde-chiffrer #sauvegarde-phrase { margin-top: 14px; }
 /* La taille d'une copie, répétée après sa date : visible seulement quand
@@ -32,7 +32,7 @@
    place manque ; les champs s'alignent sur leur bas, là où est le bouton. */
 .export-choix { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0 18px; }
 .export-choix > label { flex: 0 1 300px; min-width: 0; }
-.export-telecharger { margin-left: auto; margin-bottom: 16px; }
+.export-telecharger { margin-left: auto; margin-bottom: var(--esp-4); }
 @media (max-width: 800px) {
     .export-choix > label { flex: 1 1 100%; }
     .export-telecharger { margin-left: 0; }

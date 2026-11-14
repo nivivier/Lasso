@@ -1,14 +1,11 @@
-/* Inter, servie depuis le dépôt (assets/fonts/) et non plus depuis
-   fonts.googleapis.com. Trois raisons de ne pas dépendre du CDN : la règle du
-   projet (bibliothèques bundlées, pas de CDN — voir CLAUDE.md), une requête
-   bloquante vers un tiers avant le premier rendu, et surtout le fait que chaque
-   affichage de page transmettait l'adresse IP de l'utilisateur à Google sans
-   nécessité fonctionnelle, dans une application qui traite des salaires
-   nominatifs.
+/* Inter, servie depuis le dépôt (assets/fonts/), jamais depuis un CDN : la
+   règle du projet (CLAUDE.md), aucune requête bloquante vers un tiers avant
+   le premier rendu, et aucune adresse IP transmise à un tiers par une
+   application qui traite des salaires nominatifs (docs/DECISIONS.md).
 
    Un seul fichier : Inter v20 est une police VARIABLE, le même woff2 couvre
    tout l'axe de graisse (d'où « font-weight: 100 900 » plutôt que cinq blocs
-   @font-face, un par graisse, comme les servait Google). Sous-ensemble latin :
+   @font-face, un par graisse). Sous-ensemble latin :
    U+0000-00FF couvre les voyelles accentuées, plus Œ/œ (U+0152-0153) et
    l'euro — soit tout ce dont le français a besoin.
 
@@ -26,89 +23,84 @@
 }
 
 :root {
-	/* ---------------- Couleurs ---------------- */
+	/* ---------------- Couleurs ----------------
+	   Chaque couleur qui change avec le thème s'écrit light-dark(clair, sombre)
+	   — les deux valeurs côte à côte, une seule déclaration. Le thème en vigueur
+	   est celui de color-scheme (02-theme.css) : le système en mode
+	   automatique, le choix de Paramètres → Apparence sinon.
+	   Le châssis sombre suit le clair : une encre CHAUDE, pas un gris bleuté —
+	   un sombre violacé tirait l'ambre et le rouge vers le froid. */
 	
-    --brand: #2b0b5b;       /* indigo logo */
+    --brand: light-dark(#2b0b5b, #c9bcff);       /* indigo logo */
     --brand-2: #421c7d;     /* survol sidebar */
-    --primary: #6d4aee;     /* violet / mauve accent */
-    --primary-d: #5a39d4;
-    --primary-tint: #efeaff;
-    /* Couleur principale de l'employeur, que module_couleur_css_vars() ne
-       réécrit JAMAIS — contrairement à --primary juste au-dessus, remplacée
-       sur :root par la couleur du module courant, si bien que var(--primary)
-       change de teinte au fil de la navigation. Sert à l'icône du tableau de
-       bord (views/layout.php), qui n'appartient à aucun module et doit rester
-       un repère de teinte constante, comme le sont celles des modules.
-       Valeur réelle injectée par couleurs_css_vars() ; celle-ci n'est que le
-       repli avant l'écriture de <head>, comme pour --primary. */
-    --primary-base: #6d4aee;
+    --primary: light-dark(#6d4aee, #9b83ff);     /* violet / mauve accent */
+    --primary-d: light-dark(#5a39d4, #b6a4ff);
+    --primary-tint: light-dark(#efeaff, #262046);
     /* Couleur de mise en évidence (paramétrable, Paramètres > Employeur) :
        remplace --primary à certains endroits seulement — boutons principaux,
        sommes de brut, liens, tags. Voir couleurs_css_vars() (lib/helpers.php)
        pour l'injection dynamique ; ces valeurs par défaut ne s'appliquent que
-       si ce bloc n'a pas encore été écrasé (ex. avant chargement de <head>). */
+       que si l'employeur n'a rien choisi. */
     /* ÉTAT « action » du système sémantique (docs/UI.md § 13) : le geste qui
        fait avancer, et lui seul — un bouton plein par écran, plus la sélection
        et le focus clavier. Reste paramétrable par l'employeur : c'est SA
        couleur, et c'est la seule du système qu'il choisit. */
-    --highlight: #1d4fd8;   /* bleu, défaut */
-    --highlight-d: #163ea8;
-    --highlight-tint: #e7edff;
-    --highlight-rgb: 29 79 216;
-    --teal: #0fb6a1;        /* couleur secondaire */
-    --teal-d: #0c9486;
-    --teal-tint: #e2f7f3;
+    --highlight: light-dark(#1d4fd8, #6f9bff);   /* bleu, défaut */
+    --highlight-d: light-dark(#163ea8, #93b5ff);
+    --highlight-tint: light-dark(#e7edff, #1b2547);
+    --teal: light-dark(#0fb6a1, #2fd0ba);        /* couleur secondaire */
+    --teal-d: light-dark(#0c9486, #24a894);
+    --teal-tint: light-dark(#e2f7f3, #12312e);
     /* ÉTAT « à faire » : ce qui attend un geste de nous — à payer, à relancer,
        brouillon, pas encore envoyé. Le ton pour le texte et les bords, le lavis
        pour les fonds, et une bordure intermédiaire : trois valeurs par état,
        jamais plus (docs/UI.md § 13). */
-    --amber: #8a4a00;       /* « à payer », statut SUISA « à faire » */
-    --amber-tint: #fbf1df;
-    --amber-bord: #d8922a;
+    --amber: light-dark(#8a4a00, #e0a745);       /* « à payer », statut SUISA « à faire » */
+    --amber-tint: light-dark(#fbf1df, #33260f);
+    --amber-bord: light-dark(#d8922a, #a8741f);
     /* L'ambre de la PISTE d'une jauge (ce qui reste à contacter, à trouver) :
        assez clair pour se lire comme « pas encore fait » — l'ambre plein
        donnait une barre qui semblait remplie —, assez soutenu pour se voir sur
        le blanc d'une carte, là où --amber-tint disparaîtrait. */
-    --amber-piste: #fbe6bd;
-    --orange: #c2410c;      /* statut SUISA « manquant » */
-    --orange-tint: #fdece1;
+    --amber-piste: light-dark(#fbe6bd, #4a3a1b);
+    --orange: light-dark(#c2410c, #f0743f);      /* statut SUISA « manquant » */
+    --orange-tint: light-dark(#fdece1, #3a1e11);
     /* LE CHÂSSIS. L'application n'a pas de teinte propre : elle a une encre et
        un papier, et c'est tout ce que la couleur de marque lui coûte. Papier
-       crème plutôt que le lilas froid d'avant, encre chaude plutôt qu'un gris
-       bleuté : sur un fond crème, les quatre couleurs d'état (ambre, rouge,
-       vert, bleu) se détachent sans avoir à crier, là où un fond violacé les
-       tirait toutes vers le froid et leur disputait l'attention. */
-    --ink: #211e19;
+       crème et encre chaude : les quatre couleurs d'état (ambre, rouge, vert,
+       bleu) s'y détachent sans avoir à crier. Un fond teinté les tire toutes
+       vers sa teinte et leur dispute l'attention. */
+    --ink: light-dark(#211e19, #f2ede2);
     /* #7d7466, la valeur de la maquette, tombe à 4,38:1 sur le papier crème :
        sous le seuil, et --muted porte du texte de 11 à 13px. Assombri jusqu'à
        4,9:1, à teinte égale. */
-    --muted: #756c5e;
-    --line: #e4dccc;
-    --bg: #fcf9f3;
-    --card: #ffffff;
-    /* ÉTAT « problème » : hors délai, incohérent, destructif. Assombri par
-       rapport au rouge d'avant — il sert aussi de TEXTE (une facture échue, un
-       compteur d'incohérences), où #e0473c tombait sous 4,5:1 sur le papier. */
-    --danger: #a8231a;
-    --danger-d: #8a1b14;    /* survol des boutons danger (même convention -d que --highlight-d, --primary-d…) */
-    --danger-tint: #fbece8;
-    --danger-bord: #c8402a;
-    /* ÉTAT « réglé » : payé, rapproché, envoyé, validé. Un vert et non plus le
-       turquoise secondaire — le turquoise dit désormais « une personne, une
-       structure » (--personne ci-dessous) et ne peut pas dire les deux. */
-    --ok: #0f6b34;
-    --ok-tint: #e6f2e9;
-    --ok-bord: #7fb894;
+    --muted: light-dark(#756c5e, #a79c89);
+    --line: light-dark(#e4dccc, #35302a);
+    --bg: light-dark(#fcf9f3, #17150f);
+    --card: light-dark(#ffffff, #201d16);
+    /* ÉTAT « problème » : hors délai, incohérent, destructif. Il sert aussi de
+       TEXTE (une facture échue, un compteur d'incohérences) : il doit tenir
+       4,5:1 sur le papier, ce qu'un rouge plus clair ne fait pas. */
+    --danger: light-dark(#a8231a, #f2685c);
+    --danger-d: light-dark(#8a1b14, #d9503f);    /* survol des boutons danger (même convention -d que --highlight-d, --primary-d…) */
+    --danger-tint: light-dark(#fbece8, #3a1c1a);
+    --danger-bord: light-dark(#c8402a, #b8463a);
+    /* ÉTAT « réglé » : payé, rapproché, envoyé, validé. Un vert, distinct du
+       turquoise, qui dit « une personne, une structure » (--personne
+       ci-dessous) : une couleur ne dit qu'une chose. */
+    --ok: light-dark(#0f6b34, #4ec07d);
+    --ok-tint: light-dark(#e6f2e9, #12301f);
+    --ok-bord: light-dark(#7fb894, #2f7a4c);
     /* TYPES. Trois teintes qui ne disent pas un état mais la NATURE de la
        chose, et qui ne se posent que sur une marque d'identité — pastille,
        avatar, icône, puce de décompte. Jamais un bouton, jamais un fond de
        page : l'état prend la surface, le type garde la pastille. */
-    --personne: #0a6e7e;    /* un employé, un contact, une structure, un lieu */
-    --personne-tint: #cdeaf0;
-    --document: #7a2fc4;    /* facture, fiche, pièce, certificat, écriture */
-    --document-tint: #e9dbfb;
-    --evenement: #b01560;   /* événement, date de booking, échéance */
-    --evenement-tint: #fbd3e4;
+    --personne: light-dark(#0a6e7e, #58cfe4);    /* un employé, un contact, une structure, un lieu */
+    --personne-tint: light-dark(#cdeaf0, #10333b);
+    --document: light-dark(#7a2fc4, #c49bf5);    /* facture, fiche, pièce, certificat, écriture */
+    --document-tint: light-dark(#e9dbfb, #2a1740);
+    --evenement: light-dark(#b01560, #f583b4);   /* événement, date de booking, échéance */
+    --evenement-tint: light-dark(#fbd3e4, #3c1024);
     /* Le rose du « contact privilégié » : son icône, sa case cochée, son état
        dans le sélecteur de statut. Défini une seule fois ici et non redéfini en
        thème sombre — il se tient sur les deux fonds, seul token dans ce cas. */
@@ -117,26 +109,26 @@
     /* Fond des lignes « non lettrées » (compta) : le seul fond de ligne
        qui ne soit pas neutre, d'où son propre token — il doit s'assombrir
        comme les autres. */
-    --row-attention: #fffaf2;
+    --row-attention: light-dark(#fffaf2, #2a2417);
     /* Fonds de ligne propres au lettrage comptable, et « verre » translucide
        des cartes du tableau de bord : autant de surfaces claires qui doivent
        s'inverser en mode sombre. */
-    --row-manuelle: #f9f8ff;
-    --row-ignore: #fafafa;
-    --row-ignore-hover: #f3f3f6;
-    --glass: rgba(255, 255, 255, .50);
-    --glass-hover: rgba(255, 255, 255, .4);
+    --row-manuelle: light-dark(#f9f8ff, #1f1d2c);
+    --row-ignore: light-dark(#fafafa, #191823);
+    --row-ignore-hover: light-dark(#f3f3f6, #21202c);
+    --glass: light-dark(rgba(255, 255, 255, .50), rgba(255, 255, 255, .055));
+    --glass-hover: light-dark(rgba(255, 255, 255, .4), rgba(255, 255, 255, .08));
     /* Surfaces volontairement FONCÉES, qui portent du texte blanc : bulle
        d'infobulle, barre mobile, barre d'impression, aperçu du logo pour fond
        sombre. Distinct de --brand : celle-ci sert aussi de couleur de TEXTE
        (titres, totaux) et s'éclaircit donc en thème sombre — ce qui rendait
        ces surfaces claires sous un texte blanc, donc illisibles. */
-    --brand-surface: var(--brand);
+    --brand-surface: light-dark(var(--brand), #0f0e17);
     /* Fond de la barre d'une fenêtre (.modal-head). En clair, la surface de
        marque, sombre, sur laquelle le blanc ressort. En sombre, elle s'y
        confondrait avec la carte : la barre s'ÉCLAIRCIT alors, teintée de la
        même marque (voir les deux blocs de palette sombre). */
-    --modal-head-bg: var(--brand-surface);
+    --modal-head-bg: light-dark(var(--brand-surface), color-mix(in srgb, var(--brand) 18%, var(--card)));
     
 	/* ---------------- Tailles ---------------- */
     
@@ -147,13 +139,65 @@
        famille — il monte avec lui. */
     --radius: 20px;
     --radius-sm: 12px;
-    --radius-pill: 20px;    /* badges / compteurs en pilule */
-    --shadow: 0 1px 2px rgba(41,33,80,.04), 0 6px 20px rgba(41,33,80,.06);
-    --shadow-sm: 0 1px 3px rgba(41,33,80,.08);
-    /* Anneau de focus unique de tout le site (champs, boutons segmentés, etc.) —
-       point de style unique plutôt que répété à l'identique partout. */
+    --radius-pill: 999px;   /* capsule : boutons, badges, compteurs, barres */
+    --radius-xs: 4px;       /* petites marques : repères, pastilles de légende */
+    --radius-rond: 50%;     /* pastilles, avatars, boutons ronds */
+    /* UN « inactif » (ligne, compte archivé), UN « désactivé » (champ, bouton). */
+    --opacite-inactif: .55;
+    --opacite-desactive: .5;
+    --duree: .15s;
+    /* Tout panneau qui flotte : menus, suggestions, volet du rail réduit. */
+    --shadow-panneau: 0 12px 32px rgba(0, 0, 0, .16);
+    /* UN voile derrière ce qui s'ouvre par-dessus la page : fenêtre,
+       aperçu d'impression, tiroir du téléphone. */
+    --voile: light-dark(rgba(20,16,40,.45), rgba(0,0,0,.55));
+    --shadow: 0 1px 2px light-dark(rgba(41,33,80,.04), rgba(0,0,0,.35)), 0 6px 20px light-dark(rgba(41,33,80,.06), rgba(0,0,0,.45));
+    --shadow-sm: 0 1px 3px light-dark(rgba(41,33,80,.08), rgba(0,0,0,.4));
+    /* L'anneau de focus de tout le site. */
     --focus-ring: 0 0 0 3px var(--primary-tint);
-    --surface: #f7f2e8;                /* fond légèrement teinté (thead, hover, détails) */
+    /* ESPACEMENTS — l'échelle des marges, retraits et écarts (gap, margin,
+       padding). Une valeur neuve se choisit ici ; 6, 10 ou 14px restent
+       nombreux dans les feuilles, ils rejoignent l'échelle quand on retouche
+       leur règle. tests/css_test.php plafonne le nombre de déclarations hors
+       échelle : il ne peut que baisser. Une déclaration est entièrement en
+       jetons ou entièrement en chiffres, jamais un mélange des deux. */
+    --esp-1: 4px;
+    --esp-2: 8px;
+    --esp-3: 12px;
+    --esp-4: 16px;
+    --esp-5: 24px;
+    /* POINTS DE RUPTURE — une @media ne lit pas de variable : la liste vit
+       donc ici, en commentaire, et tests/css_test.php refuse toute autre
+       largeur. Un seuil neuf s'aligne sur le palier le plus proche plutôt que
+       d'en créer un.
+         480px   très étroit : les champs côte à côte passent en colonne
+         700px   les tableaux deviennent des cartes, les grilles une colonne
+         800px   téléphone : le rail devient un tiroir (801px au-dessus)
+         900px   tableau de bord sur une colonne
+        1100px   la vue deux colonnes disparaît (1099px en max-width)
+        1300px   les grilles d'information passent de 4 à 2 colonnes
+        1400px   tableau de bord sur deux colonnes ; au-delà (1401px), les
+                 tableaux larges cessent de défiler dans leur cadre
+       Les requêtes de conteneur (@container liste) mesurent la liste et non
+       la fenêtre ; elles ne sont pas concernées. */
+    /* CALQUES — l'ordre d'empilement de tout ce qui flotte, lu ici d'un coup
+       d'œil. Un z-index de 10 ou plus passe par l'un de ces noms
+       (tests/css_test.php) ; ceux de 0 à 5 restent des chiffres, parce qu'ils
+       ne rangent que les enfants d'un même composant, dans son propre
+       contexte d'empilement. À égalité, l'ordre du document décide. */
+    --z-collant: 20;      /* bandeau collant, menus et panneaux ouverts dans la page */
+    --z-barre: 30;        /* barre du téléphone, panneau des filtres qui s'y accroche */
+    --z-voile: 40;        /* voile derrière le tiroir */
+    --z-tiroir: 50;       /* tiroir de navigation, liste de suggestions d'un champ */
+    --z-bulle: 60;        /* infobulle, repère de glisser-déposer */
+    --z-rail: 100;        /* rail, barre d'actions groupées, fenêtres (.modal-overlay) */
+    --z-rail-survol: 120; /* volet d'un onglet du rail réduit, au survol */
+    --z-message: 200;     /* messages (.flash), liste de catégories d'une ligne */
+    --z-panneau: 300;     /* panneau de ventilation, menu du compte */
+    --z-apercu: 500;      /* aperçu d'impression, plein écran */
+    --z-evitement: 1000;  /* lien « Aller au contenu », au-dessus de tout */
+    --z-sur-carte: 1001;  /* bandeau posé sur la carte Leaflet, dont les commandes sont à 1000 */
+    --surface: light-dark(#f7f2e8, #262219);                /* fond légèrement teinté (thead, hover, détails) */
     --primary-rgb: 109 74 222; /* composantes RGB de --primary pour rgba() dynamique */
     --row-pad-y: 10px;                 /* sa part verticale — ce que règle la densité */
     --row-pad-x: 12px;                 /* sa part horizontale, seule réutilisable */
@@ -181,10 +225,10 @@
        le titre du cadre. */
     --card-pad: 26px;
     /* Largeur du rail (.sidebar) — voir aussi .carte-lieux-wrap et les
-       débordements .page-head-band/.module-content. Fixe, et non plus fluide :
-       depuis que le rail porte TOUTE la navigation (le volet du module ouvert
-       déplie ses pages, voir .nav-volet), sa largeur est dictée par le plus
-       long libellé d'onglet et non plus par une icône. 248px tient « Comptes
+       débordements .page-head-band/.module-content. Fixe : le rail porte TOUTE
+       la navigation (le volet du module ouvert déplie ses pages, voir
+       .nav-volet), sa largeur est donc dictée par le plus long libellé
+       d'onglet. 248px tient « Comptes
        bancaires » décalé de deux niveaux sans césure. Sans effet sous 800px :
        le rail y devient un tiroir de largeur propre (voir la media query en
        fin de fichier). */
@@ -192,14 +236,11 @@
     /* Boîte de button/.btn (voir plus bas) : point de référence unique pour
        tout contrôle qui doit visuellement matcher la hauteur des boutons
        d'action (champ de recherche, toggle Liste/Carte, bouton « Plus de
-       filtres »…). Avant ces variables, chaque contrôle recalculait sa propre
-       hauteur à la main (ex. .seg-btn en « +20px », .filters-more summary en
-       « +22px ») — les deux constantes ont fini par diverger silencieusement
-       de 2px. --action-height est dérivée directement de --btn-padding-v/
-       --btn-border-w (utilisées AUSSI dans la règle button/.btn elle-même,
-       plus bas) : un futur changement du padding/bordure des boutons se
-       répercute automatiquement partout, au lieu de devoir retrouver et
-       resynchroniser chaque constante à la main. */
+       filtres »…). Aucun contrôle ne recalcule sa hauteur à la main :
+       --action-height dérive de --btn-padding-v/--btn-border-w, utilisées
+       AUSSI par la règle button/.btn elle-même (plus bas), si bien qu'un
+       changement du padding ou de la bordure des boutons se répercute
+       partout. Deux constantes recopiées finissent par diverger. */
     --btn-padding-v: 10px;
     --btn-border-w: 1px;
     --action-height: calc(var(--fs-basic) * 1.6 + 2 * var(--btn-padding-v) + 2 * var(--btn-border-w));
@@ -219,18 +260,11 @@
     /* Échelle typographique — nommée par intention (tiny/small/basic/large/
        big/huge), pas par valeur en px : changer une taille ne doit jamais
        obliger à renommer partout où elle est utilisée. Volontairement
-       limitée à 6 crans pour la cohérence — avant cette réforme, chaque
-       réglage fin avait fait naître sa propre variable ad hoc (9, 9.5, 10,
-       10.5, 11, 11.5, 12, 12.5, 12.8, 13, 13.5, 14, 14.5, 15, 16, 17, 18, 19,
-       20, 21, 22, 24, 32 — 23 valeurs distinctes), sans qu'aucune ne soit
-       vraiment distinguable visuellement de sa voisine. Les valeurs
-       ci-dessous absorbent ce nuage de points en 7 crans ; en ajouter un en
-       cas de vrai besoin d'un cran technique/spécial supplémentaire plutôt
-       que de réintroduire une valeur ad hoc au fil des règles.
-       --fs-bigger est justement ce cas : de --fs-big à --fs-huge, l'échelle
-       sautait de 20 à 32 — soixante pour cent d'un coup, le plus grand écart
-       de toute la série —, et les corps d'affichage qui tombaient dans ce
-       trou (22, 24, 25) n'avaient nulle part où aller. */
+       limitée à quelques crans : deux tailles voisines ne se distinguent pas
+       à l'œil. Un besoin réel ajoute un cran ici, jamais une valeur ad hoc
+       dans une règle (tests/tailles_texte_test.php).
+       --fs-bigger comble l'écart de --fs-big à --fs-huge (20 → 32), trop
+       grand pour les corps d'affichage de 22 à 25px. */
     --fs-tiny:   9px;
     --fs-small: 11px;
     --fs-basic: 13px;
@@ -238,9 +272,8 @@
     --fs-big:   20px;
     --fs-bigger: 24px;
     --fs-huge:  32px;
-    /* Huitième cran, né du titre de bandeau : depuis que le bandeau nomme la
-       PAGE et non le module, c'est le seul mot de l'écran qui doit se lire à
-       deux mètres. --fs-huge le laissait à égalité avec les titres de cartes.
+    /* Le titre de bandeau nomme la PAGE : c'est le seul mot de l'écran qui
+       doit se lire à deux mètres, au-dessus des titres de cartes (--fs-huge).
        Redescend à --fs-huge sous 800px, où 44px mange la moitié de la hauteur. */
     --fs-geant: 44px;
 }
@@ -254,18 +287,11 @@ body {
     background: var(--bg);
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
-    /* Pas de filter/backdrop-filter/transform sur <body> lui-même : ces
-       propriétés en feraient le containing block de tous ses descendants
-       position:fixed (barre de modification groupée, toasts .flash,
-       .modal-overlay…), qui se retrouveraient alors positionnés par rapport
-       à la hauteur totale du document au lieu du viewport — invisibles hors
-       écran sur toute page plus haute que la fenêtre. Vérifié empiriquement :
-       backdrop-filter n'a de toute façon aucun effet utile ici (il s'applique
-       à ce qui est *derrière* l'élément, pas à son propre fond). L'image de
-       fond (et son éventuel effet clair/flouté, Paramètres → Apparence) vit
-       donc sur un ::before séparé (ci-dessous) : lui seul peut porter un
-       filter sans rien casser, puisqu'un pseudo-élément vide n'a aucun
-       descendant position:fixed à cette hauteur. */
+    /* ⚠️ Ni filter, ni backdrop-filter, ni transform sur <body> : ils en
+       feraient le bloc de référence de tout ce qui est position:fixed (barre
+       de modification groupée, .flash, .modal-overlay), placé alors sur la
+       hauteur du document et invisible hors écran. L'image de fond et son
+       flou vivent sur le ::before ci-dessous. */
 }
 /* Fond par défaut — image et filtre (clair/flouté) posés par le <style>
    inline de couleurs_css_vars() (lib/helpers.php), body.has-sidebar::before

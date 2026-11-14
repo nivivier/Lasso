@@ -1,0 +1,263 @@
+/* ==================================================================== */
+/* CAMPAGNES — démarchage (?p=booking_campagne*) et recherche de fonds (?p=fonds_campagne*) */
+/* ==================================================================== */
+
+/* Carte de tête d'une campagne (?p=booking_campagne) : l'icône du premier projet en
+   grand, puis ce qu'il reste à faire, puis le compte en gros. Elle répond à
+   deux questions d'un coup d'œil — où en est le démarchage, et qu'ont répondu
+   ceux qu'on a déjà contactés. */
+.camp-carte { display: flex; align-items: center; gap: 22px; }
+/* Les icônes des projets en pile : elles se chevauchent, chacune cernée du fond
+   de la carte pour qu'on distingue où l'une finit et où l'autre commence. Le
+   liseré est une ombre portée et non une bordure — il ne doit pas entrer dans
+   la largeur, sinon les pastilles ne seraient plus rondes du même diamètre. */
+.camp-icone { display: flex; align-items: center; flex: 0 0 auto; }
+/* position:relative : sans elle le z-index ne s'applique pas, et l'ordre de
+   superposition retomberait sur l'ordre du marquage — la DERNIÈRE icône
+   passerait devant, alors que c'est la première qui doit mener. */
+.camp-icone-item { display: inline-flex; border-radius: var(--radius-rond); position: relative; }
+.camp-icone-item:has(.camp-icone-plus) { z-index: 0; }
+.camp-icone-item + .camp-icone-item { margin-left: -24px; }
+.camp-icone .avatar-ini { width: 64px; height: 64px; font-size: var(--fs-bigger); margin: 0;
+    box-shadow: 0 0 0 3px var(--card); }
+/* Le compte des projets qu'on n'affiche pas : une pastille comme les autres,
+   mais qui ne prétend représenter personne — d'où le gris. */
+.camp-icone .camp-icone-plus { background: var(--surface); color: var(--muted); font-size: var(--fs-basic); }
+.camp-corps { flex: 1 1 auto; min-width: 0; }
+/* Les projets de la carte : la même rangée que dans la liste
+   (.projet-pastilles, plus bas), à l'écart près — la carte est large, ses
+   pastilles y respirent. Sélecteur à deux classes pour l'emporter sur le gap
+   de .projet-pastilles quel que soit l'ordre des règles. */
+.projet-pastilles.camp-projets { gap: var(--esp-1) var(--esp-5); margin-bottom: 14px; }
+/* Une seule barre, quatre segments. Le reste à contacter (ou à trouver) n'est
+   pas un segment : c'est le fond de la piste, ce qui n'a pas encore été rempli
+   — et c'est LUI qui porte l'ambre, parce que c'est lui qui demande un geste.
+   Voir la note sur les couleurs plus bas. */
+.camp-barre { position: relative; display: flex; width: 100%; height: 14px; border-radius: var(--radius-pill); background: var(--amber-piste); overflow: hidden; }
+.camp-seg { display: block; height: 100%; }
+/* Le repère d'un seuil intermédiaire (barre_segments_html()) : la recherche de
+   fonds vise deux montants, le minimum sans lequel le projet ne se fait pas et
+   l'idéal. La barre se cale sur l'idéal et ce trait dit où est le minimum — une
+   seconde barre l'aurait dit deux fois, un trait le dit une. */
+.camp-repere { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px;
+    background: var(--ink); opacity: .45; }
+/* Mêmes couleurs que les icônes de réponse (CAMPAGNE_REPONSES_CLASSES_ICONE) :
+   teal pour un oui — la couleur de ce qui est acquis partout ailleurs —, rouge
+   pour un non, gris pour un contact établi dont la réponse se fait attendre.
+   L'AMBRE EST CELUI DE LA PISTE, c'est-à-dire de ce qui reste à contacter ou à
+   trouver : dans toute l'application, l'ambre dit un geste à faire — une fiche
+   à verser, une facture échue, une déclaration SUISA. Attendre une réponse
+   n'est pas un geste, le gris suffit ; un bailleur qu'on n'a pas encore
+   sollicité, si.
+   Deux registres, et c'est ce qui rend la barre lisible : les segments sont
+   PLEINS — ils disent ce qui est traité, réponse reçue ou non —, la piste est
+   PÂLE (--amber-piste) et dit ce qui ne l'est pas. Un ambre plein en fond
+   donnerait une barre qui semble remplie ; un gris de trait en segment se
+   confondrait avec une piste claire. */
+.camp-oui { background: var(--ok); }
+.camp-non { background: var(--danger); }
+.camp-attente { background: var(--muted); }
+.camp-legende { list-style: none; display: flex; flex-wrap: wrap; gap: 6px 22px;
+    margin: var(--esp-3) 0 0; padding: 0; font-size: var(--fs-small); align-items: center; }
+.camp-legende li { display: inline-flex; align-items: center; }
+/* Les icônes de la légende, petites : elles accompagnent un chiffre, elles ne
+   le concurrencent pas. */
+.camp-legende li > span:first-child { display: inline-flex; margin-right: 6px; }
+.camp-legende li > span:first-child .ico { width: 14px; height: 14px; }
+.camp-legende b { font-variant-numeric: tabular-nums; margin-right: 5px; }
+.camp-legende-fin { margin-left: auto; gap: 6px; }
+.camp-chiffre { flex: 0 0 auto; display: flex; flex-direction: column; text-align: right; }
+.camp-chiffre b { font-size: var(--fs-huge); font-weight: 800; line-height: 1; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.camp-chiffre span { font-size: var(--fs-small); }
+/* La même barre dans une ligne de liste : largeur fixe, pour que les campagnes
+   se comparent d'une ligne à l'autre — une barre qui s'étire au gré de la
+   colonne ne comparerait plus rien. */
+.camp-avancement { white-space: nowrap; }
+.camp-barre-liste { display: inline-flex; width: 120px; height: 12px; border-radius: var(--radius-pill); vertical-align: middle; }
+/* Dans la liste des campagnes, l'icône du projet mène la ligne : elle y est
+   plus grande qu'une pastille posée au fil du texte (la carte, où elle
+   accompagne un nom déjà lisible sous une icône de 64 px). */
+.campagnes-table .projet-pastille { --pastille-taille: 30px; }
+.campagnes-table .projet-pastille .avatar-ini { font-size: var(--fs-tiny); }
+.camp-avancement-txt { font-size: var(--fs-small); color: var(--muted); font-variant-numeric: tabular-nums; margin-left: 9px; }
+.camp-avancement-txt b { color: var(--ink); }
+.camp-note { margin: -14px 0 22px; }
+/* Le badge d'état replié dans la colonne « Avancement » : rendu par la liste des
+   campagnes, invisible tant qu'il y a la place de garder les deux colonnes. */
+/* L'intitulé d'un champ et, à sa droite, une case qui en règle le contenu —
+   « Actifs seulement » d'un sélecteur de projets. Le label du champ et celui de
+   la case sont frères : deux labels imbriqués ne sont pas du HTML valide. */
+.champ-entete { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: var(--esp-1); }
+.champ-entete > label:first-child { margin: 0; }
+.check-mini { font-size: var(--fs-small); color: var(--muted); font-weight: 400; margin: 0; }
+
+.camp-etat-repli { display: none; }
+/* Son équivalent pour la recherche de fonds : le compte des dossiers déposés,
+   replié dans la colonne « Avancement » sur écran étroit. */
+.camp-dossiers-repli { display: none; font-size: var(--fs-small); color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* Liste des campagnes sur téléphone. Le tableau reste un tableau (il n'a que
+   cinq colonnes, la mise en cartes n'y gagnerait rien) mais se resserre :
+   — le nom du projet s'efface, son icône suffit à le reconnaître ;
+   — la période sort, c'est le détail qu'on va chercher sur la campagne ;
+   — « État » rejoint « Avancement », comme sur la carte du tableau de bord : la
+     progression si la campagne est en cours, son état sinon — une seule des
+     deux questions se pose à la fois. */
+@media (max-width: 700px) {
+    .campagnes-table :is(th, td).col-periode,
+    .campagnes-table :is(th, td).col-etat { display: none; }
+    /* Le nom du projet s'efface, son icône suffit. Et « Aucun projet » avec
+       lui : la mention s'enroulait sur deux lignes pour dire qu'il n'y a rien à
+       voir, là où une colonne vide le dit aussi bien. */
+    .campagnes-table :is(.projet-nom, .projet-aucun) { display: none; }
+    /* Réduites à leurs icônes, les pastilles se serrent : à l'écart de bureau,
+       deux d'entre elles demandaient 70px pour une colonne qui en offrait 69,
+       et la seconde passait à la ligne pour rien. */
+    .campagnes-table .projet-pastilles { gap: 6px; }
+    .campagnes-table .camp-avancement-etat :is(.camp-barre, .camp-avancement-txt) { display: none; }
+    .campagnes-table .camp-avancement-etat .camp-etat-repli { display: inline-block; }
+    /* Recherche de fonds : « Dossiers » sort de la même façon que « État », et
+       son compte rejoint l'avancement. La jauge s'y compte en francs, et un
+       montant est bien plus long qu'un « 3 / 6 » de démarchage : la barre et les
+       sommes s'empilent au lieu de se disputer la largeur, et la barre se
+       raccourcit — elle illustre un chiffre qui est juste en dessous. */
+    .campagnes-table :is(th, td).col-dossiers { display: none; }
+    .campagnes-table .camp-avancement { line-height: 1.5; }
+    .campagnes-table .camp-avancement .camp-barre-liste { width: 72px; }
+    .campagnes-table .camp-avancement :is(.camp-avancement-txt, .camp-dossiers-repli) { display: block; margin-left: 0; }
+}
+/* Sur écran étroit, la carte s'empile : l'icône et le compte passent sur une
+   ligne à part plutôt que d'écraser la barre entre eux. */
+@media (max-width: 700px) {
+    .camp-carte { flex-wrap: wrap; gap: 14px; }
+    .camp-corps { flex-basis: 100%; order: 3; }
+    .camp-chiffre { margin-left: auto; text-align: right; }
+    .camp-legende-fin { margin-left: 0; flex-basis: 100%; }
+}
+
+/* Suivi d'une campagne : ses deux colonnes propres sont centrées, en-tête
+   compris. Leur contenu est fait de boutons et d'icônes de largeur fixe — aligné
+   à gauche, il flottait loin d'un en-tête que la largeur de la colonne écarte.
+   Deux classes plus l'élément : de quoi passer devant « .list th, .list td »,
+   qui aligne tout à gauche. Le centrage ne vaut qu'en vue tableau — en cartes
+   (≤700px) ces cellules passent en flex et se rangent sous le nom. */
+/* Le compte de structures reste vide tant que rien n'est filtré ni cherché. Un
+   élément vide est malgré tout un élément de la barre d'outils : l'espacement
+   qui le précède (gap) compte, et le champ de recherche s'arrêterait 20px
+   avant le bord. display:none le retire de la rangée — il revient de lui-même
+   dès que le script y écrit un nombre. */
+#campagne-compte:empty { display: none; }
+
+.campagne-structures th.col-suivi, .campagne-structures td.col-suivi { text-align: center; }
+/* Les deux moitiés de « Suivi » — les boutons d'un côté, la bulle et la réponse
+   de l'autre — ne sont jamais là ensemble, mais elles s'alignent de la même
+   façon : au centre, sur une seule ligne. Le flex vit sur cette enveloppe et
+   non sur le <td>, qui cesserait alors d'être une cellule de tableau. */
+.suivi-cell { display: inline-flex; align-items: center; justify-content: center; gap: var(--esp-2); }
+/* Le libellé de l'en-tête et son entonnoir se centrent ensemble. */
+.campagne-structures th.col-suivi .col-th { justify-content: center; }
+
+/* Pastille de projet posée devant un nom (colonne « Projet » des campagnes) :
+   plus petite que celle d'une liste de personnes, où elle sert de repère de
+   ligne — ici elle accompagne un nom déjà lisible. */
+/* La RANGÉE de pastilles est un conteneur flex, jamais une suite d'éléments en
+   ligne. Posée dans un flux inline, une pastille (elle-même inline-flex) se
+   cale sur SA ligne de base — celle de son icône, que chaque moteur de rendu
+   synthétise à sa façon quand l'élément n'a pas de texte propre. D'où des
+   rangées plus hautes et des pastilles décalées dans un navigateur et pas dans
+   l'autre, d'autant plus visible qu'il y a plusieurs projets. En flex, la
+   position ne dépend plus que du conteneur. */
+.projet-pastilles { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 6px 10px; }
+
+/* Quand la colonne se resserre, un nom de projet passe sur deux lignes. L'icône
+   doit alors accompagner la PREMIÈRE ligne et non flotter au milieu du bloc,
+   d'où flex-start plutôt que center — et une interligne calée sur la taille de
+   l'icône, pour que cette première ligne fasse exactement sa hauteur. Sans
+   cette interligne, flex-start posait l'icône (plus haute que la ligne) deux
+   pixels trop haut sur les noms qui tiennent sur une seule ligne, c'est-à-dire
+   presque tous. --pastille-taille tient les deux valeurs ensemble. */
+.projet-pastille {
+    --pastille-taille: 20px;
+    display: flex; align-items: flex-start; gap: 6px;
+    line-height: var(--pastille-taille);
+}
+.projet-pastille .avatar-ini {
+    width: var(--pastille-taille); height: var(--pastille-taille); margin-right: 0; font-size: var(--fs-tiny);
+}
+
+/* Suivi d'une recherche de fonds : la seconde ligne d'un dossier, celle qui
+   s'ouvre au crayon. Une rangée souple plutôt qu'une grille : les dates ont
+   toutes la même largeur, les deux champs de texte prennent ce qui reste, et
+   l'ensemble repasse en colonnes sur un écran étroit sans règle à écrire. */
+.fonds-suite > td { background: var(--surface); }
+
+/* Les dossiers d'une campagne de recherche de fonds, en cartes sur téléphone.
+   Six colonnes ne tiennent pas dans 375px : le tableau défilait de biais, et
+   l'on ne voyait ni les montants ni l'état sans pousser l'écran du doigt.
+   Même geste que la liste des structures d'une campagne de démarchage — c'est
+   la mécanique de .liste-cartes qui est reprise (en-têtes masqués, lignes en
+   grille, cellules sans bordure), seule la grille est propre à ce tableau :
+
+       Bailleur                              [état]
+       délai                              [✎ actions]
+       Demandé 12 000.00     Accordé 5 000.00
+
+   La ligne de détail (dépôt, réponse, bilan), elle, reprend toute la largeur :
+   c'est un formulaire, pas une rangée de données. */
+@media (max-width: 700px) {
+    .fonds-dossiers tbody tr:not(.fonds-suite) {
+        /* Deux colonnes égales et non « 1fr auto » : en édition, les cellules
+           portent des champs, et une colonne dimensionnée sur son contenu
+           donnait 52px au montant demandé contre 225 à l'accordé. */
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        grid-template-areas:
+            "nom     etat"
+            "delai   actions"
+            "demande accorde";
+        row-gap: var(--esp-1);
+        /* Le plancher de .liste-cartes est calculé pour SA colonne de droite,
+           posée hors flux ; ici tout est dans le flux. */
+        min-height: 0;
+        /* Le tableau est à fleur de carte (docs/UI.md § 9) : c'est donc à la
+           ligne de rendre la gouttière, et celle de la carte qui l'héberge. */
+        padding: 12px var(--card-pad);
+    }
+    .fonds-dossiers .dash-nom { grid-area: nom; }
+    .fonds-dossiers .col-delai { grid-area: delai; color: var(--muted); }
+    .fonds-dossiers .col-etat { grid-area: etat; justify-self: end; }
+    .fonds-dossiers .actions { grid-area: actions; justify-self: end; align-self: start; }
+    /* Les deux montants reprennent leur libellé : sans en-tête de colonne, un
+       nombre seul ne dit pas s'il est demandé ou obtenu — et c'est toute la
+       question d'un dossier. Alignés à gauche : en carte, il n'y a plus de
+       colonne sur laquelle s'aligner. */
+    /* .fonds-dossiers.list et non .fonds-dossiers seul : « .list .num » aligne
+       à droite, à spécificité égale et plus bas dans la feuille — il
+       l'emportait. */
+    .fonds-dossiers.list :is(.col-demande, .col-accorde) { grid-area: demande; text-align: left; }
+    .fonds-dossiers.list .col-accorde { grid-area: accorde; }
+    /* Le libellé est porté par la cellule de LECTURE et non par le <td> : il
+       disparaît ainsi de lui-même quand la ligne s'ouvre en édition, où il
+       ferait doublon avec l'intitulé du champ. La bascule ne pose aucune classe
+       sur la ligne (lassoInitLigneEdition(), assets/app.js) : elle masque les
+       .fonds-disp et montre les .fonds-editable, et c'est tout ce sur quoi on
+       peut s'appuyer. */
+    .fonds-dossiers.list :is(.col-demande, .col-accorde) .fonds-disp::before {
+        content: attr(data-libelle) " "; color: var(--muted); font-weight: 400; font-size: var(--fs-small);
+    }
+    /* En ÉDITION, le même libellé passe au-dessus du champ : sans en-tête de
+       colonne, deux cases de montant côte à côte ne disent pas laquelle est la
+       demande et laquelle la réponse. Reconnu à la cellule de lecture masquée,
+       faute d'une classe posée sur la ligne. */
+    .fonds-dossiers.list :is(.col-delai, .col-demande, .col-accorde):has(.fonds-disp[hidden])::before {
+        content: attr(data-libelle); display: block; color: var(--muted); font-size: var(--fs-small); margin-bottom: 2px;
+    }
+    /* Les champs occupent leur colonne : à leur largeur par défaut, ils en
+       sortaient. */
+    .fonds-dossiers.list :is(.col-delai, .col-demande, .col-accorde, .col-etat) :is(input, select) { width: 100%; min-width: 0; }
+    .fonds-dossiers tr.fonds-suite { display: block; padding: 0; }
+    .fonds-dossiers tr.fonds-suite > td { padding: 12px var(--card-pad); }
+}
+.fonds-suite-champs { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: flex-end; }
+.fonds-suite-champs label { margin: 0; flex: 0 0 auto; }
+.fonds-suite-champs label.grow { flex: 1 1 220px; min-width: 160px; }
+.fonds-suite-champs input { margin: 0; }

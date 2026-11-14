@@ -59,7 +59,7 @@ a.piece-etat:focus-visible { color: var(--primary); outline: 2px solid var(--pri
 .piece-champ-quittance > label { display: block; }
 
 /* Le fichier joint, sur la fiche : un trombone, le nom d'origine, le poids. */
-.piece-fichier { display: flex; align-items: center; gap: 8px; }
+.piece-fichier { display: flex; align-items: center; gap: var(--esp-2); }
 .piece-fichier .ico { width: 16px; height: 16px; color: var(--muted); }
 
 /* L'aperçu du justificatif sur ?p=piece. Assez grand pour LIRE un montant et
@@ -82,14 +82,14 @@ a.piece-etat:focus-visible { color: var(--primary); outline: 2px solid var(--pri
 .piece-apercu-cadre { border: 1px solid var(--line); background: var(--surface); }
 /* Sur un téléphone, 74 % de la hauteur ne laisse plus voir ce qui suit : on
    descend à une demi-fenêtre, et « Agrandir » prend le relais pour la lecture. */
-@media (max-width: 760px) {
+@media (max-width: 700px) {
     .piece-apercu { height: 52vh; }
 }
 
 /* Les deux portes du dépôt — un fichier, ou l'appareil photo — côte à côte sur
    un écran large, l'une sous l'autre sur un téléphone, où c'est la seconde
    qu'on vise. */
-.piece-depot { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+.piece-depot { display: grid; grid-template-columns: 1fr 1fr; gap: var(--esp-4); align-items: start; }
 /* L'intitulé d'un champ qui n'est pas un <label> autour d'un <input> : le
    bouton de prise de vue en a besoin, et il a la même allure que les autres. */
 .lbl-champ { display: block; margin-bottom: 6px; font-size: var(--fs-basic); font-weight: 500; color: var(--muted); }
@@ -106,7 +106,7 @@ a.piece-etat:focus-visible { color: var(--primary); outline: 2px solid var(--pri
 .piece-camera-actions { display: flex; gap: 10px; margin-top: 10px; }
 .piece-camera-err { grid-column: 1 / -1; margin: 0; }
 
-.piece-photo-apercu { grid-column: 1 / -1; display: flex; align-items: flex-start; gap: 12px; }
+.piece-photo-apercu { grid-column: 1 / -1; display: flex; align-items: flex-start; gap: var(--esp-3); }
 .piece-photo-apercu img {
     max-width: 180px; max-height: 240px;
     border: 1px solid var(--line); border-radius: var(--radius-sm);
@@ -123,9 +123,9 @@ a.piece-etat:focus-visible { color: var(--primary); outline: 2px solid var(--pri
 
 /* Les quatre champs du dépôt sur une rangée (.champs-rangee). Les deux premiers
    s'étirent, les deux derniers ont une longueur connue : un montant tient en
-   « 12'345.60 CHF », une date en « jj.mm.aaaa » plus son calendrier. Leur
-   laisser une colonne entière, c'était de la place prise à l'intitulé, le seul
-   des quatre dont la longueur soit libre.
+   « 12'345.60 CHF », une date en « jj.mm.aaaa » plus son calendrier. Une
+   colonne entière serait de la place prise à l'intitulé, le seul des quatre
+   dont la longueur soit libre.
    Base des flexibles tenue basse (160 + 180) pour que les quatre tiennent sur
    une ligne dans une carte de 700px : mesuré, 160+180+145+150 et trois écarts
    de 12 = 671. */
@@ -148,7 +148,7 @@ a.piece-etat:focus-visible { color: var(--primary); outline: 2px solid var(--pri
    (docs/UI.md § 10). */
 .form-plus > summary {
     display: inline-flex; align-items: center; gap: 7px; width: max-content;
-    padding: 4px 0; cursor: pointer; list-style: none;
+    padding: var(--esp-1) 0; cursor: pointer; list-style: none;
     font-size: var(--fs-small); font-weight: 600; color: var(--highlight);
 }
 .form-plus > summary::-webkit-details-marker { display: none; }
@@ -158,7 +158,7 @@ a.piece-etat:focus-visible { color: var(--primary); outline: 2px solid var(--pri
     content: ''; width: 0; height: 0; flex: 0 0 auto;
     border-left: 5px solid currentColor;
     border-top: 4px solid transparent; border-bottom: 4px solid transparent;
-    transition: transform .15s ease;
+    transition: transform var(--duree) ease;
 }
 .form-plus[open] > summary::before { transform: rotate(90deg); }
 .form-plus > summary:hover { color: var(--highlight-d); }

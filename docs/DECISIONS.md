@@ -459,6 +459,28 @@ Deux pièges du côté de la vue (`views/piece.php`) :
 `object-src 'none'` reste intact : l'aperçu passe par `<img>` et `<iframe>`,
 jamais par `<object>`/`<embed>`.
 
+### Exports CSV : neutraliser les formules, épargner les nombres (2026-11)
+
+Trois exports CSV (écritures, SUISA, index de l'archive des pièces) écrivaient
+leurs cellules telles quelles. Un tableur lit comme une formule toute cellule
+qui commence par `=`, `+`, `-`, `@`, une tabulation ou un retour chariot. Le
+vecteur sérieux n'est pas interne : le tiers et la communication d'une
+écriture viennent du relevé bancaire importé (`Dbtr/Nm`, `RmtInf/Ustrd`), donc
+du payeur — un virement d'un franc suffit à poser `=HYPERLINK(…)` dans le
+fichier qu'ouvre le vérificateur. Second vecteur, l'archive des pièces : un
+compte qui n'a que le dépôt écrit des intitulés lus par qui tient les comptes.
+
+La neutralisation classique (une apostrophe en tête) a un coût : elle rend du
+texte. Appliquée à tout, elle changeait chaque montant négatif et chaque
+téléphone « +41 … » en texte, avec l'apostrophe visible dans certains
+tableurs. D'où l'exception : une valeur sans lettre, ni `=`, ni `@` ne peut
+désigner ni fonction ni cellule ; elle passe telle quelle. Le cas résiduel
+(« +1+1 » affiché « 2 ») ne fait fuiter aucune donnée.
+
+`csv_ecrire()` est la seule porte ; `tests/csv_test.php` vérifie la règle, le
+fichier réellement produit par l'export des écritures, et qu'aucun
+`fputcsv()` n'apparaît ailleurs.
+
 ### Polices servies depuis le dépôt
 
 Inter était chargée depuis `fonts.googleapis.com`. Trois raisons de l'avoir
@@ -476,18 +498,19 @@ fois.
 
 ## Performance
 
-### La feuille de style en seize fichiers (2026-11)
+### La feuille de style en fichiers par domaine (2026-11)
 
-`assets/app.css` faisait 7 600 lignes d'un seul tenant. Il est découpé à ses
-intertitres en `assets/css/01-base.css` … `16-accessibilite.css`, **sans
-qu'aucune règle ne bouge** : les fichiers mis bout à bout redonnent l'ancien
-texte, dans l'ordre de la cascade. `CSS_FICHIERS` (lib/helpers.php) en tient
+`assets/app.css` faisait 7 600 lignes d'un seul tenant. Il a d'abord été
+découpé à ses intertitres, sans qu'aucune règle ne bouge, puis rangé par
+domaine (fenêtres, historique, tableau de bord, recherche ont leur fichier ;
+voir « Feuille de style » sous Interface) : `assets/css/01-base.css` …
+`24-accessibilite.css`, dans l'ordre de la cascade. `CSS_FICHIERS` (lib/helpers.php) en tient
 la liste ; `css_liens_html()` pose les `<link>` (page, impression, export) et
 `css_source()` rend la feuille entière à ce qui l'embarque (un e-mail) ou la
 lit (les tests). `tests/css_test.php` vérifie que le dossier et la liste
 disent la même chose.
 
-Le prix : seize requêtes au premier chargement au lieu d'une. Il est faible —
+Le prix : vingt-quatre requêtes au premier chargement au lieu d'une. Il est faible —
 les fichiers sont mis en cache un an (`immutable`, versionnés par leur date
 via `asset_url()`), et HTTP/2 les sert sur une seule connexion. Pas d'étape de
 construction pour les recoller : le déploiement reste un `git pull`.
@@ -752,6 +775,108 @@ doublon de la barre supérieure via `.page-head-titre-module`. Or **plus aucune
 vue ne pose cette classe** : le bandeau porte toujours un titre, et la règle
 collait « Événements » au bord gauche de l'écran. Elle a été retirée, pas
 re-conditionnée.
+
+### Feuille de style : un thème écrit une fois, des échelles nommées (2026-11)
+
+**Le thème sombre.** Chaque couleur est déclarée UNE fois, sous la forme
+`light-dark(clair, sombre)` (01-base.css, et `couleurs_css_vars()` pour les
+couleurs de l'employeur). Le choix passe par `color-scheme` seul
+(02-theme.css) : `light dark` en automatique, imposé par `data-theme`.
+Auparavant, chaque couleur sombre était écrite deux fois — sous
+`@media (prefers-color-scheme: dark)` et sous `[data-theme="sombre"]`, aucun
+sélecteur ne savant dire les deux — et les deux copies avaient divergé : le
+bloc « sombre imposé » avait oublié dix teintes (personne, document,
+événement, leurs fonds et bordures, le fond de l'état réglé). Un second
+défaut en venait : la règle de survol sombre des boutons, plus spécifique que
+`.btn.ghost:hover`, rendait bleu un bouton discret survolé.
+- `light-dark()` exige Safari ≥ 17.5 et Chrome ≥ 123.
+- Ce qui change avec le thème sans être une couleur passe par le drapeau
+  `--sombre` (0 ou 1) dans un `calc()` (opacité des décors, éclaircissement
+  des boutons au survol).
+- Ce qui ne se dit ni en couleur ni en nombre — un logo par thème en
+  `display`, le filtre des tuiles de la carte — reste écrit deux fois, dans
+  le seul `20-theme-interrupteurs.css`.
+- `color-scheme: dark` met aussi les contrôles natifs (cases, barres de
+  défilement) en sombre : c'est voulu.
+
+**Les échelles.** Trois listes vivent dans `01-base.css`, et
+`tests/css_test.php` les fait respecter :
+- les **calques** (`--z-collant` … `--z-sur-carte`) : tout `z-index` de 10 ou
+  plus passe par un nom, l'ordre d'empilement se lit d'un coup d'œil ;
+- les **espacements** (`--esp-1` … `--esp-5`, 4/8/12/16/24) : appliqués là où
+  une déclaration y tenait déjà entièrement, sans écart visuel ; le reste (6,
+  10, 14px…) est sous un plafond qui ne peut que baisser ;
+- les **points de rupture** : 480, 700, 800, 900, 1100, 1300, 1400. Une
+  `@media` ne lit pas de variable, la liste est donc en commentaire et dans
+  le test. 768, 760, 720 et 640 ont rejoint 700 ou 800, 1360 est passé à 1401 :
+  ces règles changent de seuil de quelques dizaines de pixels.
+- les **arrondis, l'ombre de panneau et le voile** (`--radius-xs`,
+  `--radius-rond`, `--shadow-panneau`, `--voile`). Trois voiles différents
+  (gris bleuté à 45 %, violet sombre à 50 % et à 35 %) se posaient derrière
+  trois gestes qui n'en font qu'un — quelque chose s'ouvre par-dessus la
+  page : ils n'en font plus qu'un.
+- même raisonnement pour ce qui différait de presque rien : « inactif » s'écrivait
+  à .5, .55 et .62 selon l'écran (`--opacite-inactif`, .55), « désactivé » à .5
+  ou .55 (`--opacite-desactive`, .5) ; les transitions duraient .12, .15 ou
+  .18s (`--duree`) ; les petits arrondis 2, 3, 5 ou 6px (`--radius-xs`) ; deux
+  menus flottants avaient chacun leur ombre (`--shadow-panneau`). Les
+  arrondis égaux à la demi-hauteur (9px sur un badge de 18) étaient des
+  capsules déguisées : `--radius-pill` vaut 999px. Restent en pixels les
+  arrondis concentriques du rail, où chaque cran vaut celui du volet moins
+  son retrait — les arrondir casserait le parallélisme des courbes.
+
+**Des cliquets plutôt qu'une refonte.** `:not()` enchaînés (trois au plus :
+une mini-carte garde ses cellules par `.carte-garde`, posée dans la vue, au
+lieu de nommer toutes celles qu'elle masque), arrondis écrits en pixels,
+`:has()`, sélecteurs de cinq composés ou plus, octets de commentaires : chacun
+a son plafond dans `tests/css_test.php`, qu'on baisse et ne monte jamais. Les
+46 `:has()` ont été relus un par un : ils lisent un état (`:checked`,
+`[open]`), une structure que la vue ignore (une mini-carte n'existe que si la
+ville est géocodée, `layout.php` ne sait pas ce que rend la vue), ou portent
+une règle voulue sans exception. Aucun ne se remplaçait par une classe sans
+rouvrir la porte aux oublis page par page.
+
+**Vérifier qu'un déplacement ne change rien** : `scripts/releve_styles.php`
+relève les styles calculés de chaque élément de chaque page (base de
+démonstration neuve, Chrome sans fenêtre, ordinateur/tablette/téléphone, clair
+et sombre), puis compare deux relevés. On relève l'état d'avant dans une copie
+du dépôt (`--racine=`), l'état d'après dans le dépôt. Déplacer une règle d'un
+fichier à l'autre change sa place dans la cascade : c'est ainsi que la base de
+`.dash-cols`, rangée après ses `@media`, les écrasait — trois colonnes à toutes
+les largeurs, que seul le relevé a montré.
+
+**Ce qui a déjà cassé, et que les commentaires du CSS ne racontent plus**
+(ils énoncent la règle ; le récit est ici) :
+- *La gouttière à 2px près* (10-tiroir-mobile.css). Sur téléphone, elle était
+  écrite en dur à 18px dans huit règles, alors qu'une vingtaine d'autres la
+  lisaient dans `--content-pad`, qui vaut 20px. Tout ce qui annule le retrait
+  pour aller bord à bord manquait donc de 2px : la barre d'outils et la
+  pagination faisaient 379px dans une fenêtre de 375, et toute page de module
+  débordait horizontalement.
+- *Le seuil de l'en-tête de tableau collant* (08-tableaux.css). Il valait
+  1280px, mesuré quand les tableaux les plus larges demandaient 1144px
+  (salaires) et 1039px (structures). Les écritures ont gagné une colonne
+  « Pièce », les structures leurs étiquettes : à 1280px, elles débordaient de
+  13 et 56px, et c'est la PAGE entière qui défilait de côté. Remesuré, tout
+  tenait à 1360px ; le seuil est aujourd'hui au palier de 1401px. Il se
+  remesure dès qu'un tableau gagne une colonne.
+- *Un panneau en `position: absolute` pèse quand même* (07-, `.filters-more-body`).
+  Ancré sur `.filters`, il en élargissait la largeur intrinsèque jusqu'à la
+  sienne, et `.toolbar` passait à la ligne. `position: fixed` échappe à ce
+  calcul ; `.col-filter-menu` suit la même recette.
+- *Un crochet `:has()` sur un élément qui disparaît* (05-entetes.css). Les
+  pages à bandeau sans `.module-content` se reconnaissaient à leur rangée
+  d'onglets, rendue puis masquée. La rangée retirée, le crochet ne trouvait
+  plus rien, et ces pages se seraient rétrécies sans bruit.
+- *Inter servie par Google Fonts* : chaque affichage transmettait l'adresse IP
+  de l'utilisateur à un tiers, dans une application de salaires nominatifs.
+  La police est dans `assets/fonts/`.
+
+**L'outil.** Ces transformations ont été vérifiées en relevant les styles
+calculés de 69 pages dans huit configurations (largeurs, thème automatique ou
+imposé), avant et après, dans un Chrome sans tête : seules les différences
+voulues sont restées. Ce relevé n'est pas dans la suite de tests — il compare
+deux états du code, pas un état à une attente.
 
 ---
 

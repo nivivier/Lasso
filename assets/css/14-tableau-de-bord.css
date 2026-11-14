@@ -1,0 +1,247 @@
+/* ==================================================================== */
+/* TABLEAU DE BORD — grille des cartes, réglages, widgets */
+/* ==================================================================== */
+
+/* Tableau de bord : grille responsive, chaque widget (Prochains événements,
+   Suisa, Évolution financière, Salaires à verser, Factures émises…) est une
+   cellule indépendante — 3 colonnes en plein écran, 2 en tablette, 1 en
+   dessous (mobile, cf. @media 800px plus bas) plutôt que deux colonnes figées
+   groupant plusieurs pods chacune. .content perd son plafond de largeur de
+   lecture (1120px) sur cette page : avec 3 colonnes, le tableau de bord
+   profite de toute la largeur dispo plutôt que de se comprimer inutilement. */
+.content:has(> .dash-cols) { max-width: none; }
+/* column-count (mise en page façon "presse", chaque carte remplit une
+   colonne avant de passer à la suivante) plutôt que grid-template-columns :
+   en grid, la hauteur d'une RANGÉE est celle de son item le plus grand — un
+   pod court (ex. Suisa) partageant sa rangée avec un pod haut (ex. Évolution
+   financière) laisserait un grand vide sous lui. En colonnes, chaque carte s'enchaîne directement sous la
+   précédente DANS SA COLONNE, sans dépendre de la hauteur des cartes des
+   colonnes voisines. break-inside:avoid empêche une carte d'être coupée
+   entre deux colonnes ; margin-bottom (pas de row-gap en colonnes) restitue
+   un espacement vertical identique au column-gap horizontal. */
+.dash-cols { column-count: 3; column-gap: 32px; }
+.dash-cols > * { break-inside: avoid; margin: 0 0 32px; }
+/* Chaque pod (Prochains événements, Suisa, Évolution financière, Salaires à
+   verser, Factures émises) est une carte à part entière, titre compris : un
+   titre posé directement sur le fond d'écran personnalisable (Apparence)
+   serait illisible selon l'image.
+   Effet vitre dépolie (même recette que .blur-glass/.page-head-band et le
+   bandeau flottant de la vue carte d'evenements_liste) plutôt qu'un fond
+   blanc plein : cohérent avec le reste de l'appli quand un fond d'écran est
+   actif, et transparent par-dessus la couleur unie par défaut. */
+/* « Organiser les cartes » : le panneau du bouton d'engrenage du tableau de
+   bord. Même dessin que les panneaux de filtre de colonne (.col-filter-menu) —
+   c'est le même geste, un réglage qu'on ouvre au-dessus de la page et qui se
+   referme tout seul — sans en reprendre la mécanique de placement, qui sert à
+   suivre une cellule de tableau. Ici l'ancre ne bouge pas. */
+/* display:block ANNULE le flex de .head-actions, et ce n'est pas cosmétique :
+   un <details> a un conteneur interne pour son contenu, qui reste dans le flux
+   même fermé (largeur nulle). Comme item flex, il récoltait le gap:12px de
+   .head-actions — 12px de vide collés à droite du bouton, qui ne tombait donc
+   plus dans l'alignement de la page. Il n'y a de toute façon rien à disposer
+   ici : un seul enfant visible, le panneau étant en position absolue. */
+.dash-reglages { position: relative; display: block; }
+.dash-reglages > summary { list-style: none; cursor: pointer; }
+.dash-reglages > summary::-webkit-details-marker { display: none; }
+.dash-reglages-panneau {
+    position: absolute; top: calc(100% + 6px); right: 0; z-index: var(--z-collant);
+    min-width: 330px; max-width: min(380px, calc(100vw - 32px));
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-sm);
+    box-shadow: var(--shadow); padding: 14px 16px;
+}
+.dash-reglage-ligne { display: flex; align-items: center; gap: var(--esp-1); padding: 2px 0; }
+/* Les deux groupes de boutons gardent leur largeur quoi qu'il arrive : sans
+   nowrap, « Prochains événements » faisait passer ses chevrons l'un sous
+   l'autre et la ligne à double hauteur. */
+.dash-reglage-ligne > form { flex: 0 0 auto; white-space: nowrap; }
+/* Le nom prend la place restante : les deux groupes de boutons restent alignés
+   d'une ligne à l'autre, quelle que soit la longueur du titre. */
+.dash-reglage-nom { flex: 1 1 auto; min-width: 0; font-weight: 600; font-size: var(--fs-basic); }
+/* Une carte masquée reste lisible — on doit pouvoir la retrouver pour la
+   remontrer — mais s'annonce comme absente du tableau de bord. */
+.dash-reglage-ligne.est-cachee .dash-reglage-nom { color: var(--muted); font-weight: 500; text-decoration: line-through; }
+
+/* .card.auth partage la vitre dépolie des cartes du tableau de bord : la page
+   de connexion pose une carte sur un fond décoré, exactement comme elles — et
+   c'est le même token, donc le même comportement en thème sombre. Déclarée ici
+   et non avec .blur-glass (plus haut) : .card, déclarée entre les deux, écrase
+   sinon le fond des sélecteurs à une seule classe. */
+.dash-card, .card.auth { background: var(--glass); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+
+/* Une ligne d'une carte du tableau de bord qui ATTEND UN GESTE : fond ambre
+   très clair. Posée sur la ligne et non sur ses cellules, pour que le survol
+   (.list tr.row-link:hover, plus spécifique) continue de l'emporter.
+
+   C'est la seule couleur de fond d'une carte, et le titre ne porte pas de
+   médaillon d'alerte : il répéterait en chiffre ce que les lignes montrent.
+   Une ligne de TOTAL n'en porte jamais — elle ne demande rien. */
+/* Le titre d'une carte du tableau de bord mène à son module. Même parti que
+   l'en-tête de colonne triable (.col-tri) : il GARDE l'allure d'un titre —
+   c'est la carte qui mène ailleurs, pas un lien posé dedans — et ne se signale
+   qu'au survol. Le retrait négatif compense le remplissage, pour que la
+   surface cliquable déborde du mot sans décaler le titre d'un pixel. */
+.dash-titre-lien {
+    color: inherit; text-decoration: none; border-radius: var(--radius-sm);
+    padding: 2px 6px; margin: -2px -6px;
+}
+.dash-titre-lien:hover, .dash-titre-lien:focus-visible {
+    color: var(--primary-d); background: var(--primary-tint); text-decoration: none;
+}
+.dash-card tbody tr.ligne-action { background: var(--amber-tint); }
+/* …et la même classe dans une LISTE pleine page, en plus pâle. Le sens est
+   identique — cette ligne attend un geste (docs/UI.md § 13) —, la densité ne
+   l'est pas : une carte montre trois lignes et doit les faire ressortir, une
+   liste en montre cent, et l'ambre plein y deviendrait le fond de la page.
+   D'où --row-attention, le ton que ?p=compta_ecritures emploie déjà pour une
+   écriture à lettrer : même rôle, même teinte.
+   Posé sur les CELLULES et non sur la rangée, parce que c'est là que les
+   rangées des listes pleine largeur portent leur blanc (voir .module-content) ;
+   sur le <tr>, il passerait dessous sans se voir. Le survol reste plus
+   spécifique et garde la main. */
+.list tbody tr.ligne-action > td { background: var(--row-attention); }
+.list tr.row-link.ligne-action:hover > td { background: var(--amber-tint); }
+
+/* Nombres colorés par gravité dans les tableaux du tableau de bord (carte
+   Suisa) — mêmes teintes que les statuts ailleurs dans l'application. Le fond
+   ambre dit qu'il y a quelque chose à faire, la couleur du nombre dit à quel
+   point : ambre pour ce qui attend, rouge pour ce qui manque. */
+.dash-card td.num-attente { color: var(--amber); }
+.dash-card td.num-retard { color: var(--danger); }
+/* Factures émises (tableau de bord) : le retard se lit à la couleur, l'étiquette
+   « Émise »/« En retard » ayant été retirée — elle disait en mots ce que la
+   couleur montre déjà. Une facture pas encore échue reste à l'encre du texte :
+   pas de couleur, donc pas d'alerte pour ce qui va bien. */
+/* Totaux des cartes du tableau de bord à l'encre : l'ambre signale ce qui
+   attend une action, et un total n'est pas une alerte. Il faut le dire
+   explicitement — « .list .strong » (0,2,0) colore les nombres en gras en teal
+   et l'emporte sur « .list tfoot td » (0,1,2), le nombre de classes primant.
+   Règle limitée à .dash-card : les totaux des autres listes gardent leur teal. */
+.dash-card .total-row td.num { color: var(--ink); }
+/* Le total d'une carte se fond dans la carte, comme son titre : aucun fond à
+   lui, et surtout pas l'ambre, qui ne sert qu'à ce qui attend un geste — un
+   total n'en attend aucun. Il faut le dire, « .list tfoot td » le posant
+   ailleurs sur la bande --surface : dans une carte de cinq lignes, cette bande
+   faisait un second bandeau face à celui des titres. Seul un filet le sépare
+   des lignes qu'il additionne. */
+.dash-card .total-row td { background: transparent; }
+/* « et X autres » : la suite des lignes, pas un bouton — discrète, alignée sur
+   le texte des lignes au-dessus, et cliquable sur toute sa hauteur. */
+.dash-card .dash-reste td { padding-top: 7px; padding-bottom: 7px; }
+.dash-card .dash-reste a { font-size: var(--fs-small); color: var(--muted); }
+.dash-card .dash-reste a:hover { color: var(--highlight-d); }
+.dash-card td.facture-retard { color: var(--amber); }
+.dash-card td.facture-retard-long { color: var(--danger); }
+
+/* Deux tableaux dans une même carte du tableau de bord (Recherche de fonds :
+   les campagnes, puis les bilans dus). Le premier perd la marge négative basse
+   qui colle un tableau au bord de sa carte — elle ne vaut que pour le dernier,
+   et sans ça la rangée de titres du second venait se plaquer sur la dernière
+   ligne du premier. */
+.dash-card table.list:not(:last-child) { margin-bottom: 0; }
+.dash-card table.list + table.list { margin-top: 20px; }
+
+/* Colonne de nom d'un widget du tableau de bord (employé, structure) : c'est la
+   seule dont la longueur est libre, donc la seule qui puisse pousser le tableau
+   au-delà de sa carte. Elle absorbe la place restante et se tronque au besoin.
+
+   Mesuré : le tableau « Factures émises » réclamait 400,7px de largeur minimale
+   dans une carte qui n'en offre que 398 — le nom de structure ne pouvant pas
+   rétrécir, la mise en page automatique élargissait le tableau au-delà du cadre.
+
+   La troncature est posée ICI et non sur toutes les cellules : appliquée
+   largement, elle rognait aussi « Voir », « Janvier 2024 » ou le badge « En
+   retard », que rien n'obligeait à rétrécir. */
+.dash-card table.list td.dash-nom {
+    max-width: 1px; width: 100%;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* La pastille d'identité devant un nom qui se tronque : la cellule reste un
+   BLOC — c'est son overflow qui coupe —, et la pastille s'y range comme un
+   caractère. En faire une cellule flex (.col-employe, liste des fiches) rend
+   le text-overflow inopérant : le nom se coupe alors net, sans points de
+   suite. Un peu plus petite qu'ailleurs, à la mesure de ces lignes-ci. */
+.dash-card table.list td.dash-nom .avatar-ini {
+    width: 22px; height: 22px; margin-right: 7px; vertical-align: -7px;
+}
+/* Nom et date empilés dans la même cellule ($dashIdent, tableau_bord.php) :
+   la pastille à gauche, centrée sur les deux lignes ; chaque ligne se tronque
+   pour son compte. Le flex est sur un span INTÉRIEUR, pas sur la cellule —
+   une cellule flex rendrait le text-overflow inopérant (voir ci-dessus). */
+.dash-ident { display: flex; align-items: center; min-width: 0; }
+.dash-card table.list td.dash-nom .dash-ident .avatar-ini { flex: none; vertical-align: 0; margin-right: 9px; }
+.dash-ident-texte { display: flex; flex-direction: column; min-width: 0; }
+.dash-ident-nom, .dash-ident-sous { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dash-ident-sous { font-size: var(--fs-tiny); color: var(--muted); line-height: 1.35; }
+.dash-card .dash-ident-sous.facture-retard { color: var(--amber); }
+.dash-card .dash-ident-sous.facture-retard-long { color: var(--danger); }
+
+/* Widgets du tableau de bord sur petit écran : les marges généreuses des
+   cellules (26px sur les extrêmes, --row-pad ailleurs) suffisaient à faire
+   déborder le tableau de sa carte — mesuré à 52px de trop sur « Factures
+   émises » à 400px de large, alors même que le nom se tronque déjà. On les
+   resserre ici seulement ; la géométrie du plein cadre (width + marges
+   négatives) reste inchangée, seul l'espacement intérieur diminue. */
+@media (max-width: 800px) {
+    .dash-card table.list tr > :first-child { padding-left: var(--esp-3); }
+    .dash-card table.list tr > :last-child { padding-right: var(--esp-3); }
+    .dash-card table.list td,
+    .dash-card table.list th { padding-left: 6px; padding-right: 6px; }
+}
+
+/* Carte « Campagnes » du tableau de bord : une ligne par campagne, l'icône de
+   son projet en tête pour la reconnaître sans lire. La barre d'avancement est
+   celle des listes (.camp-barre-liste). */
+/* flex et non inline-flex : en ligne, la boîte se posait sur la LIGNE DE BASE de
+   la cellule, donc 4px trop haut dès que la colonne voisine (barre + compte sur
+   deux lignes) rendait la rangée plus haute que l'icône. En bloc, c'est le
+   vertical-align: middle de la cellule qui la centre, comme le reste. */
+.dash-campagne { display: flex; align-items: center; gap: var(--esp-2); min-width: 0; }
+/* Même taille que dans ?p=booking_campagnes (.campagnes-table .projet-pastille) :
+   c'est la même icône pour le même projet, elle doit se reconnaître pareil
+   d'un écran à l'autre. */
+.dash-campagne .avatar-ini { width: 30px; height: 30px; font-size: var(--fs-tiny); margin: 0; flex: 0 0 auto; }
+/* Ce tableau doit tenir dans sa carte, des deux côtés :
+   — le NOM passe sur deux lignes au plus, au lieu d'être tronqué : tronquer
+     ne réduit pas la largeur MINIMALE d'un texte, la colonne réclamerait
+     encore la place du nom entier ;
+   — dans « Avancement », la barre rétrécit et le compte passe dessous : côte
+     à côte et insécables, ils réclameraient la somme de leurs largeurs.
+   Aucune de ces règles n'est sous @media : ce qui compte n'est pas la largeur
+   de l'ÉCRAN mais celle de la CARTE, et le tableau de bord en range trois par
+   rangée — sur un grand écran, une carte de tableau de bord est déjà étroite. */
+.dash-campagne-nom {
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+}
+.dash-card .camp-avancement { white-space: normal; }
+.dash-card .camp-barre-liste { width: 80px; }
+.dash-card .camp-avancement-txt { display: block; margin-left: 0; }
+/* Tableau plein cadre (Prochains événements, Salaires à verser, Factures
+   émises) : déborde jusqu'aux bords gauche/droite/bas de la carte (le
+   padding de .card, 26px, ne s'applique qu'au-dessus, sous le titre) — même
+   principe que .module-content-inner .table-scroll (tableau plein cadre,
+   contenu réinséré via le padding des premières/dernières cellules) mais
+   sans le débordement horizontal plein écran de ce dernier, borné à cette
+   carte. Ce comportement est celui de TOUT tableau de carte (voir
+   « le tableau REMPLIT la carte » plus haut) : il ne reste ici que ce qui
+   appartient en propre au tableau de bord. */
+/* Le filet au-dessus du total : le 2px hérité de « .list tfoot td » y marquait
+   une rupture que rien ne justifie sur cinq lignes. */
+.dash-card table.list tfoot td { border-top-width: 1px; }
+.dash-chart { width: 100%; height: auto; display: block; }
+/* Décor du graphique comptable : posé ici et non dans le SVG (views/tableau_bord.php)
+   pour suivre le thème : une couleur écrite dans le SVG resterait celle du
+   thème clair. */
+.dash-chart .ch-grille { stroke: var(--line); }
+.dash-chart .ch-zero { stroke: var(--muted); opacity: .55; }
+.dash-chart .ch-label { font-size: var(--fs-small); font-family: inherit; fill: var(--muted); }
+@media (max-width: 1400px) {
+    .dash-cols { column-count: 2; }
+}
+@media (max-width: 900px) {
+    .dash-cols { column-count: 1; }
+}

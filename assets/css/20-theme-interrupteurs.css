@@ -1,0 +1,62 @@
+/* ============================================================================
+   Thème — les INTERRUPTEURS : ce qui change avec le thème sans être une
+   couleur (light-dark()) ni un nombre (--sombre), voir 02-theme.css.
+
+   Écrits deux fois, une par mode : une media query et un attribut ne se
+   combinent pas dans un même sélecteur. Placés en fin de feuille parce qu'une
+   règle de composant ne l'emporte qu'APRÈS celle qu'elle corrige
+   (.side-logo, 03-navigation.css, pose display: block).
+   ========================================================================== */
+
+/* Logo du rail : une variante par thème, rendues toutes les deux (voir
+   views/layout.php). Par défaut on montre celle pour fond clair. */
+.side-logo-sombre { display: none; }
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="clair"]) .side-logo-clair  { display: none; }
+    :root:not([data-theme="clair"]) .side-logo-sombre { display: inline; }
+}
+:root[data-theme="sombre"] .side-logo-clair  { display: none; }
+:root[data-theme="sombre"] .side-logo-sombre { display: inline; }
+
+/* Même chose pour le logo en tête d'une facture À L'ÉCRAN (?p=facture) — et
+   seulement à l'écran : le PDF est composé côté serveur sur une feuille
+   blanche, il garde donc la variante pour fond clair. */
+.ps-logo-sombre { display: none; }
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="clair"]) .ps-logo-clair  { display: none; }
+    :root:not([data-theme="clair"]) .ps-logo-sombre { display: block; }
+}
+:root[data-theme="sombre"] .ps-logo-clair  { display: none; }
+:root[data-theme="sombre"] .ps-logo-sombre { display: block; }
+
+/* Même chose pour le logo de la page de connexion (views/layout.php) : son
+   fond suit le thème, le logo aussi. display:block et non inline — l'image est
+   un élément flex de .auth-wrap. */
+.auth-logo-sombre { display: none; }
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="clair"]) .auth-logo-clair  { display: none; }
+    :root:not([data-theme="clair"]) .auth-logo-sombre { display: block; }
+}
+:root[data-theme="sombre"] .auth-logo-clair  { display: none; }
+:root[data-theme="sombre"] .auth-logo-sombre { display: block; }
+
+/* Fonds de carte OpenStreetMap en thème sombre. Les tuiles sont des images
+   servies par tile.openstreetmap.org, en clair par nature : une carte blanche
+   au milieu d'une interface sombre éblouit. Plutôt que d'ajouter un second
+   fournisseur de tuiles — un hôte externe de plus, une ligne de CSP de plus, un
+   fournisseur de plus à suivre — on inverse les tuiles à l'affichage.
+   hue-rotate(180deg) rattrape l'inversion des teintes : sans lui, la végétation
+   vire au rose et l'eau à l'orange. Le filtre ne porte QUE sur le calque des
+   tuiles : marqueurs, tracés et infobulles gardent leurs couleurs, qui sont
+   déjà celles de l'application.
+*/
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="clair"]) .leaflet-tile-pane {
+        filter: invert(1) hue-rotate(180deg) brightness(.92) contrast(.92) saturate(.85);
+    }
+}
+:root[data-theme="sombre"] .leaflet-tile-pane {
+    filter: invert(1) hue-rotate(180deg) brightness(.92) contrast(.92) saturate(.85);
+}
+

@@ -1955,7 +1955,7 @@ function route_compta_ecritures_exporter_csv(): void
     $avecPieces = module_accessible('pieces');
     $entetes = ['Date', 'Texte', 'Tiers', 'Communication', 'Montant CHF', 'Compte bancaire', 'Catégorie', 'Lettrage'];
     if ($avecPieces) { $entetes[] = 'Justificatif'; }
-    fputcsv($out, $entetes, ';', '"', '\\');
+    csv_ecrire($out, $entetes);
     foreach ($rows as $r) {
         $ligne = [
             $r['date_op'],
@@ -1973,7 +1973,7 @@ function route_compta_ecritures_exporter_csv(): void
             // doivent voir le même mot.
             $ligne[] = ECRITURE_PIECE_LIBELLES[ecriture_piece_etat($r)] ?? '';
         }
-        fputcsv($out, $ligne, ';', '"', '\\');
+        csv_ecrire($out, $ligne);
     }
     fclose($out);
     exit;

@@ -53,7 +53,7 @@ body.auth-bg {
     min-height: 100vh;
     display: flex; align-items: center; justify-content: center;
     position: relative;
-    padding: 24px;
+    padding: var(--esp-5);
 }
 /* Les vagues n'avaient pas de règle à leur nom : leur fond EST le fond par
    défaut de l'application, qui sert aussi aux pages hors session. body.fond-vagues
@@ -85,18 +85,11 @@ body.fond-maillage, .fond-apercu[data-fond-apercu="maillage"] { background: var(
    les halos des pois, celui des anneaux, les bandes des strates. Les décors au
    trait (grille, courbes, anneaux) n'en ont pas besoin : un trait fin ne pèse
    pas sur un fond sombre.
-   Deux blocs, comme les tokens — l'un pour le mode automatique, l'autre pour le
-   choix explicite ; aucun sélecteur ne sait exprimer les deux à la fois. */
-@media (prefers-color-scheme: dark) {
-    :root:not([data-theme="clair"]) .decor-mesh svg > g,
-    :root:not([data-theme="clair"]) .decor-pois svg > g,
-    :root:not([data-theme="clair"]) .decor-strates svg > g,
-    :root:not([data-theme="clair"]) .an-halo { opacity: .55; }
-}
-:root[data-theme="sombre"] .decor-mesh svg > g,
-:root[data-theme="sombre"] .decor-pois svg > g,
-:root[data-theme="sombre"] .decor-strates svg > g,
-:root[data-theme="sombre"] .an-halo { opacity: .55; }
+   1 en clair, .55 en sombre (--sombre, 02-theme.css). */
+.decor-mesh svg > g,
+.decor-pois svg > g,
+.decor-strates svg > g,
+.an-halo { opacity: calc(1 - var(--sombre) * .45); }
 /* --- Grille : registre outil, net, sans décor --- */
 body.fond-grille, .fond-apercu[data-fond-apercu="grille"] { background: var(--bg); }
 .grille-trait { stroke: color-mix(in srgb, var(--ink) 30%, transparent); }
@@ -138,13 +131,13 @@ body.fond-strates, .fond-apercu[data-fond-apercu="strates"] { background: var(--
 /* Le choix du fichier se tient à droite du sélecteur de fond, dans la même
    rangée. La chaîne :not() reprend celle du style de champ par défaut, plus
    spécifique : sans elle, width:100% pousserait le champ sous le sélecteur. */
-.fond-rangee { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.fond-rangee { display: flex; align-items: center; gap: var(--esp-3); flex-wrap: wrap; }
 /* Le bouton « Parcourir » est un <label> dans un .form : la règle des libellés
    de formulaire (.form label, colonne, marge basse) est plus spécifique que
    .btn et empilait l'icône au-dessus du texte. La chaîne ci-dessous la dépasse
    sans toucher aux libellés voisins. */
 .form .fond-rangee label.fond-parcourir {
-    flex-direction: row; align-items: center; gap: 8px; width: auto; margin-bottom: 0;
+    flex-direction: row; align-items: center; gap: var(--esp-2); width: auto; margin-bottom: 0;
 }
 .fond-rangee #fond-fichier-nom { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
@@ -197,9 +190,9 @@ body.fond-strates, .fond-apercu[data-fond-apercu="strates"] { background: var(--
 .fond-apercu img.f-clair { filter: contrast(.1) brightness(2); }
 .fond-apercu img.f-floute { filter: blur(2.5px); }
 .fond-apercu img.f-clair.f-floute { filter: contrast(.1) brightness(2) blur(2.5px); }
-.fond-apercu-vide { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--muted); font-size: var(--fs-small); text-align: center; padding: 0 12px; }
+.fond-apercu-vide { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--muted); font-size: var(--fs-small); text-align: center; padding: 0 var(--esp-3); }
 
-/* --- Vagues : le décor historique, devenu un choix parmi les autres --- */
+/* --- Vagues --- */
 .wave-blur { position: absolute; border-radius: 100%; }
 .wave-blur.one { width: 800px; height: 500px; top: -250px; left: -150px; background: color-mix(in srgb, var(--fond-a) 10%, transparent); }
 .wave-blur.two { width: 650px; height: 350px; right: -120px; top: 100px; background: color-mix(in srgb, var(--fond-b) 6%, transparent); }
@@ -217,14 +210,14 @@ body.fond-strates, .fond-apercu[data-fond-apercu="strates"] { background: var(--
 /* Respiration supplémentaire sous le logo : le gap de .auth-wrap vaut pour
    tous ses enfants, et la carte de connexion a besoin de se détacher du logo
    plus que le pied de page n'a besoin de se détacher d'elle. */
-.auth-logo { width: 150px; margin-bottom: 16px; }
+.auth-logo { width: 150px; margin-bottom: var(--esp-4); }
 /* .side-powered par défaut est pensé pour un fond sombre (texte quasi
    blanc, voir plus haut) — sur ce fond clair, mêmes couleurs que sa variante
    .sidebar .side-powered. */
 .auth-powered { color: var(--muted); }
 .auth-powered:hover { color: var(--ink); }
 
-@media (max-width: 768px) {
+@media (max-width: 800px) {
     .wave-shape-1 { height: 70vh; }
     .wave-shape-2 { height: 45vh; bottom: 27vh; }
     .wave-shape-3 { height: 14vh; bottom: 25vh; }

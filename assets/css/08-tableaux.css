@@ -3,23 +3,15 @@
 .list { width: 100%; border-collapse: separate; border-spacing: 0; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
 .list th, .list td { padding: var(--row-pad); text-align: left; border-bottom: 1px solid var(--line); }
 .list thead th { background: var(--surface); font-size: var(--fs-small); color: var(--muted); text-transform: uppercase; letter-spacing: .05em; font-weight: 700; }
-/* Filtre porté par une colonne (EXPÉRIMENTAL, ?p=fiches — "Paiement") : un
-   bouton entonnoir à côté du titre de colonne plutôt qu'un <select> dans la
-   barre d'outils, pour que le filtre reste visuellement rattaché à ce qu'il
-   filtre. <details> natif (même esprit que .filters-more) : pas de JS,
-   .col-filter-menu en position:absolute (plutôt que le display:flex en ligne
-   de .filters-more-body) pour flotter sans élargir la colonne ni décaler les
-   colonnes suivantes.
-   .col-paiement : largeur minimale fixe, réservée pour le pire cas (les 3
-   pastilles de filtre actives à la fois) — sans ça, la colonne (table en
-   table-layout:auto, largeur dictée par son contenu le plus large) s'élargit
-   quand un filtre s'active et rétrécit quand on le retire, décalant toutes
-   les colonnes suivantes à chaque changement. .col-th-actif-list plafonne sa
-   largeur à la même valeur et repasse à la ligne (flex-wrap déjà en place)
-   plutôt que de dépasser. */
+/* Filtre porté par une colonne (EXPÉRIMENTAL, ?p=fiches « Paiement ») : un
+   entonnoir à côté du titre, rattaché à ce qu'il filtre. <details> natif,
+   menu en position:absolute pour ne pas élargir la colonne.
+   ⚠️ .col-paiement a une largeur minimale réservée au pire cas (trois
+   pastilles actives) : sans elle, la colonne change de largeur à chaque
+   filtre et décale toutes les suivantes. */
 .col-paiement { min-width: 128px; }
 .col-date { white-space: nowrap; }
-.col-th { display: inline-flex; align-items: center; gap: 4px; }
+.col-th { display: inline-flex; align-items: center; gap: var(--esp-1); }
 /* Un bouton d'en-tête de colonne qui agit sur toute la colonne — « tout
    détailler » du libellé des écritures. Même discrétion que l'entonnoir voisin :
    il accompagne le titre, il ne le concurrence pas, et il s'allume quand son
@@ -35,7 +27,7 @@
    flèche. */
 .col-tri {
     display: inline-flex; align-items: center; gap: 3px;
-    color: inherit; text-decoration: none; border-radius: 4px;
+    color: inherit; text-decoration: none; border-radius: var(--radius-xs);
     padding: 1px 3px; margin: -1px -3px;
 }
 .col-tri:hover, .col-tri:focus-visible { color: var(--primary-d); background: var(--primary-tint); text-decoration: none; }
@@ -46,7 +38,7 @@
 .col-filter-btn {
     display: inline-flex; align-items: center; justify-content: center;
     width: 18px; height: 18px; padding: 0; flex-shrink: 0;
-    border-radius: 5px; color: var(--muted); background: none; border: none; cursor: pointer;
+    border-radius: var(--radius-xs); color: var(--muted); background: none; border: none; cursor: pointer;
     text-transform: none; letter-spacing: normal;
 }
 .col-filter-btn .ico { width: 12px; height: 12px; }
@@ -69,8 +61,8 @@
    que .seg-btn.on et .filters-more[open] summary. */
 .col-filter-btn-nomme {
     width: auto; height: auto; gap: 6px;
-    padding: 6px 10px; border-radius: var(--radius-sm, 7px);
-    border: 1px solid var(--line); background: var(--surface); color: var(--text);
+    padding: 6px 10px; border-radius: var(--radius-sm);
+    border: 1px solid var(--line); background: var(--surface); color: var(--ink);
     font-size: var(--fs-basic); font-weight: 500; white-space: nowrap;
 }
 .col-filter-btn-nomme:hover { border-color: var(--primary); color: var(--primary-d); }
@@ -82,7 +74,7 @@
 .col-filter[open] > .col-filter-btn-nomme .ico { transform: rotate(180deg); }
 .col-filter-nb {
     display: inline-flex; align-items: center; justify-content: center;
-    min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px;
+    min-width: 17px; height: 17px; padding: 0 var(--esp-1); border-radius: var(--radius-pill);
     background: var(--primary); color: #fff;
     font-size: var(--fs-tiny); font-weight: 700; font-variant-numeric: tabular-nums;
 }
@@ -92,7 +84,7 @@
     /* position/top/left de repli (avant que le JS ne bascule en position:fixed
        à l'ouverture, voir assets/app.js) : sans ça, un flash en position:absolute
        mal placée est visible avant le premier recalcul. */
-    position: absolute; top: calc(100% + 4px); left: 0; z-index: 20;
+    position: absolute; top: calc(100% + 4px); left: 0; z-index: var(--z-collant);
     display: none; flex-direction: column; min-width: 130px; max-width: 200px; gap: 2px;
     background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-sm);
     box-shadow: var(--shadow); padding: 6px;
@@ -121,18 +113,15 @@
        evenements_liste en vue carte, ce <label> est un descendant de
        .carte-filters, qui porte la classe .filters — ".filters label"
        (plus haut, pour les <label> "normaux" empilés au-dessus de leur
-       champ) impose flex-direction:column à même spécificité, gagnant sur
-       cette seule propriété (jamais fixée ici jusqu'ici) faute de
-       concurrent plus tardif. Conséquence : case à cocher et texte
-       empilés au lieu de côte à côte, et centrés (align-items:center
-       s'applique alors à l'axe croisé, devenu horizontal). */
-    display: flex; flex-direction: row; align-items: center; gap: 7px; padding: 5px 6px; border-radius: 6px;
+       champ) impose flex-direction:column à même spécificité : sans cette
+       déclaration, case à cocher et texte s'empileraient au lieu d'être côte
+       à côte. */
+    display: flex; flex-direction: row; align-items: center; gap: 7px; padding: 5px 6px; border-radius: var(--radius-xs);
     font-size: var(--fs-basic); font-weight: 600; text-transform: none; letter-spacing: normal;
     color: var(--ink); cursor: pointer;
     /* --niv : profondeur d'un libellé arborescent, posée par filtre_colonne_html().
-       14px par niveau, soit le double de ce que valaient les deux insécables
-       qu'elle remplace — l'escalier se lit d'un coup d'œil au lieu de se
-       deviner, et la case à cocher suit son texte. */
+       14px par niveau : l'escalier se lit d'un coup d'œil, et la case à
+       cocher suit son texte. */
     padding-left: calc(6px + var(--niv, 0) * 14px);
 }
 .col-filter-menu label:hover { background: var(--surface); }
@@ -164,13 +153,12 @@
    parcourir — quatre niveaux et plus de quinze cents villes ne se lisent pas en
    liste. Champ en haut, résultats groupés par niveau en dessous, chaque groupe
    plafonné et disant combien il en reste. */
-.lieu-champ { margin-bottom: 4px; }
+.lieu-champ { margin-bottom: var(--esp-1); }
 .lieu-champ input {
     width: 100%; font: inherit; font-size: var(--fs-basic); color: var(--ink);
     padding: 7px 10px; margin: 0;
     border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--card);
 }
-.lieu-champ input:focus { outline: none; border-color: var(--primary); box-shadow: var(--focus-ring); }
 /* En-tête de niveau : le même corps que les autres intertitres de l'application
    (.mois-sep, .geo-groupe des listes), sans son bandeau — dans un panneau de
    200 pixels, un fond plein alourdirait. */
@@ -191,8 +179,8 @@
 .lieu-aide { margin: 6px 6px 0; }
 
 .col-filter-large .col-filter-menu { max-width: 300px; min-width: 260px; }
-.col-filter-large .col-filter-options { padding-right: 16px; }
-.col-filter-opt { display: flex; align-items: center; gap: 4px; border-radius: 6px; }
+.col-filter-large .col-filter-options { padding-right: var(--esp-4); }
+.col-filter-opt { display: flex; align-items: center; gap: var(--esp-1); border-radius: var(--radius-xs); }
 /* Le chevron d'une catégorie qui en contient d'autres (filtre_colonne_html()) :
    même rôle et même geste que celui d'un onglet dépliable du rail
    (.nav-page-chevron plus haut) — une seule icône dans le balisage, qui tourne
@@ -216,7 +204,7 @@
        chaque propriété de ce style global qui se verrait ici. */
     border: 0; border-radius: 0; background: none; box-shadow: none;
     color: var(--muted); cursor: pointer; opacity: .55;
-    transition: transform .15s ease;
+    transition: transform var(--duree) ease;
 }
 .cat-chevron .ico { width: 13px; height: 13px; }
 /* ⚠️ Une gouttière à sa droite, et elle n'est pas décorative : la liste défile
@@ -224,10 +212,9 @@
    se dessine PAR-DESSUS le contenu sans rien lui prendre en largeur (mesuré :
    offsetWidth - clientWidth = 0). Le chevron finissait exactement au bord
    intérieur, donc sous la barre : visible, mais plus cliquable dès que la liste
-   était assez longue pour défiler — c'est-à-dire précisément quand on a le plus
-   besoin de replier. Posée sur le chevron et non sur la liste : seules les
+   défile — précisément quand on a le plus besoin de replier. Posée sur le chevron et non sur la liste : seules les
    rangées qui en portent un cèdent la place, les autres gardent leur largeur. */
-.cat-chevron { margin-right: 12px; }
+.cat-chevron { margin-right: var(--esp-3); }
 /* ⚠️ Et il faut DÉFAIRE ce que le style global des boutons lui applique, sinon
    l'homogénéité avec le rail s'arrête au repos : « button:hover » (plus haut)
    pose l'aplat de mise en évidence et « button:active » un décalage d'un
@@ -251,7 +238,7 @@
    accessibles à la tabulation — on tabulerait vers des options invisibles. */
 .col-filter-branche {
     overflow: hidden;
-    transition: height .15s ease, visibility .15s;
+    transition: height var(--duree) ease, visibility var(--duree);
     margin-top: 2px;
 }
 .col-filter-branche > * + * { margin-top: 2px; }
@@ -268,7 +255,7 @@
 .tag-gerer { display: inline-flex; align-items: center; gap: 2px; flex: 0 0 auto; min-width: 0; }
 /* Champ au gabarit de la ligne qu'il remplace, pas à celui d'un champ de
    formulaire : dans une liste d'options à 5px de marge, la hauteur par défaut
-   d'un <input> faisait sauter la ligne du simple au double. */
+   d'un <input> ferait sauter la ligne du simple au double. */
 /* Sélecteur à trois classes, volontairement : la règle de base des champs
    (input:not([type=checkbox]):not([type=radio]), 10px de marge interne et la
    hauteur de ligne du corps de page) l'emporte sur deux — elle vaut deux
@@ -286,7 +273,7 @@
    vivent dans une liste déroulante dense, pas dans une barre d'outils. */
 .tag-gerer-btn {
     background: none; border: none; box-shadow: none; padding: 3px; margin: 0;
-    color: var(--muted); cursor: pointer; display: inline-flex; align-items: center; border-radius: 5px;
+    color: var(--muted); cursor: pointer; display: inline-flex; align-items: center; border-radius: var(--radius-xs);
 }
 .tag-gerer-btn .ico { width: 13px; height: 13px; }
 .tag-gerer-btn:hover { background: var(--primary-tint); color: var(--primary-d); }
@@ -299,7 +286,7 @@
 /* Le crayon ne se montre qu'au survol de sa ligne : une colonne de crayons
    ferait de la gestion des étiquettes le sujet du panneau, alors qu'on vient
    d'abord y filtrer. Toujours atteignable au clavier et au tactile. */
-.tag-gerer-crayon { opacity: 0; transition: opacity .12s; }
+.tag-gerer-crayon { opacity: 0; transition: opacity var(--duree); }
 .col-filter-opt:hover .tag-gerer-crayon,
 .tag-gerer-crayon:focus-visible { opacity: 1; }
 @media (hover: none) { .tag-gerer-crayon { opacity: 1; } }
@@ -307,11 +294,11 @@
 .col-filter-tout { font-weight: 700; }
 .col-filter-sep { height: 1px; background: var(--line); margin: 3px 2px; }
 .col-filter-apply {
-    margin-top: 4px; padding: 4px 0; border-radius: 6px; border: none; background: var(--primary);
+    margin-top: var(--esp-1); padding: var(--esp-1) 0; border-radius: var(--radius-xs); border: none; background: var(--primary);
     font-size: var(--fs-small); font-weight: 700; color: #fff; cursor: pointer;
     text-transform: none; letter-spacing: normal; box-shadow: none;
 }
-.col-filter-apply:hover { background: var(--primary-d); }
+.col-filter-apply:hover { background: light-dark(var(--primary-d), var(--primary)); filter: brightness(calc(1 + var(--sombre) * .18)); }
 /* Filtres actifs : une pastille par valeur cochée sous le titre de colonne,
    chacune avec sa propre croix — plutôt qu'un seul texte + une croix globale,
    pour pouvoir retirer une valeur precise quand plusieurs sont actives à la
@@ -333,9 +320,9 @@
    rangée sous .toolbar plutôt qu'un groupe par <th>, donc pas de largeur de
    colonne à respecter (max-width:128px annulé) ni de retrait par groupe
    (margin-top:0, l'espacement vient du gap du conteneur). */
-.filtres-ciblage-actifs { display: flex; flex-wrap: wrap; gap: 4px 8px; margin: -6px 0 16px; }
+.filtres-ciblage-actifs { display: flex; flex-wrap: wrap; gap: var(--esp-1) var(--esp-2); margin: -6px 0 16px; }
 .filtres-ciblage-actifs .col-th-actif-list { max-width: none; margin-top: 0; }
-.list tbody tr { transition: background .12s; }
+.list tbody tr { transition: background var(--duree); }
 /* Dans un bloc de contenu, c'est la RANGÉE qui porte le blanc, plus le tableau
    (voir .module-content) : une rangée peut ainsi s'en passer — le séparateur
    de groupe — et laisser voir le décor. Posé sur le <tr> : les règles qui
@@ -347,7 +334,7 @@
 /* Le survol ne dit rien d'un séparateur de groupe : ce n'est pas une ligne
    qu'on ouvre, et le teinter crevait son verre au passage de la souris. */
 .list tbody tr:not(.ecr-mois-sep):not(.mois-sep):not(.fiche-mois-sep):hover { background: var(--surface); }
-.list tr.row-link { cursor: pointer; transition: background .12s ease; }
+.list tr.row-link { cursor: pointer; transition: background var(--duree) ease; }
 .list tr.row-link:hover { background: var(--primary-tint); }
 /* Nom/titre d'une ligne de liste cliquable (?p=structures/evenements_liste/
    facturation_liste/fiches) : un vrai <a href>, pas seulement le data-href +
@@ -380,9 +367,9 @@
    carte Suisa. */
 .list .strong-encre { font-weight: 700; }
 /* Un montant ne prend pas de couleur : ni celle du module, ni celle de
-   l'action. Le brut était en --highlight, c'est-à-dire dans le bleu réservé au
-   geste qui fait avancer — une colonne entière de faux boutons. Son poids
-   suffit à le distinguer, et c'est l'ÉTAT d'une somme (à payer, échue) qui la
+   l'action : le bleu de --highlight est réservé au geste qui fait avancer,
+   une colonne de montants bleus serait une colonne de faux boutons. Le poids
+   suffit à distinguer le brut, et c'est l'ÉTAT d'une somme (à payer, échue) qui la
    colore, jamais sa nature (docs/UI.md § 13). */
 .col-brut { color: var(--ink); font-weight: 700; }
 .col-cout { color: var(--ink); font-weight: 700; }        /* coût employeur en gras noir */
@@ -396,7 +383,7 @@
 .ce-brut { color: var(--highlight); }
 .ce-cout { color: var(--ink); }
 .list .actions { text-align: right; }
-.list tr.inactif td { opacity: .5; }
+.list tr.inactif td { opacity: var(--opacite-inactif); }
 .badge { font-size: var(--fs-small); background: var(--highlight-tint); color: var(--highlight-d); padding: 2px 9px; border-radius: var(--radius-pill); margin-left: 6px; font-weight: 600; white-space: nowrap; border: none; box-shadow: none; }
 /* Le « + » n'est pas une valeur, c'est une place vide qui en attend une : pas
    de fond, un contour pointillé. Il cesse ainsi de se lire comme une étiquette
@@ -469,15 +456,15 @@ th.col-contact, td.col-contact { display: none; }
    positifs de l'application (--ok, qui a sa variante en thème sombre). */
 .contact-recent { color: var(--ok); font-weight: 700; }
 
-/* Les deux colonnes de suivi montent d'un cran : à 9px, une durée qu'on lit
-   vraiment était en dessous du seuil de confort. Les mini-cartes gardent leur
+/* Les deux colonnes de suivi sont un cran au-dessus de --fs-tiny : une durée
+   qu'on lit vraiment a besoin de ce corps. Les mini-cartes gardent leur
    propre corps (10px), calé sur la hauteur de ligne de la carte. */
 td.col-contact-le, td.col-maj-le { font-size: var(--fs-small); }
 
 /* Icônes des deux colonnes de suivi, à TOUTES les largeurs : enveloppe pour un
    contact, crayon pour une modification, cercle-plus pour une fiche créée à
-   l'import et jamais retouchée. Elles portent le sens que le texte ne dit plus
-   depuis que ces colonnes affichent une durée et non une date.
+   l'import et jamais retouchée. Elles portent le sens que la durée affichée
+   ne dit pas.
    .a-date les conditionne : une cellule sans date n'affiche qu'un trait, et une
    icône y annoncerait un événement qui n'a pas eu lieu.
    En masque et non en <svg> dans le balisage : sur deux colonnes rendues 2959
@@ -487,7 +474,7 @@ td.col-contact-le, td.col-maj-le { font-size: var(--fs-small); }
 td.col-contact-le.a-date::before,
 td.col-maj-le.a-date::before {
     content: ""; display: inline-block; vertical-align: -2px;
-    width: 11px; height: 11px; margin-right: 4px;
+    width: 11px; height: 11px; margin-right: var(--esp-1);
     background-color: currentColor;
     -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
     -webkit-mask-size: contain; mask-size: contain;
@@ -508,8 +495,8 @@ td.col-maj-le.a-date.est-creation::before {
    hauteur nulle. À -2px l'écart tombe à 0,17px. */
 
 :is(td.col-tags, td.col-campagnes) .badge { font-size: var(--fs-small); }
-/* La croix de retrait vit DANS l'étiquette : sans inline-flex, elle se collait
-   au dernier mot, et à sa taille par défaut (13px, .btn-tag-x) elle était plus
+/* La croix de retrait vit DANS l'étiquette : sans inline-flex, elle se colle
+   au dernier mot, et à sa taille par défaut (13px, .btn-tag-x) elle serait plus
    grosse que le mot qu'elle retire. Discrète au repos, franche au survol —
    c'est un geste destructeur au milieu d'une liste qu'on parcourt. */
 :is(td.col-tags, td.col-campagnes) .badge { display: inline-flex; align-items: center; gap: 5px; vertical-align: middle; }
@@ -535,12 +522,12 @@ td.col-campagnes .badge.camp-en-cours { background: var(--teal-tint); color: var
         50% { opacity: .75; }
     }
 }
-:is(td.col-tags, td.col-campagnes) .btn-tag-x { font-size: var(--fs-small); line-height: 1; opacity: .5; transition: opacity .12s; }
+:is(td.col-tags, td.col-campagnes) .btn-tag-x { font-size: var(--fs-small); line-height: 1; opacity: .5; transition: opacity var(--duree); }
 :is(td.col-tags, td.col-campagnes) .btn-tag-x:hover, :is(td.col-tags, td.col-campagnes) .btn-tag-x:focus-visible { opacity: 1; }
 
 /* Étiquettes de structure (booking) : badge + petit bouton de retrait intégré. */
-.tags-liste { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 0; }
-.tags-liste + * { margin-top: 12px; }
+.tags-liste { display: flex; flex-wrap: wrap; gap: var(--esp-2); margin-bottom: 0; }
+.tags-liste + * { margin-top: var(--esp-3); }
 .tags-liste .badge { display: inline-flex; align-items: center; gap: 6px; margin-left: 0; }
 .btn-tag-x { border: none; background: none; color: inherit; cursor: pointer; font-size: var(--fs-basic); line-height: 1; padding: 0; }
 /* Étoile « à facturer » (carte Organisation, ?p=evenement) : une seule active
@@ -587,46 +574,23 @@ td.col-campagnes .badge.camp-en-cours { background: var(--teal-tint); color: var
    ci-dessous), .table-scroll gère déjà le débordement horizontal en mobile. */
 @media (min-width: 801px) { .col-employe { min-width: 150px; } }
 .table-scroll { overflow-x: auto; border-radius: var(--radius); }
-/* En-tête de tableau collant, sous le bandeau de page (lui-même collant, voir
-   .page-head-band).
-   Pourquoi une condition de largeur : .table-scroll porte overflow-x:auto, et la
-   règle CSS veut qu'un axe non-visible rende l'autre « auto ». Le conteneur
-   devient alors le bloc de référence des éléments collants, et l'en-tête se
-   colle au haut DU TABLEAU au lieu de l'écran — mesuré, il partait à -988px
-   après 1200px de défilement. Il faut donc que .table-scroll cesse d'être un
-   conteneur de défilement, ce qu'on ne peut se permettre que si le tableau tient
-   dans la largeur disponible.
-   ⚠️ LE SEUIL SE REMESURE QUAND UN TABLEAU GAGNE UNE COLONNE. Si le tableau
-   ne tient pas, ce n'est plus lui qui défile mais LA PAGE ENTIÈRE — barre
-   d'outils et bandeau compris, qui glissent de côté. C'est bien pire qu'un
-   tableau qui défile dans son cadre, et c'est silencieux : rien ne casse, la
-   page part juste de travers.
-   Il valait 1280px, mesuré quand les tableaux les plus larges demandaient
-   1144px (salaires) et 1039px (structures). Les deux ont grossi depuis — les
-   écritures ont gagné leur colonne « Pièce », les structures leurs étiquettes.
-   Remesuré : à 1280px de fenêtre, les écritures débordaient de 13px et les
-   structures de 56px ; tout tient à partir de 1360px. En dessous, le
-   défilement horizontal reste indispensable (régression déjà vécue sur
-   ?p=compta_ecritures) et l'en-tête redevient ordinaire.
-   .list porte de son côté overflow:hidden pour clipper ses coins arrondis :
-   dans ce contexte il n'en a pas, et cet overflow clippait l'en-tête collant.
-   ⚠️ Un tableau de CARTE garde son overflow-x:auto (règle plus bas) : cette
-   dérogation n'existe que pour l'en-tête collant, qu'une carte n'a pas, et
-   elle laissait un tableau trop large DÉBORDER de sa carte par la droite,
-   boutons compris — vu sur la carte « Employés » de ?p=evenement, où une
-   ligne ouverte dépassait de 156px. Un tableau de carte défile dans son
-   cadre, à toutes les largeurs. */
-@media (min-width: 1360px) {
+/* En-tête de tableau collant, sous le bandeau de page (lui-même collant).
+   Un overflow-x:auto rend l'autre axe « auto » et fait de .table-scroll le
+   bloc de référence du collant : l'en-tête se collerait au haut du TABLEAU.
+   On ne lève ce défilement que là où le tableau tient en largeur.
+   ⚠️ LE SEUIL SE REMESURE QUAND UN TABLEAU GAGNE UNE COLONNE : trop large, ce
+   n'est plus le tableau qui défile mais la page entière, en silence. Palier
+   de 1401px ; l'historique des mesures est dans docs/DECISIONS.md § Feuille
+   de style. .list y perd aussi son overflow:hidden, qui rognait l'en-tête.
+   ⚠️ Un tableau de CARTE garde son overflow-x:auto (plus bas) : il n'a pas
+   d'en-tête collant et déborderait de sa carte. */
+@media (min-width: 1401px) {
     .module-content-inner .table-scroll { overflow-x: visible; }
     .module-content-inner .table-scroll .list { overflow: visible; }
     .module-content-inner .table-scroll .list thead th {
         position: sticky;
-        /* Tout en haut de la fenêtre. Le bandeau de page était collant et
-           aurait couvert l'en-tête : il fallait le décaler de la hauteur de
-           celui-ci (--hauteur-bandeau, mesurée au chargement). Le bandeau
-           défile maintenant avec la page, donc l'en-tête monte jusqu'au bord —
-           décalé, il s'arrêtait au milieu de l'écran une fois le bandeau
-           parti. */
+        /* Tout en haut de la fenêtre : le bandeau de page défile avec la page,
+           rien ne couvre l'en-tête. */
         top: 0;
         z-index: 3;
         /* Tous au MÊME z-index : à égalité, c'est l'ordre du document qui
@@ -637,9 +601,8 @@ td.col-campagnes .badge.camp-en-cours { background: var(--teal-tint); color: var
         background: var(--surface);
         /* Aucun trait à ajouter : la bordure de 1px que .list th porte déjà
            voyage avec la cellule collante, et c'est l'épaisseur de tous les
-           traits du site (69 déclarations « 1px solid var(--line) »). Un trait
-           plus fin ici, ou une ombre portée, ont été essayés puis retirés : le
-           premier détonnait, la seconde ne se voyait pas. */
+           traits du site. Un trait plus fin détonnerait, une ombre portée ne
+           se verrait pas. */
     }
     /* … sauf un tableau de CARTE : il doit DÉCOUPER, pour que ses coins du bas
        suivent ceux de la carte, et il n'a pas d'en-tête collant à laisser
@@ -660,242 +623,12 @@ td.col-campagnes .badge.camp-en-cours { background: var(--teal-tint); color: var
 .resume thead th { white-space: normal; line-height: 1.2; vertical-align: middle; }
 .resume tbody td.num, .resume tfoot td.num { white-space: nowrap; }
 .resume tfoot td { background: var(--surface); border-top: 1px solid var(--line); font-weight: 700; color: var(--brand); }
-/* Pastille d'initiales (avatar_initiales(), lib/helpers.php) : point d'accroche
-   en début de ligne, pour repérer un nom sans le lire. La teinte vient du nom,
-   elle est donc stable d'un écran à l'autre — c'est ce qui la rend utile. */
-.avatar-ini { display: inline-flex; align-items: center; justify-content: center;
-    width: 26px; height: 26px; border-radius: 50%; flex: 0 0 auto; margin-right: 9px;
-    font-size: var(--fs-tiny); font-weight: 700; color: #fff; letter-spacing: .02em; }
-.list td.col-employe { display: flex; align-items: center; }
-/* Photo : elle remplit la pastille, le rond venant du conteneur. */
-.avatar-ini.avatar-photo { background: var(--line); overflow: hidden; }
-.avatar-ini.avatar-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
-/* Liste des employés : la pastille et le nom sur une même ligne. */
-.emp-nom-ligne { display: inline-flex; align-items: center; }
-
-/* La pastille d'un projet (?p=projets) est un BOUTON : elle ouvre le
-   cadreur d'icône. Elle ne doit pas en avoir l'air — ni fond, ni bordure, ni
-   ombre —, seulement se signaler au survol et au clavier. */
-.plan-icone { background: none; border: 0; padding: 0; box-shadow: none; line-height: 0; border-radius: 50%; }
-.plan-icone .avatar-ini { margin-right: 0; }
-.plan-icone:hover, .plan-icone:focus-visible {
-    background: none; outline: 2px solid var(--primary); outline-offset: 2px;
-}
 /* Un lien qui ne réclame rien : il garde son comportement de lien (survol,
    focus) mais prend la couleur du texte. Sert aux campagnes qui ne sont plus ou
    pas encore en cours, dans la liste des campagnes. Trois classes : « .list
    .strong » colore déjà ces noms en teal (0,2,0), il faut passer devant. */
 .list .strong.lien-encre { color: var(--ink); }
 .list .strong.lien-encre:hover, .list .strong.lien-encre:focus-visible { color: var(--highlight-d); }
-
-/* Carte de tête d'une campagne (?p=booking_campagne) : l'icône du premier projet en
-   grand, puis ce qu'il reste à faire, puis le compte en gros. Elle répond à
-   deux questions d'un coup d'œil — où en est le démarchage, et qu'ont répondu
-   ceux qu'on a déjà contactés. */
-.camp-carte { display: flex; align-items: center; gap: 22px; }
-/* Les icônes des projets en pile : elles se chevauchent, chacune cernée du fond
-   de la carte pour qu'on distingue où l'une finit et où l'autre commence. Le
-   liseré est une ombre portée et non une bordure — il ne doit pas entrer dans
-   la largeur, sinon les pastilles ne seraient plus rondes du même diamètre. */
-.camp-icone { display: flex; align-items: center; flex: 0 0 auto; }
-/* position:relative : sans elle le z-index ne s'applique pas, et l'ordre de
-   superposition retomberait sur l'ordre du marquage — la DERNIÈRE icône
-   passerait devant, alors que c'est la première qui doit mener. */
-.camp-icone-item { display: inline-flex; border-radius: 50%; position: relative; }
-.camp-icone-item:has(.camp-icone-plus) { z-index: 0; }
-.camp-icone-item + .camp-icone-item { margin-left: -24px; }
-.camp-icone .avatar-ini { width: 64px; height: 64px; font-size: var(--fs-bigger); margin: 0;
-    box-shadow: 0 0 0 3px var(--card); }
-/* Le compte des projets qu'on n'affiche pas : une pastille comme les autres,
-   mais qui ne prétend représenter personne — d'où le gris. */
-.camp-icone .camp-icone-plus { background: var(--surface); color: var(--muted); font-size: var(--fs-basic); }
-.camp-corps { flex: 1 1 auto; min-width: 0; }
-/* Les projets de la carte : la même rangée que dans la liste
-   (.projet-pastilles, plus bas), à l'écart près — la carte est large, ses
-   pastilles y respirent. Sélecteur à deux classes pour l'emporter sur le gap
-   de .projet-pastilles quel que soit l'ordre des règles. */
-.projet-pastilles.camp-projets { gap: 4px 24px; margin-bottom: 14px; }
-/* Une seule barre, quatre segments. Le reste à contacter (ou à trouver) n'est
-   pas un segment : c'est le fond de la piste, ce qui n'a pas encore été rempli
-   — et c'est LUI qui porte l'ambre, parce que c'est lui qui demande un geste.
-   Voir la note sur les couleurs plus bas. */
-.camp-barre { position: relative; display: flex; width: 100%; height: 14px; border-radius: 7px; background: var(--amber-piste); overflow: hidden; }
-.camp-seg { display: block; height: 100%; }
-/* Le repère d'un seuil intermédiaire (barre_segments_html()) : la recherche de
-   fonds vise deux montants, le minimum sans lequel le projet ne se fait pas et
-   l'idéal. La barre se cale sur l'idéal et ce trait dit où est le minimum — une
-   seconde barre l'aurait dit deux fois, un trait le dit une. */
-.camp-repere { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px;
-    background: var(--ink); opacity: .45; }
-/* Mêmes couleurs que les icônes de réponse (CAMPAGNE_REPONSES_CLASSES_ICONE) :
-   teal pour un oui — la couleur de ce qui est acquis partout ailleurs —, rouge
-   pour un non, gris pour un contact établi dont la réponse se fait attendre.
-   L'AMBRE EST CELUI DE LA PISTE, c'est-à-dire de ce qui reste à contacter ou à
-   trouver : dans toute l'application, l'ambre dit un geste à faire — une fiche
-   à verser, une facture échue, une déclaration SUISA. Attendre une réponse
-   n'est pas un geste, le gris suffit ; un bailleur qu'on n'a pas encore
-   sollicité, si. (C'était l'inverse jusqu'à la 3.0.2.)
-   Deux registres, et c'est ce qui rend la barre lisible : les segments sont
-   PLEINS — ils disent ce qui est traité, réponse reçue ou non —, la piste est
-   PÂLE (--amber-piste) et dit ce qui ne l'est pas. Un ambre plein en fond
-   donnait une barre qui semblait remplie ; un gris de trait en segment se
-   serait confondu avec une piste claire. */
-.camp-oui { background: var(--ok); }
-.camp-non { background: var(--danger); }
-.camp-attente { background: var(--muted); }
-.camp-legende { list-style: none; display: flex; flex-wrap: wrap; gap: 6px 22px;
-    margin: 12px 0 0; padding: 0; font-size: var(--fs-small); align-items: center; }
-.camp-legende li { display: inline-flex; align-items: center; }
-/* Les icônes de la légende au gabarit des pastilles qu'elles remplacent : elles
-   accompagnent un chiffre, elles ne le concurrencent pas. */
-.camp-legende li > span:first-child { display: inline-flex; margin-right: 6px; }
-.camp-legende li > span:first-child .ico { width: 14px; height: 14px; }
-.camp-legende b { font-variant-numeric: tabular-nums; margin-right: 5px; }
-.camp-legende-fin { margin-left: auto; gap: 6px; }
-.camp-chiffre { flex: 0 0 auto; display: flex; flex-direction: column; text-align: right; }
-.camp-chiffre b { font-size: var(--fs-huge); font-weight: 800; line-height: 1; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
-.camp-chiffre span { font-size: var(--fs-small); }
-/* La même barre dans une ligne de liste : largeur fixe, pour que les campagnes
-   se comparent d'une ligne à l'autre — une barre qui s'étire au gré de la
-   colonne ne comparerait plus rien. */
-.camp-avancement { white-space: nowrap; }
-.camp-barre-liste { display: inline-flex; width: 120px; height: 12px; border-radius: 6px; vertical-align: middle; }
-/* Dans la liste des campagnes, l'icône du projet mène la ligne : elle y est
-   plus grande qu'une pastille posée au fil du texte (la carte, où elle
-   accompagne un nom déjà lisible sous une icône de 64 px). */
-.campagnes-table .projet-pastille { --pastille-taille: 30px; }
-.campagnes-table .projet-pastille .avatar-ini { font-size: var(--fs-tiny); }
-.camp-avancement-txt { font-size: var(--fs-small); color: var(--muted); font-variant-numeric: tabular-nums; margin-left: 9px; }
-.camp-avancement-txt b { color: var(--ink); }
-.camp-note { margin: -14px 0 22px; }
-/* Le badge d'état replié dans la colonne « Avancement » : rendu par la liste des
-   campagnes, invisible tant qu'il y a la place de garder les deux colonnes. */
-/* L'intitulé d'un champ et, à sa droite, une case qui en règle le contenu —
-   « Actifs seulement » d'un sélecteur de projets. Le label du champ et celui de
-   la case sont frères : deux labels imbriqués ne sont pas du HTML valide. */
-.champ-entete { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
-.champ-entete > label:first-child { margin: 0; }
-.check-mini { font-size: var(--fs-small); color: var(--muted); font-weight: 400; margin: 0; }
-
-.camp-etat-repli { display: none; }
-/* Son équivalent pour la recherche de fonds : le compte des dossiers déposés,
-   replié dans la colonne « Avancement » sur écran étroit. */
-.camp-dossiers-repli { display: none; font-size: var(--fs-small); color: var(--muted); font-variant-numeric: tabular-nums; }
-
-/* Liste des campagnes sur téléphone. Le tableau reste un tableau (il n'a que
-   cinq colonnes, la mise en cartes n'y gagnerait rien) mais se resserre :
-   — le nom du projet s'efface, son icône suffit à le reconnaître ;
-   — la période sort, c'est le détail qu'on va chercher sur la campagne ;
-   — « État » rejoint « Avancement », comme sur la carte du tableau de bord : la
-     progression si la campagne est en cours, son état sinon — une seule des
-     deux questions se pose à la fois. */
-@media (max-width: 700px) {
-    .campagnes-table :is(th, td).col-periode,
-    .campagnes-table :is(th, td).col-etat { display: none; }
-    /* Le nom du projet s'efface, son icône suffit. Et « Aucun projet » avec
-       lui : la mention s'enroulait sur deux lignes pour dire qu'il n'y a rien à
-       voir, là où une colonne vide le dit aussi bien. */
-    .campagnes-table :is(.projet-nom, .projet-aucun) { display: none; }
-    /* Réduites à leurs icônes, les pastilles se serrent : à l'écart de bureau,
-       deux d'entre elles demandaient 70px pour une colonne qui en offrait 69,
-       et la seconde passait à la ligne pour rien. */
-    .campagnes-table .projet-pastilles { gap: 6px; }
-    .campagnes-table .camp-avancement-etat :is(.camp-barre, .camp-avancement-txt) { display: none; }
-    .campagnes-table .camp-avancement-etat .camp-etat-repli { display: inline-block; }
-    /* Recherche de fonds : « Dossiers » sort de la même façon que « État », et
-       son compte rejoint l'avancement. La jauge s'y compte en francs, et un
-       montant est bien plus long qu'un « 3 / 6 » de démarchage : la barre et les
-       sommes s'empilent au lieu de se disputer la largeur, et la barre se
-       raccourcit — elle illustre un chiffre qui est juste en dessous, elle n'a
-       plus à le remplacer. */
-    .campagnes-table :is(th, td).col-dossiers { display: none; }
-    .campagnes-table .camp-avancement { line-height: 1.5; }
-    .campagnes-table .camp-avancement .camp-barre-liste { width: 72px; }
-    .campagnes-table .camp-avancement :is(.camp-avancement-txt, .camp-dossiers-repli) { display: block; margin-left: 0; }
-}
-/* Sur écran étroit, la carte s'empile : l'icône et le compte passent sur une
-   ligne à part plutôt que d'écraser la barre entre eux. */
-@media (max-width: 700px) {
-    .camp-carte { flex-wrap: wrap; gap: 14px; }
-    .camp-corps { flex-basis: 100%; order: 3; }
-    .camp-chiffre { margin-left: auto; text-align: right; }
-    .camp-legende-fin { margin-left: 0; flex-basis: 100%; }
-}
-
-/* Suivi d'une campagne : ses deux colonnes propres sont centrées, en-tête
-   compris. Leur contenu est fait de boutons et d'icônes de largeur fixe — aligné
-   à gauche, il flottait loin d'un en-tête que la largeur de la colonne écarte.
-   Deux classes plus l'élément : de quoi passer devant « .list th, .list td »,
-   qui aligne tout à gauche. Le centrage ne vaut qu'en vue tableau — en cartes
-   (≤700px) ces cellules passent en flex et se rangent sous le nom. */
-/* Le compte de structures reste vide tant que rien n'est filtré ni cherché. Un
-   élément vide est malgré tout un élément de la barre d'outils : l'espacement
-   qui le précède (gap) était compté, et le champ de recherche s'arrêtait 20px
-   avant le bord. display:none le retire de la rangée — il revient de lui-même
-   dès que le script y écrit un nombre. */
-#campagne-compte:empty { display: none; }
-
-.campagne-structures th.col-suivi, .campagne-structures td.col-suivi { text-align: center; }
-/* Les deux moitiés de « Suivi » — les boutons d'un côté, la bulle et la réponse
-   de l'autre — ne sont jamais là ensemble, mais elles s'alignent de la même
-   façon : au centre, sur une seule ligne. Le flex vit sur cette enveloppe et
-   non sur le <td>, qui cesserait alors d'être une cellule de tableau. */
-.suivi-cell { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
-/* Le libellé de l'en-tête et son entonnoir se centrent ensemble. */
-.campagne-structures th.col-suivi .col-th { justify-content: center; }
-
-/* Pastille de projet posée devant un nom (colonne « Projet » des campagnes) :
-   plus petite que celle d'une liste de personnes, où elle sert de repère de
-   ligne — ici elle accompagne un nom déjà lisible. */
-/* La RANGÉE de pastilles est un conteneur flex, jamais une suite d'éléments en
-   ligne. Posée dans un flux inline, une pastille (elle-même inline-flex) se
-   cale sur SA ligne de base — celle de son icône, que chaque moteur de rendu
-   synthétise à sa façon quand l'élément n'a pas de texte propre. D'où des
-   rangées plus hautes et des pastilles décalées dans un navigateur et pas dans
-   l'autre, d'autant plus visible qu'il y a plusieurs projets. En flex, la
-   position ne dépend plus que du conteneur. */
-.projet-pastilles { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 6px 10px; }
-
-/* Quand la colonne se resserre, un nom de projet passe sur deux lignes. L'icône
-   doit alors accompagner la PREMIÈRE ligne et non flotter au milieu du bloc,
-   d'où flex-start plutôt que center — et une interligne calée sur la taille de
-   l'icône, pour que cette première ligne fasse exactement sa hauteur. Sans
-   cette interligne, flex-start posait l'icône (plus haute que la ligne) deux
-   pixels trop haut sur les noms qui tiennent sur une seule ligne, c'est-à-dire
-   presque tous. --pastille-taille tient les deux valeurs ensemble. */
-.projet-pastille {
-    --pastille-taille: 20px;
-    display: flex; align-items: flex-start; gap: 6px;
-    line-height: var(--pastille-taille);
-}
-.projet-pastille .avatar-ini {
-    width: var(--pastille-taille); height: var(--pastille-taille); margin-right: 0; font-size: var(--fs-tiny);
-}
-
-/* Pastille au format du titre (?p=employe), avec son bouton de réglage. */
-.titre-avatar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.avatar-titre { position: relative; display: inline-flex; flex: 0 0 auto; }
-.avatar-titre .avatar-ini { width: 46px; height: 46px; font-size: var(--fs-basic); margin-right: 0; }
-.avatar-regler { position: absolute; right: -6px; bottom: -6px; padding: 0; width: 24px; height: 24px;
-    border-radius: 50%; background: var(--card); color: var(--muted); border: 1px solid var(--line);
-    box-shadow: var(--shadow-sm); display: inline-flex; align-items: center; justify-content: center; }
-.avatar-regler:hover { background: var(--card); color: var(--primary-d); border-color: var(--primary); }
-.avatar-regler .ico { width: 13px; height: 13px; }
-
-/* Panneau de réglage : la palette, puis la photo. */
-.avatar-couleurs { display: flex; gap: 9px; flex-wrap: wrap; margin: 0 0 4px; }
-.avatar-choix { width: 30px; height: 30px; border-radius: 50%; padding: 0; border: 2px solid transparent;
-    box-shadow: none; outline: 1px solid var(--line); outline-offset: 1px; }
-.avatar-choix:hover { transform: translateY(-1px); }
-.avatar-choix.on { outline: 2px solid var(--primary); outline-offset: 2px; }
-.avatar-choix-auto { background: var(--surface); color: var(--muted); }
-.avatar-choix-auto:hover { background: var(--surface); color: var(--primary-d); }
-.avatar-choix-auto .ico { width: 15px; height: 15px; }
-.avatar-photo-zone { display: flex; gap: 9px; align-items: center; flex-wrap: wrap; }
-.avatar-fichier { cursor: pointer; }
-/* Hauteur bornée : sans cela une photo verticale déroule la page entière. */
-.avatar-crop-zone { max-width: 420px; margin: 14px 0 4px; }
-.avatar-crop-zone img { max-width: 100%; max-height: 340px; display: block; }
 
 /* Un zéro n'a pas à peser autant qu'un montant (chf_ou_zero()). */
 .montant-zero { color: color-mix(in srgb, var(--muted) 45%, transparent); }
@@ -925,9 +658,8 @@ td.col-campagnes .badge.camp-en-cours { background: var(--teal-tint); color: var
 
    La case se cale sur --content-pad, la gouttière de la page : elle tombe alors
    exactement sous le titre, les onglets et le champ de recherche, qui s'en
-   servent tous. Une valeur fixe ne pouvait pas y suffire — cette gouttière est
-   fluide (clamp(20px, 3.2vw, 48px)), et l'écart se creusait avec la fenêtre :
-   6px sur un portable, 15 sur un grand écran. Alignée à GAUCHE et non centrée,
+   servent tous. Une valeur fixe n'y suffirait pas : cette gouttière est
+   fluide (clamp(20px, 3.2vw, 48px)). Alignée à GAUCHE et non centrée,
    pour que ce soit la case elle-même qui tombe sur la ligne, pas le milieu de
    sa colonne. */
 .list:has(thead th.col-check.col-reinit-hote) .col-check,
@@ -961,7 +693,7 @@ td.col-campagnes .badge.camp-en-cours { background: var(--teal-tint); color: var
 .list tfoot td { background: var(--surface); border-top: 1px solid var(--line); font-weight: 700; color: var(--ink); }
 
 /* Mini-fiches dans la liste employés */
-.mini-fiche { display: flex; gap: 8px; align-items: baseline; font-size: var(--fs-small); }
+.mini-fiche { display: flex; gap: var(--esp-2); align-items: baseline; font-size: var(--fs-small); }
 .mini-fiche .mf-mois { font-weight: 600; color: var(--ink); min-width: 56px; }
 .mini-fiche .mf-mont { color: var(--muted); font-variant-numeric: tabular-nums; }
 .resume .total-row td { background: var(--primary-tint); font-weight: 700; color: var(--ink); }
@@ -977,3 +709,7 @@ td.col-campagnes .badge.camp-en-cours { background: var(--teal-tint); color: var
 .annee-pick { display: flex; gap: 9px; flex-wrap: wrap; align-items: center; }
 .annee-pick select { width: auto; font: inherit; font-size: var(--fs-basic); color: var(--ink); padding: 6px 28px 6px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); background-color: var(--card); }
 
+/* Colonne « Dernière modification » repliée sur la date de création (aucune
+   modification enregistrée) : mise en italique pour qu'une création ne se lise
+   pas comme une modification. Le libellé complet est au survol. */
+.list-wide td.col-maj-le.est-creation { font-style: italic; }

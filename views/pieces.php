@@ -123,7 +123,7 @@ $nbCols = 6;
               // une échéance dépassée en est un. Une pièce simplement « à payer »
               // dont le délai court n'en est pas encore un. ?>
         <tr class="row-link<?= $retard ? ' ligne-action' : '' ?>" tabindex="0" role="link" data-href="<?= e($href) ?>">
-            <td class="col-nom">
+            <td class="carte-garde col-nom">
                 <span class="piece-type" title="<?= e($typeInfo['libelle']) ?>"><?= icon($typeInfo['icone']) ?></span>
                 <a href="<?= e($href) ?>" class="titre-lien"><?= e((string) $p['libelle']) ?></a>
                 <?php if (trim((string) $p['fichier']) !== ''): ?>
@@ -136,15 +136,15 @@ $nbCols = 6;
             <?php // .carte-vide : sur une mini-carte, une cellule qui ne porte
                   // qu'un tiret s'efface — il n'y a plus de colonne à tenir
                   // alignée, et l'absence n'a pas à prendre une place. ?>
-            <td class="col-tiers<?= $p['tiers'] === '' ? ' carte-vide' : '' ?>"><?= $p['tiers'] !== '' ? e((string) $p['tiers']) : '<span class="muted">—</span>' ?></td>
+            <td class="carte-garde col-tiers<?= $p['tiers'] === '' ? ' carte-vide' : '' ?>"><?= $p['tiers'] !== '' ? e((string) $p['tiers']) : '<span class="muted">—</span>' ?></td>
             <td class="muted small col-date"><?= $jour($p['date_piece']) !== '' ? e($jour($p['date_piece'])) : '—' ?></td>
-            <td class="muted small col-echeance<?= $p['date_echeance'] === '' ? ' carte-vide' : '' ?>">
+            <td class="carte-garde muted small col-echeance<?= $p['date_echeance'] === '' ? ' carte-vide' : '' ?>">
                 <?php if ($p['date_echeance'] !== ''): ?>
                     <?= $retard ? '<strong>' . e($jour($p['date_echeance'])) . '</strong>' : e($jour($p['date_echeance'])) ?>
                 <?php else: ?>—<?php endif; ?>
             </td>
-            <td class="num col-montant <?= (float) $p['montant'] < 0 ? 'montant-neg' : 'montant-pos' ?>"><?= chf((float) $p['montant']) ?></td>
-            <td class="col-etat"><?= piece_badge_html($p, $etatP, $retard) ?></td>
+            <td class="carte-garde num col-montant <?= (float) $p['montant'] < 0 ? 'montant-neg' : 'montant-pos' ?>"><?= chf((float) $p['montant']) ?></td>
+            <td class="carte-garde col-etat"><?= piece_badge_html($p, $etatP, $retard) ?></td>
         </tr>
     <?php endforeach; ?>
     <?php endif; ?>

@@ -1,0 +1,33 @@
+/* ==================================================================== */
+/* FACTURATION — la fiche d'une facture à l'écran (?p=facture) */
+/* ==================================================================== */
+
+/* Aside « Marquer comme payée » : la sidebar de fiche, élargie pour le champ écriture */
+.facture-aside { flex-basis: 260px; }
+/* Fiche en colonne : l'aside sous la facture. */
+@media (max-width: 800px) {
+    .facture-aside { flex-basis: auto; order: 0; }
+}
+.facture-aside h3.sub { margin-bottom: var(--esp-1); }
+/* Formulaire « Événement lié » : champ de recherche et bouton « lier » sur une
+   même ligne : dans les 260px de la colonne, le bouton n'est qu'une icône.
+   Le width:100% des boutons de sidebar (.fiche-aside button) est neutralisé
+   ici, sinon l'icône s'étirerait sur toute la largeur. */
+.facture-aside .linked-add { flex-direction: row; align-items: center; gap: var(--esp-2); }
+.facture-aside .linked-add button { width: auto; margin-top: 0; flex: 0 0 auto; }
+.facture-aside .cat-search-input { padding: 7px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); font-size: var(--fs-basic); background: var(--card); }
+/* Liste des écritures : ancrée à droite et plus large que le champ si la place le permet (évite le scroll horizontal) */
+.ecr-search .cat-search-list { left: auto; right: 0; width: max(100%, 340px); max-width: min(420px, calc(100vw - 32px)); }
+.ecr-search .cat-search-list li { white-space: normal; display: flex; flex-direction: column; gap: 2px; }
+.ecr-opt-top { font-weight: 600; }
+.ecr-opt-texte { font-size: var(--fs-small); color: var(--muted); }
+/* Regroupe visuellement recherche + filtre montant + compteur, pour bien montrer que ces contrôles sont liés */
+.ecr-liee-box { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: var(--esp-3); }
+.ecr-liee-box .ecr-search { margin-bottom: 10px; }
+.ecr-liee-box .check { margin-bottom: 6px; }
+.ecr-liee-box p { margin: 0; }
+
+/* Ligne logo + statut en haut du cadre de la facture */
+.facture-head-row { display: flex; align-items: flex-start; gap: var(--esp-4); margin-bottom: var(--esp-3); }
+.facture-head-row .ps-head { margin-bottom: 0; }
+.facture-statut { margin: 0 0 0 auto; }

@@ -2,8 +2,8 @@
 // Garde-fou du thème sombre. Lancement : php tests/theme_test.php
 //
 // Le mode sombre ne tient qu'à une discipline : AUCUNE couleur de surface ne
-// doit être écrite en dur dans une règle de composant, puisque seul le bloc de
-// tokens est redéfini sous prefers-color-scheme. Un « background: #fff » ajouté
+// doit être écrite en dur dans une règle de composant, puisque seuls les
+// tokens portent leurs deux valeurs (light-dark(), 01-base.css). Un « background: #fff » ajouté
 // par distraction produit un rectangle blanc au milieu d'une page sombre — et
 // personne ne le voit tant qu'il ne bascule pas son système.
 //
@@ -29,7 +29,11 @@ function check(string $label, $attendu, $obtenu): void
     printf("  FAIL  %s\n        attendu %s\n        obtenu  %s\n", $label, var_export($attendu, true), var_export($obtenu, true));
 }
 
+// Base jetable : couleurs_css_vars() lit les couleurs de l'employeur.
+$tmp = sys_get_temp_dir() . '/lasso_theme_' . bin2hex(random_bytes(6)) . '.sqlite';
+define('APP_DB_PATH', $tmp);
 require_once __DIR__ . '/../lib/config.php';
+require_once __DIR__ . '/../lib/db.php';
 require_once __DIR__ . '/../lib/helpers.php';
 // La feuille entière, ses fichiers bout à bout dans l'ordre de la cascade.
 $css = css_source();
@@ -78,52 +82,44 @@ foreach ($lignes as $n => $l) {
 }
 check('aucun background en dur dans une règle', [], $fautifs);
 
-echo "2) Le bloc sombre existe et couvre les tokens neutres\n";
-$aSombre = str_contains($css, '@media (prefers-color-scheme: dark)');
-check('un bloc prefers-color-scheme est présent', true, $aSombre);
-
-// Extrait le premier bloc sombre (celui des tokens).
-$debut = strpos($css, '@media (prefers-color-scheme: dark)');
-$blocSombre = $debut !== false ? substr($css, $debut, 3000) : '';
-foreach (['--bg', '--card', '--ink', '--muted', '--line', '--surface'] as $token) {
-    check("« $token » redéfini en sombre", true, (bool) preg_match('/\\' . $token . '\s*:/', $blocSombre));
+echo "2) Chaque couleur neutre porte ses deux valeurs\n";
+// Une seule déclaration par token : light-dark(clair, sombre), dans 01-base.css.
+// Le bloc de tokens redéfinis en sombre — écrit DEUX fois, une sous la media
+// query et une sous l'attribut — avait dérivé : dix teintes manquaient au
+// choix « sombre » explicite. Il n'existe plus.
+foreach (['--bg', '--card', '--ink', '--muted', '--line', '--surface', '--personne', '--evenement'] as $token) {
+    check("« $token » s'écrit light-dark(clair, sombre)", 1,
+        preg_match('/\n\s*' . preg_quote($token, '/') . '\s*:\s*light-dark\(/', $css));
 }
+check('plus de palette sombre à part (tokens --d-*)', false, str_contains($css, '--d-bg'));
 
 echo "3) Les couleurs paramétrables ont leurs variantes sombres (PHP)\n";
 $helpers = (string) file_get_contents($racine . '/lib/helpers.php');
 foreach (['primary_sombre', 'primary_d_sombre', 'primary_tint_sombre', 'brand_sombre'] as $cle) {
     check("couleurs_derivees() produit « $cle »", true, str_contains($helpers, "'$cle'"));
 }
-// L'injecteur de couleur (celui de l'employeur) doit émettre une palette
-// sombre, sinon la couleur claire écrase le thème : il est écrit APRÈS la
-// feuille de style et l'emporte donc en cascade.
-//
-// Il n'y en avait qu'UN SECOND jusqu'à la refonte de la navigation : celui du
-// module, qui repeignait --primary/--brand page par page. La couleur d'un
-// module ne vit plus que dans le rail (--vignette, views/layout.php), donc il
-// n'y a plus de seconde palette à dédoubler.
-check(
-    'l\'injecteur de couleur passe par css_palette_sombre()',
-    1,
-    substr_count($helpers, 'css_palette_sombre([')
-);
+// L'injecteur de couleur (celui de l'employeur) est écrit APRÈS la feuille et
+// l'emporte en cascade : il doit porter lui aussi les deux valeurs.
+$vars = couleurs_css_vars();
+check('l\'injecteur écrit --primary en light-dark()', 1, preg_match('/--primary:light-dark\(/', $vars));
+check('… et --highlight', 1, preg_match('/--highlight:light-dark\(/', $vars));
+check('… sans bloc sombre à part', false, str_contains($vars, 'prefers-color-scheme'));
 
 echo "4) Structure à trois états (clair / sombre / automatique)\n";
-// Le mode « automatique » suit le système, mais un choix EXPLICITE doit primer
-// dans les deux sens — d'où le :not() sur la media query, et un bloc dédié à
-// l'attribut. L'oubli du :not() est la faute classique : un thème clair choisi
-// resterait sombre sur un système sombre.
-check('la media query exclut un choix « clair » explicite', true,
-    str_contains($css, ':root:not([data-theme="clair"])'));
-check('un bloc applique le choix « sombre » explicite', true,
-    str_contains($css, ':root[data-theme="sombre"]'));
-check('même garde-fou côté PHP', true,
-    str_contains($helpers, ':root:not([data-theme="clair"])')
-    && str_contains($helpers, ':root[data-theme="sombre"]'));
-// Les valeurs sombres ne doivent exister qu'à un seul endroit : les deux blocs
-// se contentent de les affecter. Sinon une teinte corrigée d'un côté diverge.
-check('les couleurs sombres sont définies une seule fois (tokens --d-*)', true,
-    substr_count($css, '--d-bg:') === 1 && substr_count($css, 'var(--d-bg)') === 2);
+// color-scheme décide du côté de light-dark() : « light dark » laisse le
+// système choisir (automatique), l'attribut impose un choix explicite.
+check('automatique : color-scheme « light dark » sur :root', 1,
+    preg_match('/:root\s*\{\s*color-scheme:\s*light dark/', $css));
+check('choix « clair » explicite', true, str_contains($css, ':root[data-theme="clair"] { color-scheme: light; }'));
+check('choix « sombre » explicite', 1, preg_match('/:root\[data-theme="sombre"\]\s*\{\s*color-scheme:\s*dark/', $css));
+// --sombre (0/1) pour ce qui n'est pas une couleur : la media query doit
+// exclure un choix « clair », sinon un thème clair choisi resterait atténué
+// sur un système sombre.
+check('--sombre : la media query exclut un choix « clair » explicite', true,
+    str_contains($css, ':root:not([data-theme="clair"]) { --sombre: 1; }'));
 
+foreach (glob($tmp . '*') ?: [] as $f) {
+    @unlink($f);
+}
 echo "\n$tests tests, $fails échec(s)\n";
 exit($fails > 0 ? 1 : 0);

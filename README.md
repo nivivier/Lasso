@@ -558,7 +558,9 @@ Aucun de ces combos n'écrit de couleur : ils recombinent des teintes déjà
 dérivées de celles de l'employeur, et suivent donc le thème comme le reste.
 
 Pour qui touche au CSS : toutes les couleurs passent par des tokens définis en
-tête d'`assets/css/`, et seul ce bloc est redéfini en sombre. Écrire une
+tête d'`assets/css/01-base.css`, chacun sous la forme `light-dark(clair,
+sombre)` — une seule déclaration pour les deux thèmes (il faut Safari ≥ 17.5
+ou Chrome ≥ 123). Écrire une
 couleur de fond en dur dans une règle produit un aplat clair au milieu d'une page
 sombre — `php tests/run.php` le refuse. Même discipline pour les **tailles de
 texte** : sept crans (`--fs-tiny` … `--fs-huge`), jamais une valeur, et la
@@ -569,7 +571,11 @@ que l'échelle se dissout. Si le besoin est réel, il devient un cran.
 `tests/tailles_texte_test.php` refuse les deux, en `px` comme en `em`.
 `tests/css_test.php` n'admet qu'un `!important`, celui de `[hidden]`, et
 plafonne les couleurs écrites en dur hors tokens (blanc sur fond coloré, papier
-des documents imprimés, ombres) : le plafond peut baisser, jamais monter.
+des documents imprimés, ombres) : le plafond peut baisser, jamais monter. Il
+tient aussi les trois échelles d'`01-base.css` : les calques (`--z-…`, tout
+`z-index` de 10 ou plus), les espacements (`--esp-1` … `--esp-5`, avec un
+plafond pour les valeurs hors échelle) et les points de rupture (480, 700,
+800, 900, 1100, 1300, 1400 px, aucun autre).
 
 ---
 
@@ -694,6 +700,11 @@ liste peuvent être supprimés, jamais la base ni un autre fichier du dossier.
   l'inactivité tolérée, sans quoi PHP les supprimait au bout de 24 minutes
   quelle que soit la valeur réglée ici.
 - **CSRF** sur tous les formulaires.
+- **Exports CSV neutralisés** : une cellule qui commence par `=`, `+`, `-`, `@`,
+  une tabulation ou un retour chariot reçoit une apostrophe en tête, pour qu'un
+  tableur ne la lise pas comme une formule (`csv_ecrire()`). C'est le texte
+  d'un virement importé qui l'exige : le payeur le choisit. Montants et
+  numéros de téléphone, sans lettre, passent tels quels.
 - **HTTPS forcé** + en-tête HSTS ; en-têtes de sécurité (X-Frame-Options,
   X-Content-Type-Options, Referrer-Policy).
 - **CSP à nonce** : `script-src` n'accepte plus `'unsafe-inline'`. Chaque `<script>`
@@ -773,6 +784,16 @@ sans fenêtre, parcourt l'application en suivant ses liens, ouvre menus et
 crayons, et relève toute erreur JavaScript, de console ou de CSP. Sans
 Chrome, il l'annonce et passe ; en CI, il échoue. `CHROME_BIN` désigne un
 autre exécutable.
+
+Pour un chantier sur la feuille de style, `scripts/releve_styles.php` relève
+les styles calculés de chaque élément de chaque page (base de démonstration
+neuve, ordinateur, tablette et téléphone, clair et sombre) puis compare deux
+relevés : un rangement qui ne devait rien changer le prouve.
+```bash
+php scripts/releve_styles.php releve avant.json --racine=/copie/du/depot
+php scripts/releve_styles.php releve apres.json
+php scripts/releve_styles.php compare avant.json apres.json
+```
 
 Toutes les pages aussi : `tests/pages_test.php` fabrique une base de
 démonstration neuve dans un dossier temporaire, lance un serveur intégré

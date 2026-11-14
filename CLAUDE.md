@@ -73,6 +73,11 @@ toute erreur d'exécution ou blocage CSP.
 - **Feuille de style** : `assets/css/NN-domaine.css`, chargés dans l'ordre de
   `CSS_FICHIERS` (lib/helpers.php) — un fichier ajouté s'y inscrit.
   `asset_url()` pour tout fichier d'`assets/` (version par date de fichier).
+  Couleurs en `light-dark(clair, sombre)` dans `01-base.css`, jamais de bloc
+  « sombre » à part ; espacements `--esp-*`, calques `--z-*` et paliers de
+  `@media` listés au même endroit (docs/UI.md § 13 ter, `tests/css_test.php`).
+  ⚠️ Déplacer une règle d'un fichier à l'autre change sa place dans la
+  cascade : ses `@media` doivent la suivre.
 
 ## Architecture
 - **Front controller** `index.php` : charge `lib/config.php`, force HTTPS, en-têtes
@@ -314,6 +319,9 @@ toute erreur d'exécution ou blocage CSP.
 - **Sécurité** : `check_csrf()` sur tout POST ; `e()` sur toute sortie ; requêtes
   **toujours** préparées (paramétrées). bcrypt coût 12 ; anti-force-brute ; sessions
   expirantes ; secret d'installation ; base hors webroot en prod.
+  **Exports CSV** : toujours `csv_ecrire()`, jamais `fputcsv()` — il neutralise
+  les cellules qu'un tableur lirait comme une formule (texte d'un virement
+  importé, intitulé d'une pièce) ; `tests/csv_test.php` le vérifie.
   **Mot de passe oublié** (`?p=motdepasse_oublie` / `?p=motdepasse_reinitialiser`, routes
   publiques) : jeton à usage unique d'1 h, **seule son empreinte SHA-256 est en
   base** (`reinit_motdepasse`), réponse identique que le compte existe ou non,

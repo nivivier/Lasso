@@ -399,7 +399,9 @@ disparaître.
 **Une seule échelle d'arrondis**, et c'est le rail qui la donne : `--radius`
 (20px) pour tout ce qui est une surface — carte, volet d'un module, panneau —,
 `--radius-sm` (12px) pour ce qui se pose dedans — champ, menu, cartouche —, et
-la capsule (`999px`) pour les boutons et les puces. Une carte à 10px posée à
+la capsule (`--radius-pill`) pour les boutons et les puces. Deux crans de
+plus pour les petites formes : `--radius-xs` (4px, repères et pastilles de
+légende) et `--radius-rond` (50 %, avatars et boutons ronds). Une carte à 10px posée à
 vingt centimètres du volet du rail lisait comme un autre système.
 
 **Les titres de carte ont la voix des titres de page** : 800, interlettrage
@@ -1454,6 +1456,10 @@ dans `data/emails_envoyes.log`, ce qui rend l'envoi vérifiable.
   est donc une demi-mesure qui casse l'écran : chaque colonne reçoit son
   `grid-column`/`grid-row`, et une dernière règle masque tout ce qui n'a pas
   été placé — c'est ce qui rend l'oubli visible au lieu de le rendre laid.
+  Ce qui reste sur la carte se déclare **dans la vue**, par la classe
+  `carte-garde` sur la cellule ; la règle CSS est `td:not(.carte-garde)`,
+  jamais une liste de `:not()` à tenir d'accord avec les colonnes
+  (`tests/css_test.php` en refuse plus de trois à la suite).
   Une cellule qui ne porte qu'un tiret se marque `.carte-vide` et disparaît :
   dans un tableau le tiret tient la colonne alignée et dit « rien ici », sur
   une carte il n'y a plus de colonne à tenir et « Échéance — » se lit comme une
@@ -1974,11 +1980,20 @@ de couleur : les sept recombinent des teintes déjà dérivées de celles de
 l'employeur, variante foncée (`-d`) et `--surface` comprises.
 
 **Le thème sombre est le même système, retourné** : une encre CHAUDE
-(`--d-bg: #17150f`), pas un gris bleuté — le clair est passé au papier crème, et
+(`--bg: light-dark(…, #17150f)`), pas un gris bleuté — le clair est passé au papier crème, et
 un sombre violacé en face donnait deux applications différentes selon l'heure.
 Le verre dépoli (rail, cartes du tableau de bord) y devient un voile CLAIR et
 non un voile noir : sur un fond déjà sombre, un voile noir ne détache plus
 rien.
+
+**Une couleur s'écrit une fois, pour les deux thèmes** : un token de
+`assets/css/01-base.css` en `light-dark(clair, sombre)`. Jamais de règle
+« en sombre » à côté d'une règle « en clair » : le thème se choisit par
+`color-scheme` seul (`02-theme.css`). Ce qui change avec le thème sans être
+une couleur passe par le drapeau `--sombre` (0 ou 1) dans un `calc()` ; ce qui
+ne s'écrit ni en couleur ni en nombre (un logo par thème, le filtre des tuiles
+de la carte) va dans `20-theme-interrupteurs.css`, seul fichier qui écrit les
+deux formes.
 
 ## 13 bis. Tailles de texte
 
@@ -2031,6 +2046,34 @@ double un token ou qu'elle tombe entre deux —, la même chose en `em`/`rem`
 (changer d'unité contournerait l'échelle), et vérifie qu'aucun `var(--fs-…)`
 ne pointe un token inexistant : cette faute-là donne une règle valide qui ne
 dessine rien, et l'écart se voit à peine.
+
+## 13 ter. Espacements, calques, points de rupture
+
+Trois échelles, en tête d'`assets/css/01-base.css`, tenues par
+`tests/css_test.php` :
+- **Espacements** : `--esp-1` … `--esp-5` (4, 8, 12, 16, 24 px) pour `gap`,
+  `margin`, `padding`. Une valeur neuve se prend dans l'échelle ; une règle
+  qu'on retouche y ramène ses 6, 10 ou 14 px. Une déclaration est en jetons OU
+  en pixels, jamais un mélange.
+- **Calques** : un `z-index` de 10 ou plus est un nom (`--z-collant`,
+  `--z-barre`, `--z-tiroir`, `--z-rail`, `--z-message`, `--z-panneau`,
+  `--z-apercu`…). 0 à 5 restent des chiffres : ils rangent les enfants d'un
+  même composant.
+- **Points de rupture** : 480, 700 (tableaux en cartes), 800 (téléphone : le
+  rail devient tiroir), 900, 1100 (vue deux colonnes), 1300, 1400 px — et leurs
+  complémentaires 801, 1099, 1401. Un seuil neuf s'aligne sur le palier le
+  plus proche.
+- **Arrondis, ombre, voile** : `--radius*` (voir § 1), `--shadow-panneau`
+  pour tout ce qui flotte (menus, suggestions, volet du rail réduit), et **un
+  seul voile** (`--voile`) derrière tout ce qui s'ouvre par-dessus la page —
+  fenêtre, aperçu d'impression, tiroir du téléphone. Un arrondi égal à la
+  demi-hauteur de l'élément est une capsule : `--radius-pill`. Les seuls
+  arrondis en pixels qui restent sont ceux, concentriques, du rail (l'arrondi
+  du volet moins son retrait) ; ils sont comptés et plafonnés.
+- **États et durées** : `--opacite-inactif` pour ce qui existe mais ne compte
+  plus (ligne inactive, compte archivé, règle coupée), `--opacite-desactive`
+  pour un champ ou un bouton qu'on ne peut pas utiliser ; `--duree` (.15s)
+  pour toute transition d'état. Les fondus lents (.25s, .4s) sont voulus.
 
 ## 14. Comportements déclaratifs
 

@@ -399,9 +399,9 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
                   // cette page. Le compte, lui, s'affiche par son nom : seul
                   // son identifiant permet de présélectionner le bon. ?>
             <?php if ($isManuel && peut_ecrire('compta')): ?>data-ecr-id="<?= (int) $ecr['id'] ?>" data-compte="<?= (int) $ecr['compte_bancaire_id'] ?>"<?php endif; ?>>
-            <?php if (peut_ecrire('compta')): ?><td class="col-check"><input type="checkbox" name="ids[]" value="<?= (int) $ecr['id'] ?>" form="bulkform" class="row-check" aria-label="Sélectionner l'écriture du <?= e(date('d.m.Y', strtotime((string) $ecr['date_op']))) ?>, <?= e(chf((float) $ecr['montant'])) ?>"></td><?php endif; ?>
-            <td class="nowrap ecr-c-date"><?= e(date('d.m.Y', strtotime((string) $ecr['date_op']))) ?></td>
-            <?php if ($compteColVisible): ?><td class="compte-cell small muted ecr-c-compte"><?= e($ecr['compte_libelle']) ?></td><?php endif; ?>
+            <?php if (peut_ecrire('compta')): ?><td class="carte-garde col-check"><input type="checkbox" name="ids[]" value="<?= (int) $ecr['id'] ?>" form="bulkform" class="row-check" aria-label="Sélectionner l'écriture du <?= e(date('d.m.Y', strtotime((string) $ecr['date_op']))) ?>, <?= e(chf((float) $ecr['montant'])) ?>"></td><?php endif; ?>
+            <td class="carte-garde nowrap ecr-c-date"><?= e(date('d.m.Y', strtotime((string) $ecr['date_op']))) ?></td>
+            <?php if ($compteColVisible): ?><td class="carte-garde compte-cell small muted ecr-c-compte"><?= e($ecr['compte_libelle']) ?></td><?php endif; ?>
             <?php
             // Contre-partie et communication : un relevé camt.053 les porte en
             // champs structurés, et elles ne se retrouvent pas forcément dans
@@ -464,8 +464,8 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
                 default => $ecrTiers,
             };
             ?>
-            <td class="tiers-cell" title="<?= e($ecrTiersTitre) ?>"><?= $ecrTiers !== '' ? e($ecrTiers) : '<span class="muted">—</span>' ?></td>
-            <td class="texte-cell ecr-c-texte" title="<?= e($ecrTitre) ?>">
+            <td class="carte-garde tiers-cell" title="<?= e($ecrTiersTitre) ?>"><?= $ecrTiers !== '' ? e($ecrTiers) : '<span class="muted">—</span>' ?></td>
+            <td class="carte-garde texte-cell ecr-c-texte" title="<?= e($ecrTitre) ?>">
                 <?php // Facture émise et fiche de salaire se montrent d'ordinaire
                       // dans la colonne « Pièce », qui dit la même chose et mène
                       // au même endroit. Ces deux icônes-ci ne servent donc que
@@ -485,7 +485,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
                     <span class="ecr-details"><?= e(implode(' · ', $ecrDetails)) ?></span>
                 <?php endif; ?>
             </td>
-            <td class="num ecr-c-montant <?= $neg ? 'montant-neg' : 'montant-pos' ?>"><?= chf((float) $ecr['montant']) ?></td>
+            <td class="carte-garde num ecr-c-montant <?= $neg ? 'montant-neg' : 'montant-pos' ?>"><?= chf((float) $ecr['montant']) ?></td>
             <?php // ⚠️ La cellule ne porte QUE ce qu'elle montre. Le formulaire, le
                   // jeton, l'identifiant et le champ de saisie vivent en un seul
                   // exemplaire au pied de la page (_compta_ecritures_panneaux.php) et
@@ -499,7 +499,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
                   // largeur de la colonne, répété sur toutes les lignes non
                   // lettrées, pesait visuellement autant que les vraies valeurs à
                   // côté — alors qu'il n'est qu'une place vide qui en attend une. ?>
-            <td class="cat-cell" data-ecr-id="<?= (int) $ecr['id'] ?>" data-cat-val="<?= e($rowCatVal) ?>" data-cat-prefix="<?= e($rowCatPrefix) ?>">
+            <td class="carte-garde cat-cell" data-ecr-id="<?= (int) $ecr['id'] ?>" data-cat-val="<?= e($rowCatVal) ?>" data-cat-prefix="<?= e($rowCatPrefix) ?>">
                 <?php if (!peut_ecrire('compta')): ?>
                     <?php if ($rowCatPrefix !== ''): ?><span class="row-field-prefix"><?= e($rowCatPrefix) ?></span><?php endif; ?>
                     <span><?= $rowCatVal !== '' ? e($rowCatLeaf) : '<span class="muted">— à lettrer —</span>' ?></span>
@@ -517,7 +517,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
                 $nVents  = count($vents);
                 $dispTxt = implode(' / ', array_map(fn($v) => $v['code'] !== '' ? e($v['code']) : e($v['libelle']), $vents));
             ?>
-            <td class="axe-cell"
+            <td class="carte-garde axe-cell"
                 data-ecr-id="<?= (int) $ecr['id'] ?>"
                 data-ecr-montant="<?= (float) $ecr['montant'] ?>"
                 data-ventilations="<?= e(json_encode(array_values($vents), JSON_UNESCAPED_UNICODE)) ?>">
@@ -544,7 +544,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
             </td>
             <?php endif; ?>
             <?php if ($piecesOk): $etatPiece = ecriture_piece_etat($ecr); ?>
-            <td class="col-piece piece-cell">
+            <td class="carte-garde col-piece piece-cell">
                 <?php if ($etatPiece === 'manquante'): ?>
                     <?php if (peut_ecrire('pieces')): ?>
                         <?php // Un LIEN par ligne, et non le menu des cinq types : ce
@@ -587,7 +587,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
                 <?php endif; ?>
             </td>
             <?php endif; ?>
-            <td class="actions">
+            <td class="carte-garde actions">
                 <?php if (peut_ecrire('compta')): ?>
                 <?php if ($isManuel): ?>
                     <?php // Un bouton et non un lien : l'édition s'ouvre DANS la

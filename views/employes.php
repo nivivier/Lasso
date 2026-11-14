@@ -97,7 +97,7 @@ if ($vue === 'duo') { ob_start(); }
     <?php foreach ($employes as $emp): ?>
         <?php $hrefLigne = $vue === 'duo' ? $lienDuo((int) $emp['id']) : '?p=employe&id=' . (int) $emp['id']; ?>
         <tr class="row-link <?= $emp['actif'] ? '' : 'inactif' ?> <?= $vue === 'duo' && (int) $emp['id'] === $duoSel ? 'ligne-active' : '' ?>" tabindex="0" role="link" data-href="<?= e($hrefLigne) ?>">
-            <td class="col-nom-emp">
+            <td class="carte-garde col-nom-emp">
                 <span class="emp-nom-ligne"><?= avatar_initiales(
                         $emp['prenom'] . ' ' . $emp['nom'],
                         (string) ($emp['avatar_couleur'] ?? ''),
@@ -110,7 +110,7 @@ if ($vue === 'duo') { ob_start(); }
                 <?= !$emp['rue'] && !$emp['npa_localite'] ? '—' : '' ?>
             </td>
             <td class="muted small"><?= $emp['email'] ? e($emp['email']) : '—' ?></td>
-            <td class="col-derniere">
+            <td class="carte-garde col-derniere">
                 <?php $d = $derniere[(int) $emp['id']] ?? null; ?>
                 <?php if (!$d): ?>
                     <span class="muted small">—</span>

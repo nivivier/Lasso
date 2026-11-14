@@ -104,13 +104,13 @@ $duoSel = (int) ($duoSel ?? 0);
         <?php foreach ($personnes as $pp): $pid = (int) $pp['id'];
             $href = $vue === 'duo' ? $lienDuo($pid) : '?p=personne&id=' . $pid; ?>
             <tr class="row-link <?= $vue === 'duo' && $pid === $duoSel ? 'ligne-active' : '' ?>" tabindex="0" role="link" data-href="<?= e($href) ?>">
-                <td class="col-nom-personne">
+                <td class="carte-garde col-nom-personne">
                     <a href="<?= e($href) ?>" class="titre-lien"><?= e(personne_nom($pp)) ?></a>
                     <?php if ((int) $pp['desinscrit'] === 1): ?><span class="badge muted-badge">Désinscrite</span><?php endif; ?>
                 </td>
-                <td class="muted small col-email-personne"><?= $pp['email'] !== '' ? e((string) $pp['email']) : '—' ?></td>
+                <td class="carte-garde muted small col-email-personne"><?= $pp['email'] !== '' ? e((string) $pp['email']) : '—' ?></td>
                 <td class="muted small col-tel-personne"><?= $pp['telephone'] !== '' ? e((string) $pp['telephone']) : '—' ?></td>
-                <td class="muted small col-rattachements">
+                <td class="carte-garde muted small col-rattachements">
                     <?php // Ce qui la retient, NOMMÉ : « 1 structure » obligeait
                           // à ouvrir la fiche pour savoir laquelle. Les liens
                           // mènent droit aux structures — c'est le trajet qu'on

@@ -1,20 +1,25 @@
 /* =================== Responsive : tiroir + burger =================== */
+/* Barre du téléphone, burger, croix du tiroir et voile : cachés sur
+   ordinateur, montrés par le bloc ci-dessous. Le seul .burger est dans
+   .mobile-bar, qui a le papier du rail : ses couleurs sont celles de
+   .mobile-bar .burger (12-fenetres.css), qui l'emportent sur celles-ci. */
+.mobile-bar { display: none; }
+.burger { background: none; border: none; box-shadow: none; padding: 6px; cursor: pointer; color: #fff; }
+.burger:hover { background: rgba(255,255,255,.12); }
+.side-close { background: none; border: none; box-shadow: none; padding: 6px; cursor: pointer; color: var(--ink); }
+.side-close:hover { background: var(--line); }
+.burger .ico, .side-close .ico { width: 24px; height: 24px; }
+.side-close { display: none; }
+.scrim { display: none; }
+
 @media (max-width: 800px) {
-    /* ⚠️ LA GOUTTIÈRE DE LA PAGE, une seule fois. Elle était écrite en dur à
-       18px dans huit règles de ce bloc, tandis qu'une vingtaine d'autres la
-       calculaient depuis --content-pad — qui vaut 20px sous 625px de large.
-       Deux valeurs pour une seule distance, donc tout ce qui doit ANNULER le
-       retrait pour aller bord à bord manquait de 2px : la barre d'outils et la
-       pagination faisaient 379px de large dans une fenêtre de 375 (débordement
-       horizontal sur toute page de module), et le texte d'un tableau se posait
-       2px plus à droite que le titre et la recherche au-dessus de lui.
-       Le rattrapage au cas par cas ne tient pas : .table-scroll avait déjà le
-       sien, écrit à la main, et celui de .toolbar-opaque était MORT (une
-       classe contre deux, il n'a jamais rien fait) — et faux en prime.
-       Le token est donc redéfini ici, et le bloc n'écrit plus un seul pixel de
-       gouttière. Valeur fixe et non le clamp du bureau : sous 800px la fenêtre
-       est trop étroite pour qu'une gouttière proportionnelle apporte quoi que
-       ce soit. */
+    /* ⚠️ LA GOUTTIÈRE DE LA PAGE, une seule fois : le token est redéfini ici,
+       et aucune règle de ce bloc n'écrit un pixel de gouttière. Tout ce qui
+       ANNULE le retrait pour aller bord à bord le lit dans --content-pad ;
+       une seconde valeur, même à 2px près, fait déborder la page
+       horizontalement (docs/DECISIONS.md § Feuille de style). Valeur fixe et
+       non le clamp du bureau : sous 800px, une gouttière proportionnelle
+       n'apporte rien. */
     :root { --content-pad: 20px; }
 
     .ligne-row { flex-wrap: wrap; }
@@ -34,9 +39,9 @@
        principale de la page poussée à droite. Pas de space-between — il
        écarterait aussi le logo du burger, alors que les deux vont ensemble. */
     .mobile-bar {
-        display: flex; align-items: center; justify-content: flex-start; gap: 12px;
+        display: flex; align-items: center; justify-content: flex-start; gap: var(--esp-3);
         padding: 10px 16px;
-        position: sticky; top: 0; z-index: 30;
+        position: sticky; top: 0; z-index: var(--z-barre);
         /* Le fond est celui, commun, des barres sombres (voir .mobile-bar,
            .modal-head plus haut). ⚠️ Sur --brand-surface et NON sur --brand :
            la seconde sert aussi de couleur de texte et s'éclaircit en thème
@@ -63,7 +68,7 @@
        lettre même à côté d'un nom d'employeur qui pouvait encore céder. */
     .mbar-titre {
         min-width: 0; flex: 0 0 auto; max-width: 55%;
-        padding-left: 12px; border-left: 1px solid var(--line);
+        padding-left: var(--esp-3); border-left: 1px solid var(--line);
         color: var(--ink); font-weight: 800; font-size: var(--fs-large); line-height: 1.1;
         white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
@@ -92,7 +97,7 @@
     .mobile-bar .mbar-action .ico { width: 20px; height: 20px; }
     /* Le libellé (« Nouvel événement ») n'y tiendrait pas, et le nom du module
        juste à côté dit déjà de quoi il s'agit. La règle générale
-       (.head-actions .lbl) ne suffit pas : dans la barre, le bouton n'est plus
+       (.head-actions .lbl) ne suffit pas : dans la barre, le bouton n'est pas
        dans une rangée d'actions. */
     .mobile-bar .mbar-action .lbl { display: none; }
     /* « … » du bandeau, monté à droite de l'action principale (assets/
@@ -125,8 +130,8 @@
     }
     body.titre-dans-barre .page-head-titre-module { display: none; }
     /* Et le surtitre, pour la même raison : il nomme le module, que la barre
-       supérieure écrit déjà à deux centimètres au-dessus. Le <h1>, lui, reste —
-       il dit la PAGE depuis que le rail a pris la navigation. */
+       supérieure écrit déjà à deux centimètres au-dessus. Le <h1>, lui, reste :
+       il dit la PAGE. */
     body.titre-dans-barre .page-head-sur { display: none; }
     /* Le bandeau ne porte plus que la rangée d'onglets : il se resserre en
        haut, sinon le retrait du titre disparu resterait en vide. Même valeur
@@ -140,7 +145,7 @@
     body.has-sidebar { flex-direction: column; }
     .sidebar {
         position: fixed; top: 0; left: 0; right: auto; bottom: 0; height: 100vh; width: min(86vw, 272px);
-        transform: translateX(-100%); transition: transform .25s ease; z-index: 50;
+        transform: translateX(-100%); transition: transform .25s ease; z-index: var(--z-tiroir);
     }
     /* Cibles tactiles un peu plus grandes dans le tiroir */
     .nav-mod { min-height: 52px; }
@@ -148,8 +153,8 @@
     .nav-sous-page { min-height: 40px; }
     body.nav-open .sidebar { transform: translateX(0); box-shadow: 0 0 40px rgba(0,0,0,.35); }
 
-    .scrim { display: block; position: fixed; inset: 0; background: rgba(20,16,40,.5);
-        opacity: 0; pointer-events: none; transition: opacity .25s; z-index: 40; }
+    .scrim { display: block; position: fixed; inset: 0; background: var(--voile);
+        opacity: 0; pointer-events: none; transition: opacity .25s; z-index: var(--z-voile); }
     body.nav-open .scrim { opacity: 1; pointer-events: auto; }
 
     .content { padding: 22px var(--content-pad); max-width: none; }
@@ -167,19 +172,10 @@
        sous elle. */
     .page-head-band { border-top-width: 0; }
     .page-head-band .page-head { max-width: none; margin-left: 0; padding: 16px var(--content-pad); }
-    /* ⚠️ Plus rien ici ne dépend de la rangée d'onglets : elle n'existe plus,
-       le tiroir dépliant le même volet que le rail. Tout ce que ce bloc portait pour elle a
-       disparu avec elle — la bande qui défilait horizontalement et s'accrochait
-       (scroll-snap), son masque de fondu en bord droit, le filet peint en FOND
-       de .page-head pour que l'onglet actif puisse le couvrir, et la bordure
-       basse du bandeau mise à zéro parce qu'un enfant défilant ne peut pas
-       peindre hors de sa boîte.
-       Disparu aussi le `padding: 0` d'un bandeau « sans onglets » : il tenait à
-       ce que le titre y soit effacé en doublon de la barre supérieure
-       (.page-head-titre-module), et plus aucune vue ne pose cette classe. Le
-       bandeau porte donc toujours un titre, qui garde le retrait commun posé
-       juste au-dessus — sans quoi « Événements » se collait au bord gauche de
-       l'écran. Le récit est dans docs/DECISIONS.md. */
+    /* Le tiroir déplie le même volet que le rail : il n'y a plus de rangée
+       d'onglets, et rien ici ne doit en dépendre. Le bandeau porte toujours
+       un titre, qui garde le retrait commun posé juste au-dessus. Le récit
+       est dans docs/DECISIONS.md. */
     .module-content { width: auto; margin: 0 calc(-1 * var(--content-pad)) 20px; }
     /* Retrait HAUT à 24px, pas 16 comme les autres côtés : c'est la distance
        qui sépare la barre d'outils de ce qui la suit (sa marge basse de 22px
@@ -217,7 +213,6 @@
     .toolbar-carte-panneau > form.filters { flex-basis: 110px; }
     .fiche-wrapper { flex-direction: column; }
     .fiche-aside { flex: 1 1 auto; width: 100%; order: -1; }
-    .facture-aside { order: 0; }
     /* Boutons d'action : icônes seules par défaut ; .btn-compact garde un texte court */
     .head-actions .lbl { display: none; }
     .lbl-m { display: inline; }
@@ -231,23 +226,12 @@
        plus large que haut, et désaligné du champ. */
     .linked-add .lbl { display: none; }
     .linked-add .btn { min-height: var(--action-height); padding: 0 11px; gap: 0; }
-    /* min-height (pas height) : ces boutons perdent leur texte ci-dessus et
-       deviennent visuellement icon-only, à côté du champ de recherche sur la
-       même ligne (.toolbar, voir plus haut) — un padding réinventé ici (9px)
-       divergeait de --btn-padding-v (10px) qui fixe la hauteur du champ de
-       recherche, les boutons se retrouvant 2px plus bas qu'elle. --action-
-       height est déjà le point de référence unique pour ce genre de
-       correspondance (voir :root, repris par .seg-btn) : s'aligner dessus
-       plutôt que remettre un chiffre à la main garantit qu'un futur
-       changement de --btn-padding-v/--btn-border-w suit automatiquement ici
-       aussi. min-height (pas height) : un .btn-compact (juste en dessous)
-       garde lui du texte visible même en mobile — si l'espace manque sur la
-       ligne (.toolbar, recherche + boutons), ce texte peut se retrouver sur
-       deux lignes (ex. « Écriture manuelle » → « Écriture » / « manuelle »,
-       un mot par ligne, comportement de repli normal du navigateur pour un
-       bouton flex qui rétrécit). Une hauteur figée aurait alors rogné la
-       deuxième ligne — min-height laisse le bouton grandir librement au-delà
-       du minimum dès que son contenu l'exige. */
+    /* Boutons devenus icônes à côté du champ de recherche : leur hauteur suit
+       --action-height, la référence commune (voir :root, .seg-btn), et non un
+       padding réécrit à la main, qui les décalait de 2px.
+       ⚠️ min-height et non height : un .btn-compact garde son texte et peut
+       passer sur deux lignes quand la place manque ; une hauteur figée
+       rognerait la seconde. */
     .head-actions .btn { min-height: var(--action-height); padding: 0 11px; gap: 0; }
     /* … sauf ceux qui gardent leur libellé en mobile : le gap:0 ci-dessus vaut
        pour les boutons réduits à leur icône, et collait ici l'enveloppe au mot
