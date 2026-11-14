@@ -25,6 +25,10 @@ Gestion des salaires pour une petite association suisse (Genève). ~10 employés
   (PHP 8.3) l'a révélé. **Ne jamais lancer `composer update` sans ce verrou** ;
   pour relever le plancher, changer la valeur sciemment et vérifier la
   génération d'une QR-facture.
+  **Seconde utilisation actée de tcpdf** : le QR code de l'activation de la
+  validation en deux étapes (`totp_qr_svg()`, `lib/helpers/deux_facteurs.php`),
+  qui ne prend que la matrice (`TCPDF2DBarcode`, `QRCODE,M`) et dessine le SVG
+  lui-même. Rien d'autre de tcpdf hors facturation.
 - **Exception actée** : le recadrage d'image utilise **Cropper.js**
   (`assets/vendor/cropperjs/`, bundlé dans le dépôt, pas de CDN, MIT), chargé
   sur les seules pages qui recadrent : la photo d'un employé (`?p=employe`)
@@ -151,6 +155,7 @@ toute erreur d'exécution ou blocage CSP.
   mot de passe oublié, en-têtes de sécurité et CSP), `lib/helpers/listes.php`
   (filtres, tri, pagination, recherche), `lib/helpers/geo.php` (pays, régions,
   cantons, drapeaux), `lib/helpers/icones.php` (`icon()` et le sprite).
+  Un cinquième y a été ajouté : `lib/helpers/deux_facteurs.php`.
   Restent dans `helpers.php` : `e()`, `param()`, `chf()`, `pct()`, avatars,
   couleurs et thème, logos, e-mail/SMTP, composants HTML, `render()`.
   Même découpage pour **`lib/booking.php`**, porte de `lib/booking/campagnes.php`
@@ -163,6 +168,16 @@ toute erreur d'exécution ou blocage CSP.
 - **Config** `lib/config.php` charge d'abord `lib/config.local.php` (non versionné) ;
   constantes : `APP_ENV`, `APP_DB_PATH`, `FORCE_HTTPS`, `SETUP_SECRET`,
   `PASSWORD_MIN`, `BCRYPT_COST`, `SESSION_IDLE/ABSOLUTE`, `LOGIN_MAX_ATTEMPTS/WINDOW`.
+- **Validation en deux étapes** `lib/helpers/deux_facteurs.php` (TOTP RFC 6238
+  + codes de secours, facultative, activée par le titulaire sur `?p=mon_compte`) :
+  entre le mot de passe et le code, la session porte `deux_facteurs` et **pas
+  `uid`** — `current_user()` rend null, aucune page ne s'ouvre. ⚠️ Poser `uid`
+  ailleurs que dans `connexion_ouvrir()` (et l'installation) rouvrirait la porte.
+  Les compteurs d'échecs ne se purgent qu'APRÈS le code. Secret chiffré
+  (`secret_chiffrer()`), codes de secours en empreinte, rejeu refusé par
+  `totp_dernier_pas`. Un administrateur réinitialise
+  (`utilisateur_deux_facteurs_reinitialiser`) ; rien ne l'impose à tous
+  (`docs/DECISIONS.md § Validation en deux étapes`, `tests/deux_facteurs_test.php`).
 - **Journal d'activité** `lib/journal.php` (`?p=journal`, admin) : armé UNE
   fois par le dispatcher (`journal_armer()`), il relève tout POST d'un compte
   connecté — route, identifiant visé, issue. ⚠️ **Jamais le contenu du

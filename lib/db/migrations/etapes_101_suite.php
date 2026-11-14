@@ -1,5 +1,5 @@
 <?php
-// Migrations 101 à 106, dans l'ordre — chargé par lib/db/migrations.php,
+// Migrations 101 et suivantes, dans l'ordre — chargé par lib/db/migrations.php,
 // jamais directement. Son en-tête dit la marche à suivre et les pièges.
 // Une migration nouvelle s'ajoute ici, à la suite.
 
@@ -281,4 +281,33 @@ function migration_108(PDO $pdo): void
         $pdo->rollBack();
         throw $e;
     }
+}
+
+// Validation en deux étapes (lib/helpers/deux_facteurs.php). Sur le compte :
+// le secret TOTP, CHIFFRÉ comme tout secret en base (lib/secrets.php) ; la
+// date d'activation, qui fait foi de « activée ou non » ; le dernier pas de
+// temps accepté, qui interdit de rejouer un code. Les codes de secours ont leur
+// table, en empreinte seulement, et partent avec le compte.
+function migration_109(PDO $pdo): void
+{
+    $cols = array_column($pdo->query('PRAGMA table_info(utilisateurs)')->fetchAll(), 'name');
+    if (!in_array('totp_secret', $cols, true)) {
+        $pdo->exec("ALTER TABLE utilisateurs ADD COLUMN totp_secret TEXT NOT NULL DEFAULT ''");
+    }
+    if (!in_array('totp_active_le', $cols, true)) {
+        $pdo->exec("ALTER TABLE utilisateurs ADD COLUMN totp_active_le TEXT NOT NULL DEFAULT ''");
+    }
+    if (!in_array('totp_dernier_pas', $cols, true)) {
+        $pdo->exec('ALTER TABLE utilisateurs ADD COLUMN totp_dernier_pas INTEGER NOT NULL DEFAULT 0');
+    }
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS utilisateur_codes_secours (
+            id             INTEGER PRIMARY KEY AUTOINCREMENT,
+            utilisateur_id INTEGER NOT NULL REFERENCES utilisateurs(id) ON DELETE CASCADE,
+            code_hash      TEXT NOT NULL,
+            utilise_le     TEXT,
+            cree_le        TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+    ");
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_codes_secours_compte ON utilisateur_codes_secours(utilisateur_id)');
 }

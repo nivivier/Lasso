@@ -127,7 +127,7 @@ $champ = fn (string $c) => e((string) ($d[$c] ?? ''));
       // est hors périmètre (docs/SPEC_SUBVENTIONS.md § 7). Le jour où il arrive,
       // c'est cette carte qui change, pas le schéma. ?>
 <?php if ((float) $d['montant_accorde'] > 0): ?>
-<div class="card card-editable mt-22">
+<div class="card card-editable">
     <div class="card-head-row">
         <h2 class="mt-0">Versement</h2>
         <?php if ($peutEcrire): ?>
@@ -204,7 +204,7 @@ $champ = fn (string $c) => e((string) ($d[$c] ?? ''));
       // « Créer » ouvre le formulaire de facture, déjà rempli de ce que le
       // dossier sait (docs/UI.md § 1 — un geste qui existe se refait pareil). ?>
 <?php if (module_accessible('facturation') && (float) $d['montant_accorde'] > 0): ?>
-<div class="card mt-22">
+<div class="card">
     <div class="card-head-row">
         <h2 class="mt-0">Facture au bailleur <?= info_tip(
             "Une facture ordinaire, tenue par le module Facturation : le bailleur en destinataire, le montant accordé, "
@@ -238,7 +238,7 @@ $champ = fn (string $c) => e((string) ($d[$c] ?? ''));
 <?php // Les pièces appartiennent au BAILLEUR, pas à la campagne : la même
       // fondation demande les mêmes documents d'une année sur l'autre. La carte
       // le dit, sans quoi on croirait régler le seul dossier ouvert. ?>
-<div class="card card-editable mt-22">
+<div class="card card-editable">
     <div class="card-head-row">
         <h2 class="mt-0">Ce que <?= e((string) $d['structure_nom']) ?> exige <?= info_tip(
             "Ces pièces valent pour TOUS les dossiers de ce bailleur, aujourd'hui et demain — on ne les ressaisit pas à chaque campagne."
@@ -305,7 +305,7 @@ $champ = fn (string $c) => e((string) ($d[$c] ?? ''));
 
 <?php // L'historique de la structure, celui-là même que montre sa fiche : les
       // échanges d'un bailleur ne se rangent pas dans un second fil (§ 9.15). ?>
-<div class="card mt-22">
+<div class="card">
     <h2 class="mt-0">Historique</h2>
     <?php if (!$historique): ?>
         <p class="muted">Aucun échange noté avec ce bailleur.</p>

@@ -34,7 +34,7 @@ $oui = fn(bool $b) => $b
     <p class="muted small">Astuce : pour désactiver la mise à jour en un clic, ajoutez <code>define('ALLOW_WEB_UPDATE', false);</code> dans <code>lib/config.local.php</code>.</p>
 </div>
 
-<div class="card mt-22">
+<div class="card">
     <h2 class="mt-0">Environnement et performance</h2>
     <p class="muted small">À contrôler après chaque changement d'hébergement.</p>
     <dl class="info-grid">
@@ -89,7 +89,7 @@ $oui = fn(bool $b) => $b
     <?php endif; ?>
 </div>
 
-<div class="card card-editable mt-22">
+<div class="card card-editable">
     <div class="card-head-row">
     <h2 class="mt-0">Session <?= info_tip(
         "Deux durées, et la première atteinte ferme la session. L'inactivité se compte depuis "
@@ -165,7 +165,7 @@ $oui = fn(bool $b) => $b
     </form>
 </div>
 
-<div class="card card-editable mt-22">
+<div class="card card-editable">
     <div class="card-head-row">
     <h2 class="mt-0">Recherche dans les listes <?= info_tip(
         "En dessous du seuil, toute la liste est envoyée au navigateur : la recherche et le "

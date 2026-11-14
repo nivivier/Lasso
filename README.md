@@ -378,6 +378,36 @@ e-mail et mène à un écran de choix du nouveau mot de passe.
   (`define('APP_URL', 'https://salaires.exemple.ch');`). Sans elle, le lien est construit
   depuis l'en-tête `Host` de la requête, que le client contrôle.
 
+### Validation en deux étapes
+
+Chacun peut, **depuis « Mon compte »**, demander un code à six chiffres en plus du
+mot de passe à chaque connexion. Le code vient d'une application d'authentification
+du téléphone (Google Authenticator, Aegis, 1Password… — TOTP, RFC 6238). Rien ne
+l'impose : c'est le choix du titulaire du compte.
+
+- **Activer** : la page affiche un QR code à scanner avec l'application, la même
+  clé en clair à saisir à la main, et un lien `otpauth://` qui l'ajoute
+  directement depuis le téléphone ; on confirme avec un
+  premier code. Dix **codes de secours** à usage unique s'affichent alors **une seule
+  fois** : à noter hors de l'ordinateur. La base n'en garde que l'empreinte.
+- **Se connecter** : après le mot de passe, l'écran demande le code. Tant qu'il n'est
+  pas donné (cinq minutes au plus), aucune page ne s'ouvre. Un code vaut 30 secondes,
+  avec une tolérance de 30 secondes de part et d'autre pour une horloge un peu
+  décalée, et ne sert qu'une fois. Les codes faux comptent dans le même
+  anti-force-brute que les mots de passe faux. Sans le téléphone, un code de secours
+  se saisit dans le même champ.
+- **Désactiver** ou **tirer de nouveaux codes de secours** : sur « Mon compte », en
+  confirmant par le mot de passe ou un code de l'application.
+- **Téléphone et codes de secours perdus** : un administrateur réinitialise la
+  validation du compte (Paramètres → Application → Utilisateurs, crayon du compte) ;
+  le geste figure au journal d'activité. Le compte se reconnecte avec son seul mot
+  de passe.
+- **« Mot de passe oublié » ne la contourne pas** : il change le mot de passe, la
+  connexion demande toujours le code.
+- Le secret de l'application est **chiffré en base** comme les autres secrets
+  (`lib/secrets.php`) : une sauvegarde restaurée ailleurs sans sa clé rend la
+  validation inutilisable, et un administrateur doit la réinitialiser.
+
 Les comptes se gèrent dans **Paramètres → Application → Utilisateurs**. Chacun reçoit des droits de
 **lecture ou écriture, module par module** ; un nouveau compte démarre **sans aucun
 droit**, et il doit toujours rester au moins un administrateur. Les modules eux-mêmes
@@ -688,6 +718,8 @@ liste peuvent être supprimés, jamais la base ni un autre fichier du dossier.
 - **Anti-force-brute** : blocage temporaire après 5 échecs sur 15 minutes, compté
   **par adresse IP et par e-mail** — sinon un attaquant changeant d'IP visait un
   même compte sans jamais être freiné.
+- **Validation en deux étapes** facultative, compte par compte (TOTP et codes de
+  secours, § 5 « Validation en deux étapes »).
 - **Sessions** : expiration après 60 min d'inactivité et 24 h de durée de vie max
   par défaut (`SESSION_IDLE` / `SESSION_ABSOLUTE`), **réglables dans
   Paramètres → Serveur** et bornées par le code (5 min à 30 jours d'inactivité,
@@ -731,7 +763,8 @@ liste peuvent être supprimés, jamais la base ni un autre fichier du dossier.
   elle est définie, sinon un fichier `<base>.cle.php` créé à côté de la base au
   premier besoin, lisible par le seul propriétaire et ignoré par git. Une copie
   de la base ou une sauvegarde qui fuit ne livre donc plus les boîtes d'envoi ;
-  un accès au disque du serveur, si. **Les n° AVS** (employés et copie figée
+  un accès au disque du serveur, si. **Les secrets de la validation en deux
+  étapes** aussi. **Les n° AVS** (employés et copie figée
   de chaque fiche) sont chiffrés de la même façon. Une sauvegarde **protégée
   par une phrase secrète** emporte la clé, et la restauration la reprend : c'est
   la façon sûre de déménager. **Ne perdez pas ce fichier** si vous déménagez

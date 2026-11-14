@@ -118,7 +118,7 @@ $routes = array_values(array_unique($mm[1]));
 // Hors champ : ce qui ferme la session, ou demande un jeton ou un réseau. (La
 // sauvegarde, qui écrivait sur un GET, est passée en POST : en GET elle ne fait
 // plus que renvoyer à l'export.)
-$exclues = ['deconnexion', 'installation', 'connexion', 'motdepasse_oublie', 'motdepasse_reinitialiser',
+$exclues = ['deconnexion', 'installation', 'connexion', 'connexion_code', 'motdepasse_oublie', 'motdepasse_reinitialiser',
     'mailing_traiter', 'desinscription', 'maj'];
 $routes = array_values(array_diff($routes, $exclues));
 

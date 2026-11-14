@@ -102,7 +102,7 @@ $majLibelle  = $etat === 'a_jour'
     <?php endif; ?>
 </div>
 
-<div class="card form mt-22">
+<div class="card form">
     <h2 class="mt-0">Canal</h2>
     <p class="muted small">Le canal <strong>test</strong> reçoit toutes les nouveautés en premier ; le canal <strong>stable</strong> ne suit que les versions validées.</p>
     <form method="post" action="?p=maj">

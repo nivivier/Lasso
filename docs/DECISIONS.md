@@ -308,6 +308,58 @@ ces deux cas écrits ici.
 
 ## Sécurité
 
+### Validation en deux étapes : une session qui n'est pas encore ouverte (2026-11)
+
+TOTP (RFC 6238) écrit en PHP pur dans `lib/helpers/deux_facteurs.php` :
+HMAC-SHA1, base32, une trentaine de lignes, vérifiées contre les vecteurs de
+l'annexe B de la RFC (`tests/deux_facteurs_test.php`). SHA-1, six chiffres,
+trente secondes : les seuls réglages que toutes les applications comprennent.
+
+**L'étape intermédiaire ne pose pas `uid`.** Après le mot de passe, la session
+ne porte que `deux_facteurs` (le compte en attente et l'heure) ; `current_user()`
+rend donc `null` et le dispatcher renvoie toute route à la connexion. Il n'y a
+pas de liste de routes « permises pendant l'étape » qu'un ajout oublierait de
+fermer. `connexion_ouvrir()` est le seul endroit (avec l'installation) qui pose
+`uid`. L'étape expire au bout de cinq minutes.
+
+**Un mot de passe juste ne purge plus les compteurs d'échecs quand un code est
+attendu** : ils le sont après le code. Purgés dès le mot de passe, ils
+laissaient qui le connaît retaper celui-ci tous les cinq essais et deviner le
+code sans limite. Les codes faux s'inscrivent dans `login_attempts`, comme
+les mots de passe faux — même fenêtre, même plafond, IP et compte.
+
+**Rejeu.** `utilisateurs.totp_dernier_pas` retient le dernier pas accepté ; un
+pas inférieur ou égal est refusé, et l'écriture est conditionnelle
+(`… AND totp_dernier_pas < ?`) pour que deux requêtes simultanées ne passent
+pas toutes les deux. Tolérance d'un pas de part et d'autre (±30 s), pas plus.
+
+**Ce que la base garde.** Le secret, chiffré par `secret_chiffrer()` : comme un
+mot de passe SMTP, il doit être relu, donc il ne peut pas être haché. Une base
+restaurée ailleurs sans sa clé rend la validation inutilisable — un
+administrateur la réinitialise, c'est le prix accepté pour les secrets
+(§ Secrets). Les codes de secours, eux, ne sont qu'en empreinte SHA-256 : douze
+caractères base32 (60 bits) ne se retrouvent pas depuis l'empreinte, et bcrypt
+coûterait dix vérifications lentes par saisie. Le secret en préparation vit en
+SESSION jusqu'au premier code juste : une activation abandonnée ne laisse rien
+en base.
+
+**Ni imposée, ni contournable par « mot de passe oublié ».** Aucun réglage ne
+force la validation pour tous (non demandé). La réinitialisation par e-mail
+change le mot de passe et n'ouvre pas de session ; la connexion suivante
+demande le code. Seul un administrateur la retire pour un autre compte
+(`utilisateur_deux_facteurs_reinitialiser`), et le journal d'activité relève le
+geste (route et id du compte) — jamais le code, absent de `JOURNAL_CIBLES`.
+
+**Le QR code vient de tcpdf**, déjà dans `vendor/` pour la QR-facture : la
+dérogation a été étendue à ce seul usage plutôt que d'écrire un encodeur QR
+(Reed-Solomon, masques — plusieurs centaines de lignes) ou d'ajouter une
+bibliothèque. `totp_qr_svg()` ne prend que la matrice (`TCPDF2DBarcode`,
+correction M) et dessine le SVG lui-même, en un seul chemin inséré dans la
+page : pas d'image servie à part, donc pas d'URL portant le secret. Fond blanc
+et marge de quatre modules même en thème sombre — un lecteur exige un sombre
+sur clair. La clé en clair et le lien `otpauth://` restent à côté : sans tcpdf,
+la fonction rend une chaîne vide et l'activation se fait à la main.
+
 ### L'environnement ne doit jamais dépendre de la requête
 
 **Invariante.** `APP_ENV` se résout dans cet ordre : `define()` explicite, puis

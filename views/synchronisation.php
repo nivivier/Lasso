@@ -32,7 +32,7 @@
       // de route — adresses d'hébergement, codes, portables, pièces jointes. Un
       // abonnement iCal ne sait pas s'authentifier autrement qu'en portant son
       // secret dans l'URL : ce lien EST un mot de passe. ?>
-<div class="card form mt-22">
+<div class="card form">
     <h2 class="mt-0">Calendrier de l'équipe</h2>
     <p class="muted small">
         Un second lien iCal, à ne donner qu'à l'équipe : il montre <strong>tout</strong> — les dates en option,

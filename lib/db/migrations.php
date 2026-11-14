@@ -135,6 +135,7 @@ function run_migrations(PDO $pdo): void
         106 => 'migration_106', // mots de passe des boîtes d'envoi chiffrés en base (lib/secrets.php)
         107 => 'migration_107', // journal des erreurs du serveur (lib/journal.php)
         108 => 'migration_108', // n° AVS chiffrés en base : employés et copie figée des fiches (lib/secrets.php)
+        109 => 'migration_109', // validation en deux étapes : secret TOTP chiffré, codes de secours (lib/helpers/deux_facteurs.php)
     ];
     foreach ($steps as $num => $fn) {
         if ($version < $num) {

@@ -1786,6 +1786,18 @@ grammaires coûte toujours plus qu'il ne rapporte.
 
 ## 9 bis. Cartes posées côte à côte
 
+**Cartes empilées : l'écart est automatique.** Deux `.card` qui se suivent
+directement dans le corps de la page (`.content`, ou `.module-content-inner`
+sous un bandeau d'onglets) s'écartent de `--esp-5` sans classe à poser
+(`06-cartes-formulaires.css`). Il dépendait d'un `.mt-22` sur la seconde, et
+une page qui l'oubliait collait ses cartes (« Mon compte » l'a fait). Ces
+`.mt-22` ont été retirés ; on n'en pose plus qu'à une carte qui suit autre
+chose qu'une carte (un titre, un message, un script).
+
+La règle ne descend pas dans une grille ou une rangée (`.grid2/3`,
+`.cartes-rangee`, `.card-col`, colonnes du tableau de bord) : leur écart est
+leur `gap`, et une marge s'y ajouterait.
+
 Plusieurs cartes sur une page se posent en `.cartes-rangee` : **autant de
 colonnes que la largeur en permet**, et non deux ou trois figées par `.grid2` /
 `.grid3`. Trois cartes courtes s'alignent en plein écran, passent à deux en

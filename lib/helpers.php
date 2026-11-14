@@ -3,12 +3,14 @@
 // pour le schéma et les migrations.
 //
 // Ce fichier faisait 4 082 lignes et une bonne dizaine de métiers. Quatre
-// d'entre eux en sont sortis, chacun cohérent et lisible seul ; ils sont
+// d'entre eux en sont sortis (et un cinquième s'y est ajouté), chacun cohérent et lisible seul ; ils sont
 // chargés ICI et ne se requièrent jamais directement, pour que « require
 // lib/helpers.php » continue de tout apporter :
 //
 //   lib/helpers/session.php  session, authentification, CSRF, anti-force-brute,
 //                            mot de passe oublié, en-têtes de sécurité et CSP
+//   lib/helpers/deux_facteurs.php  validation en deux étapes (TOTP, codes de
+//                            secours) et l'ouverture de la session
 //   lib/helpers/listes.php   filtres, tri, pagination, recherche — ce qui fait
 //                            que toutes les listes de l'app se manipulent pareil
 //   lib/helpers/geo.php      pays, régions, cantons, départements, drapeaux
@@ -19,6 +21,7 @@
 // fait par DÉPLACEMENT de blocs entiers, sans toucher une ligne de code — les
 // pages rendues avant et après sont identiques à l'octet près.
 require_once __DIR__ . '/helpers/session.php';
+require_once __DIR__ . '/helpers/deux_facteurs.php';
 require_once __DIR__ . '/helpers/listes.php';
 require_once __DIR__ . '/helpers/geo.php';
 require_once __DIR__ . '/helpers/icones.php';

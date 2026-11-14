@@ -100,11 +100,20 @@ if (!has_users() && $route !== 'installation') {
 $handlers = [
     'installation'  => 'route_installation',
     'connexion'  => 'route_connexion',
+    // Seconde étape de la connexion (validation en deux étapes) : publique
+    // comme la première, elle ne s'ouvre qu'après un mot de passe juste
+    // (connexion_en_attente(), lib/helpers/deux_facteurs.php).
+    'connexion_code' => 'route_connexion_code',
     'deconnexion' => 'route_deconnexion',
     // Mot de passe oublié : publiques par nature, comme la connexion.
     'motdepasse_oublie' => 'route_motdepasse_oublie',
     'motdepasse_reinitialiser' => 'route_motdepasse_reinitialiser',
     'mon_compte' => 'route_mon_compte',  // « Mon compte » : accessible à tout compte, indépendamment des permissions.
+    // Validation en deux étapes de SON compte : tout compte, comme mon_compte.
+    'deux_facteurs'                 => 'route_deux_facteurs',
+    'deux_facteurs_activer'         => 'route_deux_facteurs_activer',
+    'deux_facteurs_desactiver'      => 'route_deux_facteurs_desactiver',
+    'deux_facteurs_codes_regenerer' => 'route_deux_facteurs_codes_regenerer',
     'tableau_bord' => 'route_tableau_bord', // Tableau de bord : fait partie du cœur, toujours accessible.
     // Choix d'étiquette du widget « Suivi du booking » : une préférence
     // d'AFFICHAGE, pas une écriture sur le booking — un compte qui n'a que la
@@ -398,6 +407,7 @@ if (peut_ecrire('coeur')) {
         'utilisateurs'             => 'route_utilisateurs',
         'utilisateur_enregistrer'     => 'route_utilisateur_enregistrer',
         'utilisateur_supprimer'       => 'route_utilisateur_supprimer',
+        'utilisateur_deux_facteurs_reinitialiser' => 'route_utilisateur_deux_facteurs_reinitialiser',
         'modules'  => 'route_modules',
         'maj'                 => 'route_maj',
         'diagnostic'          => 'route_diagnostic',

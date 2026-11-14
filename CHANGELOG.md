@@ -9,6 +9,23 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+### Ajouté
+- **Validation en deux étapes** (facultative, activée par chacun depuis « Mon
+  compte ») : un code à six chiffres d'une application d'authentification
+  (Google Authenticator, Aegis, 1Password…) est demandé après le mot de passe.
+  QR code à scanner (ou clé à saisir, ou lien `otpauth://`), confirmation par un premier code, dix codes
+  de secours à usage unique montrés une seule fois. Un code ne se rejoue pas,
+  les codes faux comptent dans l'anti-force-brute de la connexion, et « mot de
+  passe oublié » ne retire pas la validation. Un administrateur peut la
+  réinitialiser pour un compte qui a perdu son téléphone (geste journalisé).
+  Le secret est chiffré en base, les codes de secours n'y sont qu'en empreinte.
+
+### Modifié
+- **Cartes empilées toujours espacées** : deux cartes qui se suivent dans une
+  page s'écartent d'elles-mêmes (24 px), au lieu de dépendre d'une classe
+  posée à la main sur chaque écran. Les pages qui l'avaient passent de 22 à
+  24 px ; celles qui l'oubliaient (« Mon compte ») ne collent plus leurs cartes.
+
 ## [3.3.1] — 2026-11-14
 
 ### Modifié

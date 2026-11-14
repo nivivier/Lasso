@@ -46,6 +46,7 @@ $derniere = horodatage($derniere, 'd.m.Y à H:i');
                     <div class="compte-identite">
                         <span class="compte-nom"><?= e($nomAffiche) ?></span>
                         <?php if ($estMoi): ?><span class="badge muted-badge">vous</span><?php endif; ?>
+                        <?php if (deux_facteurs_active($c)): ?><span class="badge muted-badge" title="Validation en deux étapes activée" aria-label="Validation en deux étapes activée"><?= icon('lock') ?></span><?php endif; ?>
                     </div>
                     <?php if ($nomAffiche !== (string) $c['email']): ?>
                         <div class="muted small"><?= e($c['email']) ?></div>
@@ -191,6 +192,17 @@ $derniere = horodatage($derniere, 'd.m.Y à H:i');
                           // route_utilisateur_supprimer() le refuserait. ?>
                     <?php if (!$estMoi): ?>
                     <div class="cadre-edit-pied">
+                        <?php // Téléphone perdu, codes de secours aussi : seul un
+                              // administrateur rouvre le compte, et pour un AUTRE
+                              // que lui (le sien se règle sur « Mon compte »). ?>
+                        <?php if (deux_facteurs_active($c)): ?>
+                        <form method="post" action="?p=utilisateur_deux_facteurs_reinitialiser"
+                              data-confirm="Réinitialiser la validation en deux étapes de <?= e($c['email']) ?> ? Le compte se connectera avec son seul mot de passe.">
+                            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+                            <input type="hidden" name="id" value="<?= (int) $c['id'] ?>">
+                            <button type="submit" class="btn ghost btn-sm"><?= icon('unlock') ?> Réinitialiser la validation en deux étapes</button>
+                        </form>
+                        <?php endif; ?>
                         <form method="post" action="?p=utilisateur_supprimer"
                               data-confirm="Supprimer définitivement le compte <?= e($c['email']) ?> ?">
                             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">

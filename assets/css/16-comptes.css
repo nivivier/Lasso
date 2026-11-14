@@ -131,3 +131,9 @@
     }
     .compte-edit-cell { padding: 12px 14px 16px; }
 }
+
+/* deux_facteurs.php */
+.cle-totp code, .codes-secours code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: var(--fs-large); letter-spacing: .06em; overflow-wrap: anywhere; }
+.qr-totp { display: block; width: 200px; max-width: 100%; height: auto; margin: var(--esp-3) 0; border-radius: var(--radius-xs); }
+.codes-secours { columns: 2 180px; column-gap: var(--esp-5); padding-left: var(--esp-5); margin: var(--esp-4) 0; }
+.codes-secours li { padding: var(--esp-1) 0; }

@@ -6,6 +6,8 @@
     padding: 26px;
     box-shadow: var(--shadow);
 }
+/* Cadres empilés : docs/UI.md § 9 bis */
+:is(.content, .module-content-inner) > .card + .card { margin-top: var(--esp-5); }
 /* De nombreux blocs répétés (.linked-add, .tags-liste, .contact-row…) espaçaient
    les lignes via un margin-bottom sur chaque ligne — inoffensif tant qu'une
    autre ligne suit, mais qui s'ajoutait au padding-bottom de la carte quand

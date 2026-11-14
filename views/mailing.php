@@ -48,7 +48,7 @@
     <?php endif; ?>
 </div>
 
-<div class="card mt-22">
+<div class="card">
     <h2 class="mt-0">Historique des campagnes</h2>
     <?php if (!$campagnes): ?>
         <p class="muted">Aucune campagne pour l'instant.</p>

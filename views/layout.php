@@ -443,7 +443,7 @@ if ($u && $mbarTitre === '' && parametres_groupe_actif(parametres_groupes(), $cu
                 <strong><?= e($nomComplet) ?></strong>
                 <span><?= e($u['email']) ?></span>
             </div>
-            <a href="?p=mon_compte" class="<?= $cur === 'mon_compte' ? 'on' : '' ?>">Mon compte</a>
+            <a href="?p=mon_compte" class="<?= in_array($cur, ['mon_compte', 'deux_facteurs'], true) ? 'on' : '' ?>">Mon compte</a>
             <a href="?p=deconnexion">Déconnexion</a>
         </div>
     </div>

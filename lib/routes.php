@@ -98,21 +98,22 @@ function route_connexion(): void
         $stmt->execute([$email]);
         $u = $stmt->fetch();
         if ($u && password_verify($mdp, $u['mot_de_passe'])) {
+            rehacher_si_necessaire((int) $u['id'], $mdp, (string) $u['mot_de_passe']);
+            // Validation en deux étapes : la session n'est PAS ouverte, elle
+            // attend le code (lib/helpers/deux_facteurs.php). Les compteurs
+            // d'échecs ne sont pas purgés ici : ils le seront après le code.
+            // Purgés dès le mot de passe, ils laisseraient qui le connaît
+            // retaper celui-ci tous les cinq essais et deviner le code sans fin.
+            if (deux_facteurs_active($u)) {
+                connexion_attendre_code($u);
+                redirect('connexion_code');
+            }
             // Les deux compteurs sont purgés : sans le volet e-mail, un
             // utilisateur légitime qui se trompe cinq fois puis réussit
             // resterait bloqué par son propre compteur de compte au prochain
             // essai, jusqu'à expiration de la fenêtre.
             login_clear_failures($ip, $email);
-            rehacher_si_necessaire((int) $u['id'], $mdp, (string) $u['mot_de_passe']);
-            // Horodaté par PHP, pas par SQLite : la valeur est relue et affichée
-            // avec date(), donc elle doit venir de la même horloge (datetime('now')
-            // rend de l'UTC, ce qui décalerait l'heure affichée).
-            db()->prepare('UPDATE utilisateurs SET derniere_connexion_le = ? WHERE id = ?')
-                ->execute([horodatage_maintenant(), (int) $u['id']]);
-            session_regenerate_id(true);
-            $_SESSION['uid']           = (int) $u['id'];
-            $_SESSION['login_time']    = time();
-            $_SESSION['last_activity'] = time();
+            connexion_ouvrir($u);
             redirect('tableau_bord');
         }
         login_record_failure($ip, $email);
@@ -137,6 +138,50 @@ function route_connexion(): void
         }
     }
     render('connexion', ['err' => null, 'info' => $msg, 'email' => ''], 'Connexion');
+}
+
+// Seconde étape de la connexion : le code de l'application, ou un code de
+// secours. N'existe que pendant DEUX_FACTEURS_ETAPE_DUREE après un mot de
+// passe juste ; la session n'est ouverte (connexion_ouvrir()) qu'ici.
+function route_connexion_code(): void
+{
+    if (current_user()) {
+        redirect('tableau_bord');
+    }
+    $u = connexion_en_attente();
+    if (!$u) {
+        redirect('connexion', ['expired' => 1]);
+    }
+    $ip = client_ip();
+    $email = (string) $u['email'];
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        check_csrf();
+        // Même garde que le mot de passe, sur le même compteur : l'IP et le
+        // compte. Bloqué, on renvoie au début — l'étape ne se rouvre qu'avec
+        // le mot de passe, une fois la fenêtre écoulée.
+        if (login_is_locked($ip, $email)) {
+            unset($_SESSION['deux_facteurs']);
+            $min = (int) ceil(LOGIN_WINDOW / 60);
+            render('connexion', ['err' => "Trop de tentatives. Réessayez dans $min minutes.", 'email' => ''], 'Connexion');
+            return;
+        }
+        usleep(random_int(200000, 500000)); // même ralentissement que le mot de passe
+        $sorte = deux_facteurs_verifier($u, (string) ($_POST['code'] ?? ''));
+        if ($sorte !== null) {
+            login_clear_failures($ip, $email);
+            connexion_ouvrir($u);
+            // Un code de secours a servi : on dit combien il en reste, sur la
+            // page où l'on en génère de nouveaux.
+            if ($sorte === 'secours') {
+                redirect('mon_compte', ['secours' => deux_facteurs_codes_restants((int) $u['id'])]);
+            }
+            redirect('tableau_bord');
+        }
+        login_record_failure($ip, $email);
+        render('connexion_code', ['err' => 'Code incorrect.'], 'Connexion');
+        return;
+    }
+    render('connexion_code', ['err' => null], 'Connexion');
 }
 
 function route_deconnexion(): void
@@ -259,7 +304,8 @@ function route_mon_compte(): void
             }
         }
         if ($err) {
-            render('mon_compte', ['u' => ['prenom' => $prenom, 'nom' => $nom, 'email' => $email] + $u, 'err' => $err, 'saved' => null], 'Mon compte');
+            render('mon_compte', ['u' => ['prenom' => $prenom, 'nom' => $nom, 'email' => $email] + $u, 'err' => $err, 'saved' => null,
+                'secours' => null, 'nbCodes' => deux_facteurs_active($u) ? deux_facteurs_codes_restants((int) $u['id']) : 0], 'Mon compte');
             return;
         }
         $hash = $nouveau !== '' ? hacher_mot_de_passe($nouveau) : $u['mot_de_passe'];
@@ -270,7 +316,112 @@ function route_mon_compte(): void
             ->execute([$rattache ? '' : $prenom, $rattache ? '' : $nom, $email, $hash, $u['id']]);
         redirect('mon_compte', ['ok' => 1]);
     }
-    render('mon_compte', ['u' => $u, 'err' => null, 'saved' => $_GET['ok'] ?? null], 'Mon compte');
+    $err = ($_GET['err'] ?? '') === 'deux_facteurs' ? 'Mot de passe ou code incorrect : rien n\'a été changé.' : null;
+    render('mon_compte', [
+        'u'        => $u,
+        'err'      => $err,
+        'saved'    => $_GET['ok'] ?? null,
+        'secours'  => isset($_GET['secours']) ? (int) $_GET['secours'] : null,
+        'nbCodes'  => deux_facteurs_active($u) ? deux_facteurs_codes_restants((int) $u['id']) : 0,
+    ], 'Mon compte');
+}
+
+// --- Validation en deux étapes, par le titulaire du compte ------------------
+//
+// Quatre routes, toutes « tout compte » comme ?p=mon_compte : la page qui
+// prépare l'activation (ou montre une fois les codes de secours), activer,
+// désactiver, et tirer de nouveaux codes de secours. Le secret en préparation
+// vit dans la SESSION et n'entre en base qu'une fois confirmé par un premier
+// code : une activation abandonnée ne laisse rien.
+
+function route_deux_facteurs(): void
+{
+    require_login();
+    $u = current_user();
+    // Les codes de secours qu'on vient de tirer : montrés UNE fois, puis
+    // effacés de la session. Recharger la page ne les remontre pas.
+    $codes = $_SESSION['deux_facteurs_codes'] ?? null;
+    unset($_SESSION['deux_facteurs_codes']);
+    if (deux_facteurs_active($u)) {
+        if (!is_array($codes)) {
+            redirect('mon_compte');
+        }
+        render('deux_facteurs', ['u' => $u, 'codes' => $codes, 'secret' => null, 'uri' => null, 'err' => null], 'Validation en deux étapes');
+        return;
+    }
+    if (empty($_SESSION['deux_facteurs_secret'])) {
+        $_SESSION['deux_facteurs_secret'] = totp_secret_generer();
+    }
+    $secret = (string) $_SESSION['deux_facteurs_secret'];
+    render('deux_facteurs', [
+        'u'      => $u,
+        'codes'  => null,
+        'secret' => $secret,
+        'uri'    => totp_uri($secret, (string) $u['email'], (string) param('employeur_nom', 'Lasso')),
+        'err'    => isset($_GET['err']) ? 'Code incorrect. Vérifiez l\'heure du téléphone, puis saisissez le code affiché.' : null,
+    ], 'Validation en deux étapes');
+}
+
+function route_deux_facteurs_activer(): void
+{
+    require_login();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        redirect('deux_facteurs');
+    }
+    check_csrf();
+    $u = current_user();
+    $secret = (string) ($_SESSION['deux_facteurs_secret'] ?? '');
+    if (deux_facteurs_active($u) || $secret === '') {
+        redirect('mon_compte');
+    }
+    $pas = totp_verifier((string) base32_decoder($secret), (string) ($_POST['code'] ?? ''), 0, time());
+    if ($pas === null) {
+        redirect('deux_facteurs', ['err' => 1]);
+    }
+    $_SESSION['deux_facteurs_codes'] = deux_facteurs_activer((int) $u['id'], $secret, $pas);
+    unset($_SESSION['deux_facteurs_secret']);
+    redirect('deux_facteurs');
+}
+
+// Confirmation d'un geste sur la validation : le mot de passe, ou un code de
+// l'application (un mot de passe fait au moins PASSWORD_MIN caractères, six
+// chiffres ne peuvent donc être que le code).
+function deux_facteurs_confirmation_ok(array $u, string $saisie): bool
+{
+    if (preg_match('/^\s*\d{3}\s?\d{3}\s*$/', $saisie)) {
+        return deux_facteurs_verifier_totp($u, $saisie);
+    }
+    return $saisie !== '' && password_verify($saisie, (string) $u['mot_de_passe']);
+}
+
+function route_deux_facteurs_desactiver(): void
+{
+    require_login();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        redirect('mon_compte');
+    }
+    check_csrf();
+    $u = current_user();
+    if (!deux_facteurs_confirmation_ok($u, (string) ($_POST['confirmation'] ?? ''))) {
+        redirect('mon_compte', ['err' => 'deux_facteurs']);
+    }
+    deux_facteurs_desactiver((int) $u['id']);
+    redirect('mon_compte', ['ok' => 'deux_facteurs_off']);
+}
+
+function route_deux_facteurs_codes_regenerer(): void
+{
+    require_login();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        redirect('mon_compte');
+    }
+    check_csrf();
+    $u = current_user();
+    if (!deux_facteurs_active($u) || !deux_facteurs_confirmation_ok($u, (string) ($_POST['confirmation'] ?? ''))) {
+        redirect('mon_compte', ['err' => 'deux_facteurs']);
+    }
+    $_SESSION['deux_facteurs_codes'] = deux_facteurs_codes_generer((int) $u['id']);
+    redirect('deux_facteurs');
 }
 
 // -------------------------------------------------------------- COMPTES (admin)
@@ -307,7 +458,7 @@ function route_utilisateurs(): void
                 ->execute([$email, hacher_mot_de_passe($mdp)]);
             // Le compte est relu en base plutôt que reconstitué de mémoire : la
             // ligne rendue doit dire ce qui existe vraiment, dates comprises.
-            $nouveau = db()->prepare('SELECT id, email, prenom, nom, personne_id, derniere_connexion_le, cree_le
+            $nouveau = db()->prepare('SELECT id, email, prenom, nom, personne_id, derniere_connexion_le, cree_le, totp_active_le
                                         FROM utilisateurs WHERE id = ?');
             $nouveau->execute([(int) db()->lastInsertId()]);
             $ligne = $nouveau->fetch();
@@ -332,7 +483,7 @@ function route_utilisateurs(): void
     // une employée, un compte — docs/SPEC_PERSONNES.md), et c'est ici qu'on fait le
     // lien, faute de quoi la colonne « Rattachements » de l'annuaire ne pouvait
     // jamais dire « compte ».
-    $comptes = db()->query('SELECT id, email, prenom, nom, personne_id, derniere_connexion_le, cree_le
+    $comptes = db()->query('SELECT id, email, prenom, nom, personne_id, derniere_connexion_le, cree_le, totp_active_le
                             FROM utilisateurs ORDER BY cree_le, id')->fetchAll();
     $permissions = [];
     foreach ($comptes as $c) {
@@ -423,6 +574,28 @@ function route_utilisateur_enregistrer(): void
         redirect('utilisateurs', ['ok' => 'reset']);
     }
     redirect('utilisateurs', ['ok' => 'modified']);
+}
+
+// Réinitialiser la validation en deux étapes d'un autre compte : le téléphone
+// est perdu, les codes de secours aussi. Le compte se reconnecte ensuite avec
+// son seul mot de passe et réactive s'il le souhaite. Journalisé comme tout
+// POST (route + id du compte visé, lib/journal.php). Rien ici ne permet
+// d'IMPOSER la validation à un compte : c'est un choix de son titulaire.
+function route_utilisateur_deux_facteurs_reinitialiser(): void
+{
+    require_login();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        redirect('utilisateurs');
+    }
+    check_csrf();
+    $id = (int) ($_POST['id'] ?? 0);
+    $st = db()->prepare('SELECT id FROM utilisateurs WHERE id = ?');
+    $st->execute([$id]);
+    if (!$st->fetchColumn()) {
+        redirect('utilisateurs');
+    }
+    deux_facteurs_desactiver($id);
+    redirect('utilisateurs', ['ok' => 'deux_facteurs']);
 }
 
 function route_utilisateur_supprimer(): void

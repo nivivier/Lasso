@@ -7,6 +7,7 @@ $flash = [
     'reset'       => 'Compte modifié, et mot de passe réinitialisé.',
     'deleted'     => 'Compte supprimé.',
     'permissions' => 'Droits mis à jour.',
+    'deux_facteurs' => 'Validation en deux étapes réinitialisée : le compte se connecte avec son seul mot de passe.',
 ];
 $flashErr = [
     'short'      => 'Le mot de passe doit faire au moins ' . PASSWORD_MIN . ' caractères.',

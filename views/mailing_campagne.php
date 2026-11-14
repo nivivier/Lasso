@@ -260,7 +260,7 @@ $critHiddenInputs = function (array $criteres): string {
 <?php if (!peut_ecrire('booking')): ?>
 <p class="err mt-22">Vous n'avez pas les droits d'écriture nécessaires pour créer ou envoyer une campagne.</p>
 <?php else: ?>
-<div class="card mt-22">
+<div class="card">
     <div class="section-head mt-0">
         <h2 class="mt-0">Message</h2>
         <?php if ($modeles): ?>

@@ -145,7 +145,7 @@ $cadreExpediteur = function (array $exp = []) : void {
 </div>
 
 <?php if ($voirBoites): ?>
-<div class="card form mt-22">
+<div class="card form">
     <div class="card-head-row">
         <h2 class="mt-0">Boîtes d'envois externes</h2>
         <div class="exp-tete-actions">
@@ -185,7 +185,7 @@ $cadreExpediteur = function (array $exp = []) : void {
 <?php if ($voirDebit): ?>
 <?php // Le débit d'envoi est un réglage à part, pas un détail des boîtes : sa
       // propre carte, qui se lit et s'ouvre au crayon comme les autres. ?>
-<div class="card card-editable mt-22">
+<div class="card card-editable">
     <div class="card-head-row">
         <h2 class="mt-0">Débit d'envoi</h2>
         <?= carte_actions_html(['form' => 'debit-form']) ?>

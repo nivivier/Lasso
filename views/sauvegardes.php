@@ -110,7 +110,7 @@ $refusRestauration = function (string $carte) use ($errRestaure, $motifRestaure,
 <?php // Sa propre carte, entre la sauvegarde et les copies : quand on en a
       // téléchargé une, et quand le tableau de bord le rappellera. Un seul
       // relevé, pas un historique : le titre dit ce que la carte règle. ?>
-<div class="card form mt-22" id="rappel">
+<div class="card form" id="rappel">
     <h2 class="mt-0">Rappel de sauvegarde</h2>
     <?php // La date est celle que le tableau de bord compare au délai
           // ci-dessous : notée quand l'archive part (route_sauvegarde()). ?>
@@ -141,7 +141,7 @@ $refusRestauration = function (string $carte) use ($errRestaure, $motifRestaure,
       // points, dans l'ordre des inquiétudes : ce qui est remplacé, ce qui
       // n'est pas perdu, ce qui peut surprendre. Une restauration réussie ne
       // revient jamais ici : elle déconnecte, et l'écran de connexion l'annonce. ?>
-<div class="card form mt-22" id="restaurer">
+<div class="card form" id="restaurer">
     <h2 class="mt-0">Restaurer une sauvegarde</h2>
     <?= $refusRestauration('restaurer') ?>
     <ul class="warn small sauvegarde-avertissements">
@@ -179,7 +179,7 @@ $refusRestauration = function (string $carte) use ($errRestaure, $motifRestaure,
       // restaure une (route_sauvegarde_copie_restaurer()), on les supprime.
       // La corbeille ne se montre qu'au crayon (docs/UI.md § 3),
       // la création reste à portée. ?>
-<div class="card section-editable mt-22" id="copies-serveur">
+<div class="card section-editable" id="copies-serveur">
     <div class="card-head-row">
         <h2 class="mt-0">Copies sur le serveur</h2>
         <div class="exp-tete-actions">

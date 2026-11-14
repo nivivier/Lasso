@@ -120,12 +120,14 @@ function journal_libelle(string $route, string $geste): string
 {
     $verbes = ['supprimer', 'enregistrer', 'creer', 'ajouter', 'modifier', 'importer', 'exporter',
         'envoyer', 'lier', 'delier', 'restaurer', 'fusionner', 'recalculer', 'rapprocher',
-        'cloturer', 'payee', 'paiement', 'valider', 'dupliquer', 'reordonner', 'archiver', 'acquitter'];
+        'cloturer', 'payee', 'paiement', 'valider', 'dupliquer', 'reordonner', 'archiver', 'acquitter',
+        'activer', 'desactiver', 'reinitialiser', 'regenerer'];
     $parts = explode('_', $route);
     $verbe = in_array(end($parts), $verbes, true) ? array_pop($parts) : '';
     $objet = ucfirst(str_replace('_', ' ', implode('_', $parts)));
     $accents = ['creer' => 'créer', 'delier' => 'délier', 'cloturer' => 'clôturer', 'payee' => 'payée',
-        'reordonner' => 'réordonner', 'recalculer' => 'recalculer'];
+        'reordonner' => 'réordonner', 'recalculer' => 'recalculer', 'desactiver' => 'désactiver',
+        'reinitialiser' => 'réinitialiser', 'regenerer' => 'régénérer'];
     $libelle = $objet . ($verbe !== '' ? ' — ' . ($accents[$verbe] ?? $verbe) : ' — enregistrer');
     return $geste !== '' ? $libelle . ' (' . str_replace('_', ' ', $geste) . ')' : $libelle;
 }
