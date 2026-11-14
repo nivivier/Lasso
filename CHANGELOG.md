@@ -9,6 +9,8 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+## [3.4.0] — 2026-11-14
+
 ### Ajouté
 - **Validation en deux étapes** (facultative, activée par chacun depuis « Mon
   compte ») : un code à six chiffres d'une application d'authentification
