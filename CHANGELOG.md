@@ -9,6 +9,8 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+## [3.3.1] — 2026-11-14
+
 ### Modifié
 - **Feuille de style plus facile à entretenir** (aucun changement visible
   voulu, vérifié en comparant les styles calculés de 69 pages, sur ordinateur,
