@@ -1,6 +1,9 @@
-# CLAUDE.md — Lasso (fiches de salaire)
+# CLAUDE.md — Lasso
 
-Gestion des salaires pour une petite association suisse (Genève). ~10 employés,
+Gestion administrative d'une petite association culturelle suisse (Genève),
+en modules activables : carnet d'adresses, salaires, comptabilité (analytique,
+pièces), facturation, événements, booking (envois groupés), recherche de
+fonds. ~10 employés,
 1–2 utilisateurs, pas de concurrence. Déploiement cible : **hébergement mutualisé** (PHP + SQLite).
 
 Ce fichier donne les règles ; le « pourquoi » et l'historique sont dans

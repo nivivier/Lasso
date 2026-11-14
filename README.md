@@ -1,14 +1,16 @@
 # Lasso
 
-Gestion administrative d'une petite structure suisse de type association
-(fiches et certificats de salaire).
+Gestion administrative d'une petite structure suisse de type association :
+carnet d'adresses, salaires, comptabilité, facturation, événements, booking et
+recherche de fonds.
 
-Application web légère de gestion des salaires pour une association (loi suisse).
-Le nom et les logos de l'employeur affichés proviennent entièrement de la base de
-données (Paramètres → Employeur). Gestion des employés, fiches de salaire
-mensuelles, tableau de bord, certificat de salaire annuel (formulaire 11 + export
-XML pour l'application « eCertificat de salaire CSI »), envoi des fiches par e-mail
-(SMTP authentifié, repli sur `mail()`).
+Application web légère (PHP + SQLite), pensée pour un hébergement mutualisé. Le
+nom et les logos de l'employeur affichés proviennent entièrement de la base de
+données (Paramètres → Employeur). Un tableau de bord réunit ce qui demande une
+action dans chaque module, et une recherche unifiée les traverse tous. Côté
+salaires (loi suisse) : employés, fiches mensuelles, certificat de salaire
+annuel (formulaire 11 + export XML pour l'application « eCertificat de salaire
+CSI »), envoi des fiches par e-mail (SMTP authentifié, repli sur `mail()`).
 
 L'application est découpée en **modules activables** (Paramètres → Modules), avec
 des **droits de lecture/écriture par utilisateur et par module** :
