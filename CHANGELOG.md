@@ -9,6 +9,8 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+## [3.4.1] — 2026-11-14
+
 ### Modifié
 - **Écritures d'un exercice clôturé en lecture seule dans la liste** : plus de
   case à cocher, de crayon, de « + » de catégorie ni de choix d'axe sur une
