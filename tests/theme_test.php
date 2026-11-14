@@ -14,20 +14,8 @@
 //   - les data-URI (SVG encodés).
 
 $racine = dirname(__DIR__);
-$tests = 0;
-$fails = 0;
 
-function check(string $label, $attendu, $obtenu): void
-{
-    global $tests, $fails;
-    $tests++;
-    if ($attendu === $obtenu) {
-        printf("  ok    %s\n", $label);
-        return;
-    }
-    $fails++;
-    printf("  FAIL  %s\n        attendu %s\n        obtenu  %s\n", $label, var_export($attendu, true), var_export($obtenu, true));
-}
+require_once __DIR__ . '/_outils.php';
 
 // Base jetable : couleurs_css_vars() lit les couleurs de l'employeur.
 $tmp = sys_get_temp_dir() . '/lasso_theme_' . bin2hex(random_bytes(6)) . '.sqlite';

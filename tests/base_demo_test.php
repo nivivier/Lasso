@@ -20,19 +20,8 @@ declare(strict_types=1);
 $racine = dirname(__DIR__);
 $tmp    = sys_get_temp_dir() . '/lasso_demo_' . bin2hex(random_bytes(6)) . '.sqlite';
 
-$tests = 0;
-$fails = 0;
-function check(string $label, $attendu, $obtenu): void
-{
-    global $tests, $fails;
-    $tests++;
-    if ($attendu === $obtenu) {
-        return;
-    }
-    $fails++;
-    echo "ÉCHEC : $label\n  attendu : " . var_export($attendu, true)
-       . "\n  obtenu  : " . var_export($obtenu, true) . "\n";
-}
+define('TESTS_SILENCIEUX', true);
+require_once __DIR__ . '/_outils.php';
 function checkVrai(string $label, bool $ok): void
 {
     check($label, true, $ok);

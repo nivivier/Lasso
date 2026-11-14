@@ -383,7 +383,7 @@ function route_evenements(): void
 }
 
 // Géocode un lot de villes d'événements encore manquantes (bouton de la vue
-// carte, ?p=evenements&vue=carte) — même principe que route_lieux_geocoder().
+// carte, ?p=evenements&vue=carte) — même principe que route_structures_geocoder().
 function route_evenements_geocoder(): void
 {
     require_login();

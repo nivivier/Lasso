@@ -19,19 +19,7 @@ require_once __DIR__ . '/../lib/modules.php';
 require_once __DIR__ . '/../lib/compta.php';
 require_once __DIR__ . '/../lib/routes_compta.php';
 
-$tests = 0;
-$fails = 0;
-function check(string $label, $attendu, $obtenu): void
-{
-    global $tests, $fails;
-    $tests++;
-    if ($attendu === $obtenu) {
-        printf("  ok    %s\n", $label);
-        return;
-    }
-    $fails++;
-    printf("  FAIL  %s\n        attendu %s\n        obtenu  %s\n", $label, var_export($attendu, true), var_export($obtenu, true));
-}
+require_once __DIR__ . '/_outils.php';
 
 // Vrai si l'instruction est refusée PAR LE VERROU (et non pour une autre raison).
 function refuse(callable $f): bool

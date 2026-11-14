@@ -181,12 +181,12 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="id" value="<?= (int) $f['id'] ?>">
         <h2>Paiement</h2>
-        <input type="date" name="payee_le" id="payee-le" value="<?= e($f['payee_le']) ?>" class="paiement-date">
+        <input type="date" name="payee_le" id="payee-le" aria-label="Date de paiement" value="<?= e($f['payee_le']) ?>" class="paiement-date">
         <?php if ($ecrituresLibres): ?>
             <div class="ecr-liee-box">
                 <h3 class="sub no-mt">Écriture liée</h3>
                 <div class="cat-search ecr-search">
-                    <input type="text" class="cat-search-input" id="ecriture-recherche" placeholder="— aucune, juste marquer payée —" autocomplete="off" value="<?= e($ecritureActuelleLabel) ?>">
+                    <input type="text" class="cat-search-input" id="ecriture-recherche" aria-label="Écriture liée" placeholder="— aucune, juste marquer payée —" autocomplete="off" value="<?= e($ecritureActuelleLabel) ?>">
                     <input type="hidden" name="ecriture_id" id="ecriture-select" value="<?= $ecritureActuelleId ?: '' ?>">
                     <ul class="cat-search-list" hidden role="listbox">
                         <li data-val="">— aucune, juste marquer payée —</li>
@@ -240,7 +240,7 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
             <?php // Champ de recherche et non menu déroulant : la liste porte tous
                   // les événements, du plus récent au plus ancien. ?>
             <div class="cat-search evenement-search" data-cat-search data-vider-en-saisie data-texte-vide>
-                <input type="text" class="cat-search-input" autocomplete="off"
+                <input type="text" class="cat-search-input" autocomplete="off" aria-label="Événement"
                        placeholder="Rechercher un événement…" value="<?= e($evenementLabel) ?>">
                 <input type="hidden" name="evenement_id" class="cat-search-val" value="<?= (int) $f['evenement_id'] ?: '' ?>">
                 <ul class="cat-search-list" hidden role="listbox">

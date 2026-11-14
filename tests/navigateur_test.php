@@ -28,19 +28,7 @@ declare(strict_types=1);
 $racine = dirname(__DIR__);
 $enCi = getenv('CI') !== false && getenv('CI') !== '';
 
-$tests = 0;
-$fails = 0;
-function check(string $label, $attendu, $obtenu): void
-{
-    global $tests, $fails;
-    $tests++;
-    if ($attendu === $obtenu) {
-        printf("  ok    %s\n", $label);
-        return;
-    }
-    $fails++;
-    printf("  FAIL  %s\n        attendu %s\n        obtenu  %s\n", $label, var_export($attendu, true), var_export($obtenu, true));
-}
+require_once __DIR__ . '/_outils.php';
 
 // --- 0. Un Chrome ?
 $chrome = getenv('CHROME_BIN') ?: '';
@@ -356,6 +344,16 @@ $gestes = <<<'JS'
 })()
 JS;
 
+// Un champ visible sans nom accessible : un lecteur d'écran l'annonce « zone
+// de texte », sans dire laquelle, et un placeholder ne compte pas — il
+// disparaît à la saisie (docs/UI.md, « Avant de livrer un écran »).
+$sansNom = <<<'JS'
+[...document.querySelectorAll('input, select, textarea')]
+    .filter(c => !['hidden', 'submit', 'button', 'reset', 'image'].includes(c.type) && c.offsetParent !== null)
+    .filter(c => !(c.labels && c.labels.length) && !c.getAttribute('aria-label') && !c.getAttribute('aria-labelledby') && !c.title)
+    .map(c => c.name || c.id || c.className || c.tagName.toLowerCase())
+JS;
+
 $liens = <<<'JS'
 [...document.querySelectorAll('a[href]')].map(a => a.href)
 JS;
@@ -369,6 +367,7 @@ $telechargement = '/(_exporter|_pdf|_csv|_xml|_fichier|_imprimer|_json)(_|$)/';
 $file = ["$origine/index.php?p=tableau_bord"];
 $vues = [];
 $erreurs = [];
+$anonymes = [];
 $pages = 0;
 while ($file && $pages < 150) {
     $url = array_shift($file);
@@ -388,6 +387,9 @@ while ($file && $pages < 150) {
         if (!$cdp->attendre('Page.loadEventFired', 15)) {
             $erreurs[] = "$route : la page ne finit pas de se charger";
             continue;
+        }
+        foreach ((array) $cdp->evaluer($sansNom) as $champ) {
+            $anonymes[] = "$route : $champ";
         }
         $cdp->evaluer($gestes);
         $cdp->ecouter(0.2);
@@ -423,6 +425,7 @@ while ($file && $pages < 150) {
 echo "\n2) Le parcours\n";
 check('au moins 60 routes ouvertes (obtenu ' . $pages . ')', true, $pages >= 60);
 check('aucune erreur JavaScript, de console ni de CSP', [], array_values(array_unique($erreurs)));
+check('chaque champ visible a un nom accessible', [], array_values(array_unique($anonymes)));
 
 // Fin de session côté serveur, puis on éteint tout.
 @file_get_contents("$origine/index.php?p=deconnexion", false, $ctx('GET', "Cookie: $cookie[0]=$cookie[1]\r\n"));

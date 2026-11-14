@@ -814,7 +814,8 @@ Mac. Sans moteur, le test l'annonce (« ignoré ») ; en CI, il échoue.
 
 Et dans un vrai navigateur : `tests/navigateur_test.php` pilote un Chrome
 sans fenêtre, parcourt l'application en suivant ses liens, ouvre menus et
-crayons, et relève toute erreur JavaScript, de console ou de CSP. Sans
+crayons, et relève toute erreur JavaScript, de console ou de CSP, ainsi que
+tout champ visible sans nom accessible (ni libellé, ni `aria-label`). Sans
 Chrome, il l'annonce et passe ; en CI, il échoue. `CHROME_BIN` désigne un
 autre exécutable.
 

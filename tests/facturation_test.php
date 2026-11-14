@@ -11,22 +11,7 @@ require_once __DIR__ . '/../lib/calc.php';
 require_once __DIR__ . '/../lib/helpers.php';
 require_once __DIR__ . '/../lib/facturation.php';
 
-$tests = 0;
-$fails = 0;
-function check(string $label, $attendu, $obtenu): void
-{
-    global $tests, $fails;
-    $tests++;
-    $ok = is_float($attendu)
-        ? abs($attendu - (float) $obtenu) < 0.005
-        : $attendu === $obtenu;
-    if (!$ok) {
-        $fails++;
-        printf("  FAIL  %-46s attendu %s, obtenu %s\n", $label, var_export($attendu, true), var_export($obtenu, true));
-    } else {
-        printf("  ok    %s\n", $label);
-    }
-}
+require_once __DIR__ . '/_outils.php';
 
 echo "1) Calcul des montants de ligne / total\n";
 check('ligne 3 × 150.5', 451.5, facturation_calc_ligne(3, 150.5));

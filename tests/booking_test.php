@@ -14,20 +14,7 @@
 
 require_once __DIR__ . '/../lib/booking.php';
 
-$tests = 0;
-$fails = 0;
-function check(string $label, $attendu, $obtenu): void
-{
-    global $tests, $fails;
-    $tests++;
-    $ok = $attendu === $obtenu;
-    if (!$ok) {
-        $fails++;
-        printf("  FAIL  %-56s attendu %s, obtenu %s\n", $label, var_export($attendu, true), var_export($obtenu, true));
-    } else {
-        printf("  ok    %s\n", $label);
-    }
-}
+require_once __DIR__ . '/_outils.php';
 
 echo "1) normaliser_nom_structure() — casse/espaces/ponctuation ignorés\n";
 check('casse ignorée', normaliser_nom_structure('anticoncert'), normaliser_nom_structure('AntiConcert'));

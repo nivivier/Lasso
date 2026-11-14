@@ -168,6 +168,19 @@ tr.ecr-en-edition > td { background: var(--surface); }
 .compta-lettrage .texte-cell { max-width: 200px; font-size: var(--fs-small); color: var(--ink); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .compta-lettrage .texte-cell.expanded { white-space: normal; overflow: visible; }
 .compta-lettrage .texte-cell:hover { color: var(--primary); }
+/* Écritures : en cartes sous 1 080 px et non 700 (docs/UI.md § 9). Le
+   retrait ampute le conteneur MESURÉ ; le tableau le réoccupe. */
+.table-scroll.ecr-scroll { --ecr-avance: 380px; padding-right: var(--ecr-avance); }
+.table-scroll.ecr-scroll > .list { width: calc(100% + var(--ecr-avance)); margin-right: calc(-1 * var(--ecr-avance)); }
+@media (max-width: 480px) {
+    .table-scroll.ecr-scroll { --ecr-avance: 0px; }
+}
+/* De 1 080 à 1 200 px, les colonnes de texte se resserrent. */
+@container liste (min-width: 701px) and (max-width: 820px) {
+    .compta-lettrage .tiers-cell { max-width: 130px; }
+    .compta-lettrage .texte-cell { max-width: 150px; }
+    .compta-lettrage .cat-cell .row-field-txt { display: block; max-width: 125px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
 /* Contre-partie / communication sous le texte : sa propre ligne, tronquée
    pour son compte (la cellule est en nowrap + ellipsis, un enfant en bloc
    hérite du nowrap et doit donc gérer son propre débordement). Se déplie avec

@@ -28,19 +28,7 @@ require_once __DIR__ . '/../lib/pieces.php';
 require_once __DIR__ . '/../lib/routes.php';
 require_once __DIR__ . '/../lib/routes_compta.php';
 
-$tests = 0;
-$fails = 0;
-function check(string $label, $attendu, $obtenu): void
-{
-    global $tests, $fails;
-    $tests++;
-    if ($attendu !== $obtenu) {
-        $fails++;
-        printf("  FAIL  %-56s attendu %s, obtenu %s\n", $label, var_export($attendu, true), var_export($obtenu, true));
-    } else {
-        printf("  ok    %s\n", $label);
-    }
-}
+require_once __DIR__ . '/_outils.php';
 register_shutdown_function(function () use ($tmp) {
     foreach ([$tmp, $tmp . '-wal', $tmp . '-shm'] as $f) {
         if (is_file($f)) @unlink($f);

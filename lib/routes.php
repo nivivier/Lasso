@@ -1534,9 +1534,6 @@ function route_tableau_bord(): void
     $suisaAFaire   = module_accessible('evenements') ? nb_evenements_suisa_a_faire() : 0;
     $suisaEnvoye   = module_accessible('evenements') ? nb_evenements_suisa_envoyes() : 0;
     $suisaManquant = module_accessible('evenements') ? nb_evenements_suisa_manquants() : 0;
-    // Widget « Suivi du booking » : étiquettes disponibles, celle que ce compte
-    // suivait la dernière fois (à défaut la première de la liste), et la
-    // répartition de ses structures par ancienneté de contact.
     // Campagnes du tableau de bord : celles qui demandent du travail d'abord.
     // Le décompte des campagnes à venir porte sur TOUTES les campagnes, pas
     // seulement sur les neuf que la carte montre.

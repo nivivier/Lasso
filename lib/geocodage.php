@@ -17,7 +17,7 @@
 
 declare(strict_types=1);
 
-// Nombre de villes traitées par clic sur « Géocoder » (voir route_lieux_geocoder()).
+// Nombre de villes traitées par clic sur « Géocoder » (voir route_structures_geocoder()).
 // Rester sous le délai d'exécution PHP par défaut, une requête espacée d'1s.
 const GEOCODAGE_LOT_TAILLE = 15;
 
@@ -118,7 +118,7 @@ function geocodage_villes_manquantes(string $table = 'structures', string $ville
 
 // Fragment SQL (" AND ...") pour ne garder que les lignes dont la ville n'a
 // jamais été géolocalisée avec succès (cache lieux_geocodage) — filtre
-// d'appoint partagé entre lieux_filtres() et structures_filtres(), pour
+// d'appoint utilisé par structures_filtres(), pour
 // traiter les cas où Nominatim ne trouve pas la ville (typo, lieu-dit trop
 // précis…), accessible depuis le lien « Voir la liste » de la vue carte (voir
 // carte_banner_geocodage_html(), lib/helpers.php).
@@ -228,8 +228,8 @@ function geocodage_traiter_lot(callable $villesManquantes, int $max = GEOCODAGE_
 
 // Regroupe des fiches déjà filtrées (chaque ligne ayant 'ville', 'departement_canton'
 // et 'pays' — NOM, pas code) par ville géolocalisée, pour une vue carte —
-// factorisé entre lieux/structures/événements (mêmes principes que
-// lieux_carte_points()). $itemBuilder(array $ligne): array construit l'entrée
+// factorisé entre structures et événements (structures_carte_points()).
+// $itemBuilder(array $ligne): array construit l'entrée
 // de popup pour cette fiche (ex. ['id'=>, 'nom'=>, 'type'=>]). Retourne
 // [points, nbNonGeolocalises], où chaque point est
 // ['lat'=>, 'lon'=>, 'ville'=>, 'pays'=>, 'items'=>[...]].

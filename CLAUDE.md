@@ -3,46 +3,33 @@
 Gestion des salaires pour une petite association suisse (Genève). ~10 employés,
 1–2 utilisateurs, pas de concurrence. Déploiement cible : **hébergement mutualisé** (PHP + SQLite).
 
+Ce fichier donne les règles ; le « pourquoi » et l'historique sont dans
+`docs/DECISIONS.md`, les conventions d'écran dans `docs/UI.md`.
+
 ## Stack & contraintes
 - **PHP 8 + SQLite (PDO)**, pas de framework, pas de build.
   Éviter les bibliothèques externes : **demander la permission avant d'en introduire une**.
   Si accordée, préférer les bibliothèques légères bundlées dans le dépôt (pas de CDN)
   plutôt que Composer/npm, sauf justification forte.
 - Tout en français (UI, commentaires, messages).
-- **Exception actée** : le module facturation utilise Composer pour
-  `sprain/swiss-qr-bill` + `tecnickcom/tcpdf` (^6.7 — la 7.x casse la police core
-  Helvetica) afin de générer une QR-facture suisse conforme (zone de paiement
-  normée + code QR), ce qui serait déraisonnable à réimplémenter en PHP pur.
-  `vendor/` est **commité dans le dépôt** ; aucune commande Composer n'est
-  nécessaire en production (déploiement reste `git pull`). Cette dérogation est
-  scopée à ce module (PDF + QR-facture), pas un blanc-seing général.
-  ⚠️ **`config.platform.php` est figé à `8.3.0` dans `composer.json`** : sans ce
-  verrou, Composer résout les dépendances pour la version de PHP de la machine
-  qui lance la commande. Une résolution faite sur PHP 8.5 avait tiré
-  `symfony/intl`/`validator` 8.1 (qui exigent PHP ≥ 8.4.1) dans un `vendor/`
-  commité, rendant le module inutilisable sous 8.4 — invisible en local et en
-  prod (toutes deux en 8.5), mais fatal ailleurs, et l'intégration continue
-  (PHP 8.3) l'a révélé. **Ne jamais lancer `composer update` sans ce verrou** ;
-  pour relever le plancher, changer la valeur sciemment et vérifier la
-  génération d'une QR-facture.
-  **Seconde utilisation actée de tcpdf** : le QR code de l'activation de la
-  validation en deux étapes (`totp_qr_svg()`, `lib/helpers/deux_facteurs.php`),
-  qui ne prend que la matrice (`TCPDF2DBarcode`, `QRCODE,M`) et dessine le SVG
-  lui-même. Rien d'autre de tcpdf hors facturation.
-- **Exception actée** : le recadrage d'image utilise **Cropper.js**
-  (`assets/vendor/cropperjs/`, bundlé dans le dépôt, pas de CDN, MIT), chargé
-  sur les seules pages qui recadrent : la photo d'un employé (`?p=employe`)
-  et l'icône d'un projet (`?p=projets`). Le navigateur produit une
-  vignette carrée de 256 px envoyée en data URI ; le serveur la revalide comme
-  un upload de fichier (`avatar_photo_enregistrer()` :
-  `getimagesizefromstring()`, formats en liste blanche, 2 Mo max) avant de
-  l'écrire dans `uploads/`. Dérogation scopée au recadrage.
-- **Exception actée** : la vue carte des lieux (module booking) utilise
-  **Leaflet** (`assets/vendor/leaflet/`, bundlé dans le dépôt, pas de CDN) avec
-  des fonds de carte OpenStreetMap. Géocodage ville+pays via Nominatim (OSM),
-  mis en cache en base (`lieux_geocodage`, jamais réinterrogé par lieu) —
-  seule dépendance réseau externe de cette fonctionnalité. Dérogation scopée à
-  la vue carte, pas un blanc-seing général.
+- **Exceptions actées**, chacune scopée à son usage (pas un blanc-seing) :
+  - **Composer** pour `sprain/swiss-qr-bill` + `tecnickcom/tcpdf` (^6.7 — la
+    7.x casse la police core Helvetica) : la QR-facture suisse du module
+    facturation. `vendor/` est **commité** ; la production ne lance aucune
+    commande Composer (déploiement = `git pull`). Seconde utilisation de tcpdf :
+    le QR code d'activation de la validation en deux étapes (`totp_qr_svg()`,
+    matrice `TCPDF2DBarcode` seule, SVG dessiné par Lasso). Rien d'autre.
+    ⚠️ **`config.platform.php` est figé à `8.3.0` dans `composer.json`** :
+    **ne jamais lancer `composer update` sans ce verrou** ; pour relever le
+    plancher, changer la valeur sciemment et vérifier une QR-facture
+    (`docs/DECISIONS.md § Composer`).
+  - **Cropper.js** (`assets/vendor/cropperjs/`, MIT) sur les seules pages qui
+    recadrent (`?p=employe`, `?p=projets`) : vignette de 256 px envoyée en data
+    URI, revalidée côté serveur comme un upload (`avatar_photo_enregistrer()` :
+    `getimagesizefromstring()`, liste blanche, 2 Mo) avant `uploads/`.
+  - **Leaflet** (`assets/vendor/leaflet/`) pour la vue carte du booking, fonds
+    OpenStreetMap ; géocodage ville+pays par Nominatim, mis en cache en base
+    (`lieux_geocodage`, jamais réinterrogé par lieu) — seule dépendance réseau.
 
 ## Lancer / tester
 ```bash
@@ -50,266 +37,185 @@ php -S 127.0.0.1:8000     # serveur local (env détecté = dev, via PHP_SAPI cli
 php tests/run.php         # analyse syntaxique de tout le code + toute la suite de tests
 php scripts/base_demo.php # base de DÉMONSTRATION (data/demo.sqlite), que des données inventées
 ```
-**Travailler sur la base de démonstration plutôt que sur la vraie dès que la
-tâche n'exige pas les vraies données** : elle couvre tous les modules, le
-tirage est déterministe (deux exécutions = la même base), et aucune PII n'est
-en jeu. On y branche l'application par `APP_DB_PATH` dans `lib/config.local.php`
-(README §8). Le script refuse d'écrire sur `database.sqlite` et d'écraser un
-fichier sans `--ecraser`.
-Avant de conclure une tâche qui touche au code : **`php tests/run.php`**, qui fait
-à la fois le `php -l` sur l'ensemble du projet et TOUS les fichiers de tests. Il sort
-en code ≠ 0 au moindre échec (c'est la même commande que la CI, voir
-`.github/workflows/tests.yml`) — ne pas se contenter de lancer un fichier de tests
-isolé, c'est ainsi qu'un fichier cassé est passé inaperçu. Elle comprend
-`tests/pages_test.php`, qui ouvre TOUTES les routes GET sur une base de
-démonstration neuve (serveur intégré) : une route qui ne s'affiche qu'avec un
-paramètre particulier s'ajoute à son tableau `$parametres`. Il envoie ensuite
-chaque formulaire POST des pages rendues, puis injecte une balise dans chaque
-colonne de texte libre et vérifie qu'elle ressort échappée partout (une
-réponse JSON est exclue : c'est au script qui la reçoit de l'insérer en
-texte, `textContent`, jamais `innerHTML`). Et `tests/navigateur_test.php`
-exécute le JavaScript dans un Chrome sans fenêtre, page par page, et relève
-toute erreur d'exécution ou blocage CSP.
-- **Horodatages** (`lib/horodatage.php`) : UTC en base (c'est ce qu'écrit `datetime('now')`). PHP écrit
-  avec `horodatage_maintenant()`, jamais `date()` ; on affiche avec
+- **Travailler sur la base de démonstration** dès que la tâche n'exige pas les
+  vraies données : tous les modules, tirage déterministe, aucune PII. On l'active
+  par `APP_DB_PATH` dans `lib/config.local.php` (README §8). Le script refuse
+  d'écrire sur `database.sqlite` et d'écraser un fichier sans `--ecraser`.
+- Avant de conclure une tâche qui touche au code : **`php tests/run.php`** (le
+  `php -l` de tout le projet + TOUS les tests, code ≠ 0 au moindre échec — la
+  même commande que la CI). Jamais un fichier de tests isolé seulement.
+  - `tests/pages_test.php` ouvre TOUTES les routes GET sur une base de démo
+    neuve : une route qui exige un paramètre s'ajoute à son tableau
+    `$parametres`. Il poste chaque formulaire, puis vérifie qu'une balise
+    injectée dans chaque colonne de texte libre ressort échappée (une réponse
+    JSON est exclue : le script qui la reçoit l'insère par `textContent`,
+    jamais `innerHTML`).
+  - `tests/navigateur_test.php` exécute le JavaScript dans un Chrome sans
+    fenêtre : erreur d'exécution, blocage CSP, champ visible sans nom accessible.
+  - Un fichier de tests charge `tests/_outils.php` (`check()`, compteurs) et
+    n'en redéfinit pas.
+- **Horodatages** (`lib/horodatage.php`) : UTC en base. PHP écrit avec
+  `horodatage_maintenant()`, jamais `date()` ; on affiche avec
   `horodatage($valeur, $format)`, jamais `date(…, strtotime(…))` sur une colonne
-  horodatée (`tests/horodatage_test.php`, `docs/DECISIONS.md § Horodatages`).
+  horodatée (`tests/horodatage_test.php`).
 - **Feuille de style** : `assets/css/NN-domaine.css`, chargés dans l'ordre de
-  `CSS_FICHIERS` (lib/helpers.php) — un fichier ajouté s'y inscrit.
-  `asset_url()` pour tout fichier d'`assets/` (version par date de fichier).
-  Couleurs en `light-dark(clair, sombre)` dans `01-base.css`, jamais de bloc
-  « sombre » à part ; espacements `--esp-*`, calques `--z-*` et paliers de
-  `@media` listés au même endroit (docs/UI.md § 13 ter, `tests/css_test.php`).
+  `CSS_FICHIERS` (lib/helpers.php) — un fichier ajouté s'y inscrit. `asset_url()`
+  pour tout fichier d'`assets/`. Couleurs en `light-dark(clair, sombre)` dans
+  `01-base.css`, jamais de bloc « sombre » à part ; espacements `--esp-*`,
+  calques `--z-*`, paliers de `@media` au même endroit (docs/UI.md § 13 ter,
+  `tests/css_test.php`, qui plafonne aussi le poids des commentaires).
   ⚠️ Déplacer une règle d'un fichier à l'autre change sa place dans la
   cascade : ses `@media` doivent la suivre.
 
+## Documentation à lire
+- **`docs/UI.md`** — comment un écran modifie, supprime, réordonne, ouvre une
+  fenêtre, imprime. **À lire avant d'écrire un écran, à mettre à jour dès
+  qu'une convention change.** Première règle : un geste qui existe déjà se
+  refait pareil.
+- **`docs/NOMMAGE.md`** — noms de routes, vues, fonctions ; **avant d'ajouter
+  un écran** (`tests/nommage_test.php`).
+- **`docs/DECISIONS.md`** — le pourquoi et les impasses ; **avant de toucher au
+  schéma, à la configuration d'environnement ou à la CSP.** Un commentaire de
+  code énonce l'invariante ; le récit va dans ce fichier.
+- **`docs/MARCHE.md`** — comparatif daté avec le marché et ce qui manque à
+  Lasso ; à relire pour choisir le prochain chantier (sources à revérifier).
+
 ## Architecture
-- **Front controller** `index.php` : charge `lib/config.php`, force HTTPS, en-têtes
-  de sécurité, session, puis dispatch `?p=<route>` via une table → fonctions
-  `route_*()` dans `lib/routes.php`.
-- **Routes** : `lib/routes.php` garde le tronc commun — authentification,
-  comptes, paramètres de l'employeur, apparence, e-mails, import/export,
-  sauvegarde, tableau de bord, recherche. Chaque module a le sien :
-  `routes_salaires.php`, `routes_compta.php`, `routes_pieces.php`,
-  `routes_facturation.php`, `routes_evenements.php`, `routes_booking.php`,
-  `routes_fonds.php`, `routes_personnes.php`, `routes_incoherences.php`.
-- **Vues** : `render($vue, $data, $titre)` (avec layout) ou `render_bare()` (impression).
-  `views/layout.php` enveloppe ; `views/_*_body.php` = corps réutilisés (écran + impression + e-mail).
-- **Conventions d'interface** : `docs/UI.md` — comment l'application modifie une
-  ligne, en supprime une, les réordonne, ouvre une fenêtre, imprime un document.
-  **À lire avant d'écrire un écran**, et **à mettre à jour dès qu'une convention
-  change** : c'est ce fichier qui évite de redécider à chaque page. La règle
-  qu'il pose en premier : un geste qui existe déjà se refait pareil — on élargit
-  le mécanisme en place plutôt que d'en poser un second à côté.
-- **Nommage** : `docs/NOMMAGE.md` — la convention des noms de routes, de vues et
-  de fonctions, et le chantier qui l'a appliquée. **À lire avant d'ajouter un
-  écran** ; `tests/nommage_test.php` la vérifie à chaque exécution de la suite,
-  c'est lui qui empêche la dette de revenir.
-- **Décisions & impasses connues** : `docs/DECISIONS.md` — le « pourquoi » des choix
-  structurants et des pièges déjà rencontrés (migrations SQLite, résolution de
-  `APP_ENV`, CSP, cache des data-URI, tests). **À lire avant de toucher au schéma,
-  à la configuration d'environnement ou à la CSP.** Convention : un commentaire dans
-  le code énonce l'invariante à respecter ; le récit historique va dans ce fichier,
-  pour qu'il ne vieillisse pas au milieu du code.
-- **Lasso face au marché** : `docs/MARCHE.md` — comparatif daté avec Heeds,
-  Bob Booking, Orfeo, Crésus, Office Maker, ClubDesk, Webling, bexio, et ce
-  qui manque à Lasso. **À relire quand on choisit le prochain chantier** ;
-  les colonnes des concurrents viennent de sources publiques, à revérifier.
-- **DB** `lib/db.php` : `db()` (PDO singleton, WAL) + `param()`. Schéma dans
-  `lib/db/schema.php` (`init_schema()`, `seed_*()`), migrations dans
-  `lib/db/migrations.php` — les deux chargés par `db.php`, jamais requis directement.
-  **Migrations versionnées** via `PRAGMA user_version` + `$steps` → `migration_N()`
-  (idempotentes : `ALTER` après vérif d'existence de colonne). Pour faire évoluer le
-  schéma : ajouter une entrée `$steps` + une fonction `migration_N()` dans le
-  dernier fichier de `lib/db/migrations/` (tranches de 25, chargées par
-  `migrations.php`, jamais directement).
-  ⚠️ Pour recréer une table avec un schéma modifié : créer la nouvelle sous un nom
-  temporaire (`x_new`), y copier les données, `DROP TABLE x`, puis
-  `ALTER TABLE x_new RENAME TO x` — **jamais** `RENAME TO x_old` puis recréation,
-  qui laisse des FK cassées (`PRAGMA foreign_keys = OFF` n'y change rien ; le
-  pourquoi est dans `docs/DECISIONS.md § Migrations SQLite`, l'exemple dans
-  `migration_21`). `tests/migrations_test.php` vérifie `PRAGMA foreign_key_check`
-  sur toute la chaîne, donc une rechute est détectée en CI.
+- **Front controller** `index.php` : config, HTTPS forcé, en-têtes de sécurité,
+  session, puis dispatch `?p=<route>` via une table → fonctions `route_*()`.
+- **Routes** : `lib/routes.php` garde le tronc commun (authentification, comptes,
+  paramètres, apparence, e-mails, import/export, sauvegarde, tableau de bord,
+  recherche). Puis un fichier par module : `routes_salaires.php`,
+  `routes_compta.php`, `routes_pieces.php`, `routes_facturation.php`,
+  `routes_carnet.php` (structures), `routes_personnes.php`,
+  `routes_evenements.php`, `routes_booking.php`, `routes_fonds.php`,
+  `routes_incoherences.php`.
+- **Vues** : `render($vue, $data, $titre)` (avec layout) ou `render_bare()`
+  (impression). `views/_*_body.php` = corps réutilisés (écran + impression + e-mail).
+- **DB** `lib/db.php` : `db()` (PDO singleton, WAL) + `param()`. Schéma
+  `lib/db/schema.php`, migrations `lib/db/migrations.php` — chargés par `db.php`,
+  jamais requis directement. **Migrations versionnées** (`PRAGMA user_version`,
+  `$steps` → `migration_N()`, idempotentes : `ALTER` après vérification de la
+  colonne) ; une migration neuve va dans le dernier fichier de
+  `lib/db/migrations/` (tranches de 25).
+  ⚠️ Recréer une table : la nouvelle sous un nom temporaire (`x_new`), copie,
+  `DROP TABLE x`, `ALTER TABLE x_new RENAME TO x` — **jamais** `RENAME TO x_old`
+  puis recréation, qui casse les FK même avec `foreign_keys = OFF`
+  (`docs/DECISIONS.md § Migrations SQLite`, exemple `migration_21`,
+  `tests/migrations_test.php`).
 - **Calcul** `lib/calc.php` : `calculer_fiche()`, `r2()` (arrondi 2 déc.),
   `seuil_heures()`, `laa_effectif()`, `taux_pour_annee()`, `taux_stockes()`, `TAUX_DEFAUT`.
-- **Postes salariaux** (lignes du décompte, configurables — `docs/DECISIONS.md §
-  Postes salariaux`) : `postes_salariaux` définit les lignes, `poste_taux` leurs
-  taux par année (**fait foi** ; `taux_par_annee` n'est plus qu'un repli),
-  `poste_bareme_age` les paliers d'âge. Tout se règle sur `?p=postes` (« Lignes
-  du décompte »), qui a absorbé l'ancienne page `?p=taux`, supprimée avec les
-  autres redirections de compatibilité. `calculer_fiche()` boucle sur
-  `postes_actifs()` ; `poste_montant()` connaît quatre modes (`taux`,
-  `taux_employe`, `laa_seuil`, `bareme_age`) et deux bases (`brut`,
-  `coordonne`). **À l'enregistrement, une fiche FIGE ses lignes dans
-  `fiche_postes` — libellé compris** ; tout ce qui lit une fiche (écran,
-  impression, e-mail, certificat via `rubrique_certificat`, agrégats compta via
-  `groupe_compta`) lit cette copie, jamais `postes_salariaux`. Changer un taux
-  ou un poste ne réécrit donc rien : le recalcul est explicite
-  (`?p=fiches_recalculer`, aperçu avant/après + sauvegarde auto). **Invariante :
-  les totaux sont la somme des montants arrondis, jamais recalculés depuis la
-  copie figée** (16 fiches sur 38 suivent une règle d'arrondi plus ancienne et
-  se décaleraient d'un centime).
-- **Helpers** `lib/helpers.php` : la porte unique, comme `db.php` l'est pour le
-  schéma. Quatre métiers en sont sortis et sont chargés par lui, **jamais requis
-  directement** : `lib/helpers/session.php` (session, CSRF, anti-force-brute,
-  mot de passe oublié, en-têtes de sécurité et CSP), `lib/helpers/listes.php`
-  (filtres, tri, pagination, recherche), `lib/helpers/geo.php` (pays, régions,
-  cantons, drapeaux), `lib/helpers/icones.php` (`icon()` et le sprite).
-  Un cinquième y a été ajouté : `lib/helpers/deux_facteurs.php`.
-  Restent dans `helpers.php` : `e()`, `param()`, `chf()`, `pct()`, avatars,
-  couleurs et thème, logos, e-mail/SMTP, composants HTML, `render()`.
-  Même découpage pour **`lib/booking.php`**, porte de `lib/booking/campagnes.php`
-  (démarchage, carte du tableau de bord, ciblage), `mailing.php` (éligibilité,
-  expéditeurs, message individuel, exclusions) et `import.php` (CSV). Les deux
-  portes sont vérifiées par `tests/decoupage_test.php`.
-  ⚠️ Un fichier de `lib/helpers/` est à DEUX niveaux de la racine : `__DIR__ .
-  '/../data'` y désigne `lib/data/`, pas `data/`. C'est ainsi que les sessions
-  ont atterri hors du dossier protégé le jour du découpage.
-- **Config** `lib/config.php` charge d'abord `lib/config.local.php` (non versionné) ;
-  constantes : `APP_ENV`, `APP_DB_PATH`, `FORCE_HTTPS`, `SETUP_SECRET`,
-  `PASSWORD_MIN`, `BCRYPT_COST`, `SESSION_IDLE/ABSOLUTE`, `LOGIN_MAX_ATTEMPTS/WINDOW`.
-- **Validation en deux étapes** `lib/helpers/deux_facteurs.php` (TOTP RFC 6238
-  + codes de secours, facultative, activée par le titulaire sur `?p=mon_compte`) :
-  entre le mot de passe et le code, la session porte `deux_facteurs` et **pas
-  `uid`** — `current_user()` rend null, aucune page ne s'ouvre. ⚠️ Poser `uid`
-  ailleurs que dans `connexion_ouvrir()` (et l'installation) rouvrirait la porte.
-  Les compteurs d'échecs ne se purgent qu'APRÈS le code. Secret chiffré
-  (`secret_chiffrer()`), codes de secours en empreinte, rejeu refusé par
-  `totp_dernier_pas`. Un administrateur réinitialise
+- **Postes salariaux** (`docs/DECISIONS.md § Postes salariaux`) :
+  `postes_salariaux` définit les lignes du décompte, `poste_taux` leurs taux par
+  année (**fait foi** ; `taux_par_annee` n'est qu'un repli), `poste_bareme_age`
+  les paliers d'âge ; tout se règle sur `?p=postes`. `calculer_fiche()` boucle
+  sur `postes_actifs()` ; `poste_montant()` : modes `taux`, `taux_employe`,
+  `laa_seuil`, `bareme_age`, bases `brut`, `coordonne`. **À l'enregistrement, une
+  fiche FIGE ses lignes dans `fiche_postes`, libellé compris** : tout ce qui lit
+  une fiche (écran, impression, e-mail, certificat via `rubrique_certificat`,
+  compta via `groupe_compta`) lit cette copie, jamais `postes_salariaux`. Le
+  recalcul est explicite (`?p=fiches_recalculer`, aperçu + sauvegarde auto).
+  **Invariante : les totaux sont la somme des montants arrondis, jamais
+  recalculés depuis la copie figée.**
+- **Helpers** `lib/helpers.php` : la porte unique. Chargés par lui, **jamais
+  requis directement** : `lib/helpers/session.php` (session, CSRF,
+  anti-force-brute, mot de passe oublié, en-têtes, CSP), `listes.php` (filtres,
+  tri, pagination), `geo.php` (pays, régions, cantons), `icones.php` (`icon()`),
+  `deux_facteurs.php`. Même découpage pour `lib/booking.php`, porte de
+  `lib/booking/campagnes.php`, `mailing.php`, `import.php`
+  (`tests/decoupage_test.php`).
+  ⚠️ Un fichier de `lib/helpers/` est à DEUX niveaux de la racine :
+  `__DIR__ . '/../data'` y désigne `lib/data/`, pas `data/`.
+- **Config** `lib/config.php` charge d'abord `lib/config.local.php` (non
+  versionné) : `APP_ENV`, `APP_DB_PATH`, `APP_URL`, `FORCE_HTTPS`,
+  `SETUP_SECRET`, `PASSWORD_MIN`, `BCRYPT_COST`, `SESSION_IDLE/ABSOLUTE`,
+  `LOGIN_MAX_ATTEMPTS/WINDOW`.
+- **Validation en deux étapes** `lib/helpers/deux_facteurs.php` (TOTP + codes de
+  secours, facultative, activée sur `?p=mon_compte`) : entre le mot de passe et
+  le code, la session porte `deux_facteurs` et **pas `uid`** — aucune page ne
+  s'ouvre. ⚠️ Poser `uid` ailleurs que dans `connexion_ouvrir()` (et
+  l'installation) rouvrirait la porte. Compteurs d'échecs purgés seulement
+  APRÈS le code ; secret chiffré, codes de secours en empreinte, rejeu refusé
+  (`totp_dernier_pas`) ; un administrateur réinitialise
   (`utilisateur_deux_facteurs_reinitialiser`) ; rien ne l'impose à tous
-  (`docs/DECISIONS.md § Validation en deux étapes`, `tests/deux_facteurs_test.php`).
-- **Journal d'activité** `lib/journal.php` (`?p=journal`, admin) : armé UNE
-  fois par le dispatcher (`journal_armer()`), il relève tout POST d'un compte
-  connecté — route, identifiant visé, issue. ⚠️ **Jamais le contenu du
-  formulaire** (mots de passe, salaires, AVS) : seulement les clés de
-  `JOURNAL_CIBLES`/`JOURNAL_GESTES`. `tests/journal_test.php` le vérifie, ainsi
-  que les gardes de suppression côté serveur (fiche payée, etc.).
-  **Les erreurs du serveur** (avertissements, exceptions, erreurs fatales) y
-  sont relevées aussi, table `journal_erreurs`, par `journal_erreurs_armer()`
-  et `journal_exception()` (index.php) : une ligne par erreur distincte,
-  compteur, « vue » ou non (avis au tableau de bord des administrateurs).
-  ⚠️ Jamais la pile d'appels ; `journal_erreur()` ne doit jamais lever.
-- **Secrets** `lib/secrets.php` : les mots de passe SMTP **et les n° AVS**
-  (`employes.numero_avs`, `fiches.employe_avs`) sont CHIFFRÉS en base
-  (`secret_chiffrer()` à l'écriture, `secret_dechiffrer()` à la lecture, qui
-  rend `null` si la clé est inconnue). AVS : `avs_stocker()` / `avs_lire()` /
-  `avs_affiche()`, et jamais un `WHERE` sur ces colonnes
-  (`avs_trouver_employe()`). Clés : `SECRETS_CLE` et/ou le fichier
-  `<APP_DB_PATH>.cle.php` (une clé ou une liste — la première chiffre, toutes
-  déchiffrent), jamais dans la base ; dans l'archive SEULEMENT si elle est
-  chiffrée par phrase (`CLE_SECRETS.txt`, reprise à la restauration). ⚠️ Tout
-  nouveau secret ou identifiant sensible stocké en base passe par ces
-  fonctions ; `tests/secrets_test.php` vérifie les écritures existantes.
-- **Clôture d'exercice** (`lib/compta.php § Clôture`) : le verrou des écritures
-  est tenu par des **déclencheurs SQLite** (`migration_104`), pas par les
-  routes. ⚠️ Une migration qui recrée `ecritures` ou `ecritures_ventilations`
-  perd ces déclencheurs : elle doit rejouer `compta_cloture_declencheurs_sql()`
-  (`docs/DECISIONS.md`).
-- **Modules & droits** `lib/modules.php` (voir `docs/SPEC_PERMISSIONS.md`) :
-  - `MODULES`/`module_actif()` : activation globale par module (carnet/salaires/
-    compta/analytique/pieces/facturation/evenements/booking/fonds/mailing),
-    indépendante des droits ci-dessous. Sept modules en dépendent d'un autre
-    (`requires`) : `analytique` → `compta`, `pieces` → `compta`, `mailing`
-    (« Envois groupés ») → `booking`, et **`facturation`/`evenements`/`booking`/
-    `fonds` → `carnet`** ; ils s'affichent décalés sous leur parent dans
-    `?p=modules` et s'éteignent avec lui.
-    ⚠️ `carnet` (« Carnet d'adresses ») possède les **structures** et les
-    **personnes**, et lui seul : `?p=structures`, `?p=structure`,
-    `?p=personnes`, `?p=personne` y sont rattachées (`index.php`). C'est la
-    réponse à une question restée ouverte — quatre modules s'en servent, aucun
-    ne pouvait se les approprier sans que les trois autres en dépendent. Les
-    écrans propres au CRM (contacts, notes, tags, lieux, messages, import)
-    restent au `booking` : ils parlent de démarchage, pas d'identité. L'onglet
-    **Employés** y figure aussi, mais derrière le droit `salaires` — la fiche
-    d'un employé porte son n° AVS et son taux horaire.
-    ⚠️ `requires` sert DEUX mécaniques, et une seule touche aux droits : la
-    cascade d'activation (`set_modules_actifs()`, vraie pour tous) et le
-    plafonnement des droits (`clamp_permissions_dependantes()`), réservé aux
-    **sous-modules** — ceux qui prolongent les données de leur parent
-    (`analytique`, `mailing`). Les autres portent **`plafonne => false`** :
-    déposer une pièce n'est pas tenir les comptes, émettre une facture n'est
-    pas écrire le carnet. Sans cette distinction, le clamp rabattait
-    « pieces = écriture » sur « lecture » dès que `compta` n'était qu'en
-    lecture — en silence, et le module « dépôt sans lecture des comptes »
-    devenait inconfigurable.
-    ⚠️ `pieces` existe comme module SÉPARÉ pour une seule raison : donner le
-    dépôt d'un justificatif sans la lecture des comptes. C'est aussi **le seul
-    endroit où un onglet survit à son module parent** — le bandeau de la
-    comptabilité s'ouvre avec `compta` OU `pieces` (`nav_groupes()`), sans quoi
-    qui n'a que le dépôt n'aurait aucune porte vers son écran.
-  - Droits par utilisateur, table `utilisateur_permissions` (module → lecture/
-    écriture, absence de ligne = aucun accès) : `peut_lire()`/`peut_ecrire()`
-    (utilisateur courant), `require_lecture()`/`require_ecriture()`.
-    `coeur` est un module à part (jamais dans `MODULES`) qui recouvre
+  (`tests/deux_facteurs_test.php`).
+- **Journal d'activité** `lib/journal.php` (`?p=journal`, admin) : armé une fois
+  par le dispatcher, il relève tout POST d'un compte connecté — route, cible,
+  issue. ⚠️ **Jamais le contenu du formulaire** (mots de passe, salaires, AVS) :
+  seulement les clés de `JOURNAL_CIBLES`/`JOURNAL_GESTES`. Les erreurs du
+  serveur y vont aussi (`journal_erreurs_armer()`, `journal_exception()` ;
+  une ligne par erreur distincte, avis au tableau de bord) — ⚠️ jamais la pile d'appels, et `journal_erreur()` ne
+  doit jamais lever (`tests/journal_test.php`).
+- **Secrets** `lib/secrets.php` : mots de passe SMTP **et n° AVS**
+  (`employes.numero_avs`, `fiches.employe_avs`) CHIFFRÉS en base
+  (`secret_chiffrer()` / `secret_dechiffrer()`, qui rend `null` si la clé est
+  inconnue). AVS : `avs_stocker()` / `avs_lire()` / `avs_affiche()`, jamais un
+  `WHERE` sur ces colonnes (`avs_trouver_employe()`). Clés : `SECRETS_CLE` et/ou
+  `<APP_DB_PATH>.cle.php` (la première chiffre, toutes déchiffrent), jamais dans
+  la base ; dans l'archive SEULEMENT si elle est chiffrée par phrase
+  (`CLE_SECRETS.txt`, reprise à la restauration).
+  ⚠️ Tout nouveau secret ou identifiant sensible passe par ces fonctions
+  (`tests/secrets_test.php`).
+- **Clôture d'exercice** (`lib/compta.php § Clôture`) : verrou tenu par des
+  **déclencheurs SQLite** (`migration_104`), pas par les routes. ⚠️ Une
+  migration qui recrée `ecritures` ou `ecritures_ventilations` doit rejouer
+  `compta_cloture_declencheurs_sql()`.
+- **Modules & droits** `lib/modules.php` (`docs/SPEC_PERMISSIONS.md`,
+  récits dans `docs/DECISIONS.md § Dépendances et modules`) :
+  - `MODULES`/`module_actif()` : activation globale, indépendante des droits.
+    `requires` : `analytique`, `pieces` → `compta` ; `mailing` → `booking` ;
+    `facturation`, `evenements`, `booking`, `fonds` → `carnet`. Ils s'éteignent
+    avec leur parent.
+    ⚠️ `carnet` possède les **structures** et les **personnes**, et lui seul
+    (`?p=structures`, `?p=structure`, `?p=personnes`, `?p=personne`). Les écrans
+    du CRM (contacts, notes, tags, lieux, messages, import) restent au booking.
+    L'onglet **Employés** y figure derrière le droit `salaires`.
+    ⚠️ `requires` active en cascade pour tous, mais ne **plafonne les droits**
+    (`clamp_permissions_dependantes()`) que des sous-modules `analytique` et
+    `mailing` ; les autres portent `plafonne => false`.
+    ⚠️ Le bandeau de la comptabilité s'ouvre avec `compta` OU `pieces`
+    (`nav_groupes()`) : seul onglet qui survit à son module parent.
+  - Droits par utilisateur (`utilisateur_permissions`, absence de ligne = aucun
+    accès) : `peut_lire()`/`peut_ecrire()`. `coeur` (hors `MODULES`) recouvre
     paramètres/comptes/modules/mises à jour/sauvegarde ; **écriture sur `coeur`
-    = administrateur**, `est_admin()`. Il doit toujours en rester au moins un
-    (garde-fou dans `enregistrer_permissions_utilisateur()` et
-    `route_utilisateur_supprimer()`).
-  - Dispatch (`index.php`) : chaque route est associée au(x) module(s) dont
-    dépend son accès (`ajouter_routes_module()`) ; `route_autorisee()` exige la
-    lecture pour un GET, l'écriture pour un POST (convention stricte : toute
-    mutation passe par un POST protégé par `check_csrf()`). Ajouter une route
-    mutante en GET casserait ce contrôle — ne pas le faire.
-    **C'est le seul contrôle de droits : une route ne revérifie jamais les
-    siens.** Un `require_lecture()`/`require_ecriture()` à l'intérieur d'une
-    route déjà rattachée à son module ne peut pas se déclencher — le dispatcher
-    aurait déjà refusé, au même endroit —, mais il laisse croire que les routes
-    qui n'en ont pas sont moins gardées. Ces fonctions gardent leur usage là où
-    il n'y a pas de dispatcher : un fragment, une sous-action atteinte autrement
-    que par la table de routage.
-    **Le vrai risque est l'oubli inverse**, et il est silencieux : une route qui
-    écrit sans être déclarée dans un bloc `ajouter_routes_module()` n'a pas
-    d'entrée dans `$routeModules`, le contrôle est entièrement sauté et tout
-    compte connecté peut y poster. `tests/permissions_test.php` (§ 6) l'interdit,
-    en partant des routes qui appellent `check_csrf()` plutôt que d'une liste à
-    tenir à jour.
-    **Trois routes échappent au dispatcher**, toutes hors session et donc sans
-    jeton CSRF possible, chacune autorisée par une signature ou un jeton dédié :
-    - `route_sauvegarde()` — exporte toute la base, gardée à part. POST
-      seulement (phrase secrète facultative, `check_csrf()`) ; un GET renvoie
-      à `?p=sauvegardes`, la page qui réunit télécharger, copies du serveur et
-      restaurer (administrateurs) ;
-    - `route_mailing_traiter()` — vide la file d'envoi, déclenchée par le
-      planificateur de tâches de l'hébergeur (jeton `mailing_traiter_token`) ;
-    - `route_desinscription()` — lien de désinscription d'un e-mail. Elle
-      n'écrit **que sur un POST** : le GET n'affiche qu'une page de
-      confirmation, parce qu'un antivirus de messagerie ou un aperçu de lien
-      suit les URL d'un message et aurait désinscrit tout seul.
-  - Un nouveau compte (`route_utilisateurs()`) démarre **sans aucun droit** ; seul
-    le tout premier compte (`route_installation()`) reçoit tout par défaut.
-  - **`module_accessible($id)`** = `module_actif()` **ET** `peut_lire()`. Les deux
-    conditions vont toujours ensemble pour décider d'afficher quelque chose :
-    tester `module_actif()` seul laisse fuiter les données d'un module vers un
-    compte qui n'y a pas accès.
+    = administrateur** (`est_admin()`), et il en reste toujours au moins un.
+    Un nouveau compte démarre **sans aucun droit** ; seul le premier
+    (`route_installation()`) reçoit tout.
+  - **`module_accessible($id)`** = `module_actif()` **ET** `peut_lire()` :
+    toujours les deux pour décider d'afficher quelque chose.
+  - Dispatch (`index.php`) : chaque route est rattachée à son ou ses modules
+    (`ajouter_routes_module()`) ; `route_autorisee()` exige la lecture pour un
+    GET, l'écriture pour un POST. **Toute mutation passe par un POST protégé par
+    `check_csrf()`** — jamais une route mutante en GET. **C'est le seul contrôle
+    de droits** : une route ne revérifie pas les siens (`require_lecture()` /
+    `require_ecriture()` ne servent qu'hors dispatcher : fragment,
+    sous-action). ⚠️ Une route qui écrit sans être déclarée dans
+    `ajouter_routes_module()` échappe à tout contrôle —
+    `tests/permissions_test.php` (§ 6) l'interdit.
+  - **Trois routes échappent au dispatcher**, hors session, chacune autorisée
+    par un jeton ou une signature : `route_sauvegarde()` (POST seulement ; un GET
+    renvoie à `?p=sauvegardes`), `route_mailing_traiter()` (planificateur,
+    `mailing_traiter_token`), `route_desinscription()` (n'écrit **que sur un
+    POST** ; le GET n'affiche qu'une confirmation).
 - **Pièces comptables** `lib/pieces.php` + `lib/routes_pieces.php`
-  (`docs/SPEC_PIECES.md`) : les justificatifs. Une pièce est une ENTITÉ, pas une
-  pièce jointe — elle se saisit avant que l'écriture existe. **Trois états et
-  non deux** (`piece_etat()`), parce que les relevés s'importent une fois par
-  mois : à payer, payée mais pas rapprochée, classée. Côté écriture,
-  `ecriture_piece_etat()` est la SEULE source de « a-t-elle un justificatif ? »
-  — six écrans la lisent, et une seconde requête finirait par ne plus dire le
-  même nombre. Son pendant SQL `ecriture_piece_etat_sql()` doit dire exactement
-  la même chose ; `tests/pieces_test.php` le vérifie, ainsi que le fait que les
-  états forment une partition exacte.
+  (`docs/SPEC_PIECES.md`) : une pièce est une ENTITÉ, saisie avant l'écriture.
+  **Trois états** (`piece_etat()`) : à payer, payée non rapprochée, classée.
+  `ecriture_piece_etat()` est la SEULE source de « a-t-elle un justificatif ? »,
+  et `ecriture_piece_etat_sql()` doit dire exactement la même chose
+  (`tests/pieces_test.php`).
 - **Personnes** `lib/personnes.php` (`docs/SPEC_PERSONNES.md`) : l'identité d'un
-  contact, d'un employé ou d'un compte. `personne_structures` est le lien N↔N
-  (l'ancienne `structure_contacts`, qui confondait la personne et son rôle).
+  contact, d'un employé ou d'un compte ; `personne_structures` est le lien N↔N.
   ⚠️ **Lire un contact ou un employé passe par `CONTACT_SELECT`/`CONTACT_FROM`
-  et `EMPLOYE_SELECT`/`EMPLOYE_FROM`** : ces constantes rendent les colonnes
-  d'identité sous les noms que les vues attendent déjà (`$c['prenom']`,
-  `$e['rue']`). Un `SELECT *` sur `employes` ou `personne_structures` compile
-  très bien et rend des noms VIDES, sans la moindre erreur.
+  et `EMPLOYE_SELECT`/`EMPLOYE_FROM`** : un `SELECT *` sur `employes` ou
+  `personne_structures` rend des noms VIDES, sans erreur.
 - **Fichiers privés** `lib/fichiers.php` : `data/fichiers/`, hors racine web,
-  validation par le CONTENU (`finfo`), nom de stockage tiré au sort, 8 Mo.
-  Partagé par les feuilles de route et les pièces. ⚠️ Ce fichier ne décide
-  JAMAIS qui a le droit de lire : chaque module garde sa route de service.
-- **Recherche unifiée** `lib/recherche.php` (`?p=recherche`, champ sur le tableau
-  de bord) : traverse employés/structures/factures/événements/projets. Seule
-  fonctionnalité qui interroge plusieurs modules dans la même requête — chaque
-  source est donc filtrée par `module_accessible()` **avant** toute requête, et la
-  route n'est volontairement rattachée à aucun module. Ajouter une entité = une
-  entrée dans `recherche_sources()` (projeter `id/titre/sous_titre/tri/texte`) ;
-  `tests/recherche_test.php` vérifie la déclaration.
+  validés par le CONTENU (`finfo`), nom tiré au sort, 8 Mo. ⚠️ Ce fichier ne
+  décide JAMAIS qui a le droit de lire : chaque module garde sa route de service.
+- **Recherche unifiée** `lib/recherche.php` (`?p=recherche`) : seule requête qui
+  traverse plusieurs modules — chaque source est filtrée par
+  `module_accessible()` **avant** toute requête, et la route n'est rattachée à
+  aucun module. Ajouter une entité = une entrée dans `recherche_sources()`
+  (`tests/recherche_test.php`).
 
 ## Domaine (paie suisse) — à respecter
 - Déductions employé : AVS/AI/APG, AC, A.mat (GE), **LAA** (deux taux : *réduit* si
@@ -326,23 +232,21 @@ toute erreur d'exécution ou blocage CSP.
   création. **Ne JAMAIS modifier les données d'une fiche/d'un employé sans demande
   explicite.** Les corrections de masse passent par un script CLI ponctuel avec
   dry-run + sauvegarde préalable de la base.
-- **Affichage piloté par la base** : nom + logos de l'employeur viennent de `parametres`
-  (`employeur_nom`, `employeur_logo_clair/sombre`, plus les variantes facultatives
-  `employeur_logo_mini_clair/sombre` pour les affichages minuscules — favicone et
-  rail ; `LOGO_VARIANTES`, `logo_petit_variante()`). **Aucune marque codée en dur** ;
-  repli sur le nom employeur en texte si pas de logo.
+- **Affichage piloté par la base** : nom + logos de l'employeur viennent de
+  `parametres` (`employeur_nom`, `employeur_logo_clair/sombre`, variantes
+  `employeur_logo_mini_clair/sombre` pour favicone et rail ; `LOGO_VARIANTES`,
+  `logo_petit_variante()`). **Aucune marque codée en dur** ; repli sur le nom
+  employeur en texte si pas de logo.
 - **Sécurité** : `check_csrf()` sur tout POST ; `e()` sur toute sortie ; requêtes
   **toujours** préparées (paramétrées). bcrypt coût 12 ; anti-force-brute ; sessions
   expirantes ; secret d'installation ; base hors webroot en prod.
-  **Exports CSV** : toujours `csv_ecrire()`, jamais `fputcsv()` — il neutralise
-  les cellules qu'un tableur lirait comme une formule (texte d'un virement
-  importé, intitulé d'une pièce) ; `tests/csv_test.php` le vérifie.
-  **Mot de passe oublié** (`?p=motdepasse_oublie` / `?p=motdepasse_reinitialiser`, routes
-  publiques) : jeton à usage unique d'1 h, **seule son empreinte SHA-256 est en
-  base** (`reinit_motdepasse`), réponse identique que le compte existe ou non,
-  quota propre (`RESET_MAX_PAR_HEURE`) qui ne doit **jamais** alimenter le
-  compteur d'échecs de connexion. Lien construit depuis `APP_URL` si définie,
-  sinon l'en-tête `Host`.
+  **Exports CSV** : toujours `csv_ecrire()`, jamais `fputcsv()` (formules
+  neutralisées, `tests/csv_test.php`).
+  **Mot de passe oublié** (routes publiques) : jeton à usage unique d'1 h,
+  **seule son empreinte SHA-256 est en base**, réponse identique que le compte
+  existe ou non, quota propre (`RESET_MAX_PAR_HEURE`) qui ne doit **jamais**
+  alimenter le compteur d'échecs de connexion. Lien construit depuis `APP_URL`
+  si définie, sinon l'en-tête `Host`.
 - **E-mails** : en `dev`, journalisés dans `data/emails_envoyes.log` ; en `prod`,
   `mail()` réel (expéditeur = `employeur_email_expediteur`).
 - **Uploads** logos : validés par `getimagesize()` (image réelle), 2 Mo max, stockés

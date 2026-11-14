@@ -6,7 +6,7 @@
     <div class="page-head-title">
         <h1>Certificat de salaire</h1>
         <?php if ($annees): ?>
-        <select class="inline-year-select" data-go-on-change="?p=certificat&employe_id=<?= (int) $emp['id'] ?>&annee=">
+        <select class="inline-year-select" aria-label="Année" data-go-on-change="?p=certificat&employe_id=<?= (int) $emp['id'] ?>&annee=">
             <?php foreach ($annees as $a): ?>
                 <option value="<?= $a ?>" <?= $a === $annee ? 'selected' : '' ?>><?= $a ?></option>
             <?php endforeach; ?>

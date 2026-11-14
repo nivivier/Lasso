@@ -30,19 +30,7 @@ require_once __DIR__ . '/../lib/helpers.php';
 require_once __DIR__ . '/../lib/modules.php';
 require_once __DIR__ . '/../lib/journal.php';
 
-$tests = 0;
-$fails = 0;
-function check(string $label, $attendu, $obtenu): void
-{
-    global $tests, $fails;
-    $tests++;
-    if ($attendu !== $obtenu) {
-        $fails++;
-        printf("  FAIL  %-60s attendu %s, obtenu %s\n", $label, var_export($attendu, true), var_export($obtenu, true));
-    } else {
-        printf("  ok    %s\n", $label);
-    }
-}
+require_once __DIR__ . '/_outils.php';
 $serveur = null;
 register_shutdown_function(function () use ($dir, &$serveur) {
     if (is_resource($serveur)) {

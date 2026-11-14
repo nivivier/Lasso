@@ -181,7 +181,7 @@ $suffixeDepuis = $isEdit ? '&depuis=evenement:' . (int) $id : ($ntCle !== null ?
                         <option value="">— Région —</option>
                         <?= region_options_nom(pays_nom_depuis_code($vRaw('pays')), $v('grande_region')) ?>
                     </select>
-                    <select name="pays" class="pays-select">
+                    <select name="pays" class="pays-select" title="Pays" aria-label="Pays">
                         <option value="">—</option>
                         <?= pays_options_code($vRaw('pays')) ?>
                     </select>

@@ -720,7 +720,7 @@ function route_structure_lieu_lier(): void
     // la ville d'une structure qu'on vient de créer ne sont pas dans le POST.
     if (($_POST['retour'] ?? '') === 'json') {
         // Mêmes colonnes et mêmes alias que la requête de la fiche
-        // (lib/routes_facturation.php, structure_donnees_liees()) : le partiel
+        // (lib/routes_carnet.php, structure_donnees_crm()) : le partiel
         // attend « type » et « ville », pas les noms de colonnes bruts.
         $stmtL = db()->prepare(
             "SELECT s.id, s.nom, s.sous_categorie AS type, s.adresse_localite AS ville
@@ -1320,7 +1320,7 @@ function route_mailing_modeles(): void
 // (création de la campagne) — une seule construction pour garantir que
 // l'aperçu et l'envoi réel ciblent exactement les mêmes structures. Champs à
 // choix multiples (cases à cocher, même mécanique que structures_filtres()
-// dans lib/routes_facturation.php — mais sans la persistance en session de
+// dans lib/routes_carnet.php — mais sans la persistance en session de
 // filtre_coche(), volontairement : $src peut être $_GET OU $_POST et les deux
 // doivent produire les mêmes critères pour une même sélection). La catégorie
 // arrive en categorie_id (arbre catégorie/sous-catégorie, comme le filtre de
@@ -1880,7 +1880,7 @@ function route_booking_campagne(): void
     }
     // Modification groupée : la même barre et les mêmes actions que
     // ?p=structures, appliquées par le même code (structures_bulk_appliquer(),
-    // lib/routes_facturation.php) — il ne rend pas la main. Le retour ramène
+    // lib/routes_carnet.php) — il ne rend pas la main. Le retour ramène
     // ici : les entonnoirs de cette page ont leur propre mémoire de session, il
     // n'y a que l'id à reporter.
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {

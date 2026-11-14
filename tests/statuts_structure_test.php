@@ -26,20 +26,8 @@ require_once $racine . '/lib/config.php';
 require_once $racine . '/lib/helpers.php';
 require_once $racine . '/lib/booking.php';
 
-$tests = 0;
-$fails = 0;
 
-function check(string $label, $attendu, $obtenu): void
-{
-    global $tests, $fails;
-    $tests++;
-    if ($attendu === $obtenu) {
-        printf("  ok    %s\n", $label);
-        return;
-    }
-    $fails++;
-    printf("  FAIL  %s\n        attendu %s\n        obtenu  %s\n", $label, var_export($attendu, true), var_export($obtenu, true));
-}
+require_once __DIR__ . '/_outils.php';
 
 $css = css_source();
 

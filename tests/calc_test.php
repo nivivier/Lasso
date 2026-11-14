@@ -4,22 +4,7 @@
 
 require_once __DIR__ . '/../lib/calc.php';
 
-$tests = 0;
-$fails = 0;
-function check(string $label, $attendu, $obtenu): void
-{
-    global $tests, $fails;
-    $tests++;
-    $ok = is_float($attendu)
-        ? abs($attendu - (float) $obtenu) < 0.005
-        : $attendu === $obtenu;
-    if (!$ok) {
-        $fails++;
-        printf("  FAIL  %-42s attendu %s, obtenu %s\n", $label, var_export($attendu, true), var_export($obtenu, true));
-    } else {
-        printf("  ok    %s\n", $label);
-    }
-}
+require_once __DIR__ . '/_outils.php';
 
 // Les lignes du décompte sont configurables (postes_salariaux) : ce test reste
 // sans base, il fournit donc lui-même la grille de référence — celle que

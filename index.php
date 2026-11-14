@@ -18,6 +18,7 @@ require_once __DIR__ . '/lib/routes_compta.php';
 require_once __DIR__ . '/lib/pieces.php';
 require_once __DIR__ . '/lib/routes_pieces.php';
 require_once __DIR__ . '/lib/routes_facturation.php';
+require_once __DIR__ . '/lib/routes_carnet.php';
 require_once __DIR__ . '/lib/routes_evenements.php';
 require_once __DIR__ . '/lib/routes_booking.php';
 require_once __DIR__ . '/lib/routes_fonds.php';
@@ -115,10 +116,6 @@ $handlers = [
     'deux_facteurs_desactiver'      => 'route_deux_facteurs_desactiver',
     'deux_facteurs_codes_regenerer' => 'route_deux_facteurs_codes_regenerer',
     'tableau_bord' => 'route_tableau_bord', // Tableau de bord : fait partie du cœur, toujours accessible.
-    // Choix d'étiquette du widget « Suivi du booking » : une préférence
-    // d'AFFICHAGE, pas une écriture sur le booking — un compte qui n'a que la
-    // lecture doit pouvoir changer ce qu'il regarde. D'où l'absence de
-    // $routeModules (la route vérifie elle-même l'accès au booking).
     // Recherche unifiée : traverse plusieurs modules, donc rattachable à aucun.
     // Volontairement absente de $routeModules — le filtrage par module_actif()
     // et peut_lire() se fait source par source dans recherche_globale()
@@ -303,7 +300,7 @@ ajouter_routes_module($handlers, $routeModules, 'mailing', [
     'mailing_envoyer'        => 'route_mailing_envoyer',
 ]);
 // Traitement de la file d'attente mailing + désinscription : protégés par un
-// jeton dédié (mailing_verifier_token()), pas par une session utilisateur —
+// jeton dédié (mailing_traiter_token()), pas par une session utilisateur —
 // déclenchés par le planificateur de tâches de l'hébergeur ou par un lien
 // dans l'e-mail, jamais soumis à peut_lire()/peut_ecrire() (même logique que
 // l'export public du module événements).

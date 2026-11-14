@@ -1,7 +1,7 @@
 <?php
 // Tests du module événements. Lancement : php tests/evenements_test.php
 // N'utilise pas la base de l'application (fonctions pures de lib/evenements.php).
-// evenements_delai_decompte_mois() et evenements_export_token()/regenerer_token()
+// evenements_delai_decompte_mois() et evenements_export_token()/evenements_regenerer_token()
 // appellent param()/db() : non testées ici (nécessitent la base applicative).
 
 require_once __DIR__ . '/../lib/helpers.php'; // e()
@@ -18,20 +18,7 @@ function param(string $cle, $defaut = null)
 
 require_once __DIR__ . '/../lib/evenements.php';
 
-$tests = 0;
-$fails = 0;
-function check(string $label, $attendu, $obtenu): void
-{
-    global $tests, $fails;
-    $tests++;
-    $ok = $attendu === $obtenu;
-    if (!$ok) {
-        $fails++;
-        printf("  FAIL  %-52s attendu %s, obtenu %s\n", $label, var_export($attendu, true), var_export($obtenu, true));
-    } else {
-        printf("  ok    %s\n", $label);
-    }
-}
+require_once __DIR__ . '/_outils.php';
 
 echo "1) Statut SUISA dérivé (7 valeurs)\n";
 check('ne s\'applique pas (prioritaire sur tout le reste)', 'ne_sapplique_pas', evenement_statut_suisa([

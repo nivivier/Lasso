@@ -21,19 +21,7 @@ require_once __DIR__ . '/../lib/modules.php';
 require_once __DIR__ . '/../lib/personnes.php';
 require_once __DIR__ . '/../lib/recherche.php';
 
-$tests = 0;
-$fails = 0;
-function check(string $label, $attendu, $obtenu): void
-{
-    global $tests, $fails;
-    $tests++;
-    if ($attendu === $obtenu) {
-        printf("  ok    %s\n", $label);
-        return;
-    }
-    $fails++;
-    printf("  FAIL  %-52s attendu %s, obtenu %s\n", $label, var_export($attendu, true), var_export($obtenu, true));
-}
+require_once __DIR__ . '/_outils.php';
 
 echo "1) Découpage de la saisie en mots (tous exigés)\n";
 [$c1, $p1] = recherche_clause('hector');

@@ -59,7 +59,7 @@ function mailing_structures_eligibles(array $criteres): array
     $params = $statuts;
 
     // Catégorie/sous-catégorie : une condition par id coché, unies en OR —
-    // même logique que structures_filtres() dans lib/routes_facturation.php.
+    // même logique que structures_filtres() dans lib/routes_carnet.php.
     if (!empty($criteres['categorie_id'])) {
         $map = structure_categorie_map();
         $catConds = [];

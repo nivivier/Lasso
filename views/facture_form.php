@@ -49,9 +49,9 @@ $renderRow = function (array $l) use ($axes, $axeOpts) {
         ? '<select name="l_axe[]" class="l-axe" title="Axe analytique">' . preselectionner_option($axeOpts, $l['axe']) . '</select>'
         : '';
     return '<div class="ligne-row">'
-        . '<input name="l_description[]" class="l-desc" type="text" placeholder="Description" value="' . e($l['description']) . '">'
-        . '<input name="l_quantite[]" class="l-qte" type="text" inputmode="decimal" placeholder="quantité" value="' . e($l['quantite']) . '">'
-        . '<input name="l_prix[]" class="l-prix" type="text" inputmode="decimal" placeholder="prix unit. CHF" value="' . e($l['prix']) . '">'
+        . '<input name="l_description[]" class="l-desc" type="text" placeholder="Description" aria-label="Description" value="' . e($l['description']) . '">'
+        . '<input name="l_quantite[]" class="l-qte" type="text" inputmode="decimal" placeholder="quantité" aria-label="Quantité" value="' . e($l['quantite']) . '">'
+        . '<input name="l_prix[]" class="l-prix" type="text" inputmode="decimal" placeholder="prix unit. CHF" aria-label="Prix unitaire (CHF)" value="' . e($l['prix']) . '">'
         . $axeSel
         . '<span class="l-sub muted"></span>'
         . '<button type="button" class="btn ghost btn-sm l-del" aria-label="Supprimer la ligne">✕</button>'

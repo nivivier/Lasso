@@ -20,19 +20,7 @@ require_once __DIR__ . '/../lib/personnes.php';
 require_once __DIR__ . '/../lib/journal.php';
 require_once __DIR__ . '/../lib/routes_salaires.php';
 
-$tests = 0;
-$fails = 0;
-function check(string $label, $attendu, $obtenu): void
-{
-    global $tests, $fails;
-    $tests++;
-    if ($attendu === $obtenu) {
-        printf("  ok    %s\n", $label);
-        return;
-    }
-    $fails++;
-    printf("  FAIL  %s\n        attendu %s\n        obtenu  %s\n", $label, var_export($attendu, true), var_export($obtenu, true));
-}
+require_once __DIR__ . '/_outils.php';
 
 $pdo = db();
 
@@ -93,7 +81,8 @@ echo "\n5) Toute route de suppression garde sa règle dans le code\n";
 // Si l'une de ces lignes disparaît, la règle ne tient plus que par l'interface.
 $gardes = [
     'lib/routes_salaires.php'    => ["date_paiement, '')) = ''", 'supprimer_si_non_reference(\'employes\''],
-    'lib/routes_facturation.php' => ["statut = 'brouillon'", 'supprimer_si_non_reference(\'structures\''],
+    'lib/routes_facturation.php' => ["statut = 'brouillon'"],
+    'lib/routes_carnet.php'      => ['supprimer_si_non_reference(\'structures\''],
     'lib/routes_evenements.php'  => ['supprimer_si_non_reference(\'projets\''],
     'lib/routes.php'             => ["'last_admin'", "'self'"],
 ];

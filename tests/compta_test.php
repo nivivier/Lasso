@@ -4,22 +4,7 @@
 
 require_once __DIR__ . '/../lib/compta.php';
 
-$tests = 0;
-$fails = 0;
-function check(string $label, $attendu, $obtenu): void
-{
-    global $tests, $fails;
-    $tests++;
-    $ok = is_float($attendu)
-        ? abs($attendu - (float) $obtenu) < 0.005
-        : $attendu === $obtenu;
-    if (!$ok) {
-        $fails++;
-        printf("  FAIL  %-46s attendu %s, obtenu %s\n", $label, var_export($attendu, true), var_export($obtenu, true));
-    } else {
-        printf("  ok    %s\n", $label);
-    }
-}
+require_once __DIR__ . '/_outils.php';
 
 // Fixture au format export PostFinance (2 crédits, 2 débits, 1 solde vide,
 // 1 doublon strict de la 1re ligne de crédit).

@@ -33,19 +33,7 @@ require_once __DIR__ . '/../lib/config.php';
 require_once __DIR__ . '/../lib/calc.php';
 require_once __DIR__ . '/../lib/db.php';
 
-$tests = 0;
-$fails = 0;
-function check(string $label, $attendu, $obtenu): void
-{
-    global $tests, $fails;
-    $tests++;
-    if ($attendu === $obtenu) {
-        printf("  ok    %s\n", $label);
-        return;
-    }
-    $fails++;
-    printf("  FAIL  %-52s attendu %s, obtenu %s\n", $label, var_export($attendu, true), var_export($obtenu, true));
-}
+require_once __DIR__ . '/_outils.php';
 
 // Nettoyage systématique, y compris si une exception interrompt le fichier —
 // sans quoi chaque exécution ratée laisserait une base derrière elle.

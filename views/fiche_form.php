@@ -48,22 +48,22 @@ if (!$lignesInit) {
 
 $renderRow = function (array $l) use ($opts, $rateOpts, $axes, $axeOpts, $evenements, $evenOpts) {
     $axeSel = $axes
-        ? '<select name="l_axe[]" class="l-axe" title="Axe analytique">' . preselectionner_option($axeOpts, (string) ($l['axe'] ?? '')) . '</select>'
+        ? '<select name="l_axe[]" class="l-axe" title="Axe analytique" aria-label="Axe analytique">' . preselectionner_option($axeOpts, (string) ($l['axe'] ?? '')) . '</select>'
         : '';
     // Événement : toujours un select (vide par défaut) pour permettre de lier
     // une ligne non encore rattachée, pas seulement d'éditer un lien existant.
     $evSel = $evenements
-        ? '<select name="l_evenement[]" class="l-evenement" title="Événement associé">' . preselectionner_option($evenOpts, (string) ($l['evenement'] ?? '')) . '</select>'
+        ? '<select name="l_evenement[]" class="l-evenement" title="Événement associé" aria-label="Événement associé">' . preselectionner_option($evenOpts, (string) ($l['evenement'] ?? '')) . '</select>'
         : '';
     return '<div class="ligne-row ligne-row-presta">'
-        . '<select name="l_unite[]" class="l-unite">' . preselectionner_option($opts, $l['enc']) . '</select>'
-        . '<input name="l_quantite[]" class="l-qte" type="text" inputmode="decimal" placeholder="quantité" value="' . e($l['qte']) . '">'
-        . '<select name="l_taux_choix[]" class="l-taux-choix">' . preselectionner_option($rateOpts, $l['choix']) . '</select>'
-        . '<input name="l_taux_manuel[]" class="l-taux-manuel" type="text" inputmode="decimal" placeholder="CHF/h" value="' . e($l['manuel']) . '">'
+        . '<select name="l_unite[]" class="l-unite" title="Unité" aria-label="Unité">' . preselectionner_option($opts, $l['enc']) . '</select>'
+        . '<input name="l_quantite[]" class="l-qte" type="text" inputmode="decimal" placeholder="quantité" aria-label="Quantité" value="' . e($l['qte']) . '">'
+        . '<select name="l_taux_choix[]" class="l-taux-choix" title="Taux horaire" aria-label="Taux horaire">' . preselectionner_option($rateOpts, $l['choix']) . '</select>'
+        . '<input name="l_taux_manuel[]" class="l-taux-manuel" type="text" inputmode="decimal" placeholder="CHF/h" aria-label="Taux horaire saisi (CHF/h)" value="' . e($l['manuel']) . '">'
         . $axeSel
         . $evSel
         . '<span class="l-sub muted"></span>'
-        . '<button type="button" class="btn ghost btn-sm l-del" aria-label="Supprimer la ligne">✕</button>'
+        . '<button type="button" class="btn ghost btn-sm l-del" title="Supprimer la ligne" aria-label="Supprimer la ligne">✕</button>'
         . '</div>';
 };
 // Reporté sur le formulaire (redirige vers ?p=fiche_form même en édition),

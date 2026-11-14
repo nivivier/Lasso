@@ -13,19 +13,7 @@
 define('APP_DB_PATH', sys_get_temp_dir() . '/lasso_sauvegarde_' . bin2hex(random_bytes(6)) . '.sqlite');
 require_once __DIR__ . '/../lib/sauvegarde.php';
 
-$tests = 0;
-$fails = 0;
-function check(string $label, $attendu, $obtenu): void
-{
-    global $tests, $fails;
-    $tests++;
-    if ($attendu !== $obtenu) {
-        $fails++;
-        printf("  FAIL  %-56s attendu %s, obtenu %s\n", $label, var_export($attendu, true), var_export($obtenu, true));
-    } else {
-        printf("  ok    %s\n", $label);
-    }
-}
+require_once __DIR__ . '/_outils.php';
 
 // --- Arborescence de travail ------------------------------------------------
 $racine = sys_get_temp_dir() . '/lasso_sauvegarde_test_' . bin2hex(random_bytes(4));

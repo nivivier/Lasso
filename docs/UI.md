@@ -36,7 +36,9 @@ point est dans la section citée.
 - [ ] Thème **sombre** vérifié.
 - [ ] Couleurs (§ 13) et tailles de texte (§ 13 bis) : toujours un token.
 - [ ] Chaque bouton en icône seule a `title` **et** `aria-label` ; chaque champ
-      sans libellé visible (case de ligne, champ en ligne) a son `aria-label`.
+      sans libellé visible (case de ligne, champ en ligne) a son `aria-label` —
+      un `placeholder` ne compte pas. `navigateur_test` refuse tout champ
+      visible sans nom accessible.
 - [ ] Le `<title>` de l'onglet reprend le titre de la page (§ 11).
 - [ ] Aucun bouton d'enregistrement au pied d'une carte ou d'une page : il est en
       haut à droite, rendu par `carte_actions_html()` (§ 2a) ou
@@ -1232,6 +1234,22 @@ dans `data/emails_envoyes.log`, ce qui rend l'envoi vérifiable.
   n'y a pas de tableau à retourner, et la forme carte vaut à TOUTES les
   largeurs — dans une fiche, le conteneur fait 1100 px, la bascule ne serait
   jamais partie.
+- ⚠️ **Une liste trop large pour 700 px avance son propre seuil de cartes.**
+  Toutes les listes passent en cartes quand leur conteneur mesure moins de
+  700 px (`@container liste`). Une liste qui en demande davantage défilait
+  dans son cadre entre les deux, ses dernières colonnes hors de vue sans que
+  rien ne le signale — c'était le cas des écritures jusque dans une fenêtre de
+  1 400 px. Plutôt que de recopier les règles des cartes sous un second seuil,
+  on ampute le conteneur MESURÉ : `padding-right` de la différence sur
+  `.table-scroll`, que le tableau réoccupe (`width: calc(100% + …)` et la
+  marge négative inverse, sans laquelle le retrait s'ajoute à la zone de
+  défilement). La requête voit alors 700 px quand la liste en a 1 080 ;
+  l'écran ne voit rien. Sous 480 px le retrait tombe à zéro, plus large que
+  l'écran il ferait déborder la page. Exemple : `.ecr-scroll`
+  (`11-comptabilite.css`, `--ecr-avance: 380px`), avec un palier intermédiaire
+  où les colonnes de texte se resserrent. **La valeur se remesure quand la
+  liste gagne une colonne** : largeur minimale du tableau resserré, mesurée
+  avec des lignes MODIFIABLES (cases, crayons, choix d'axe), moins 700.
 - **Deux colonnes inégales dans une fiche** — une carte large, une carte
   étroite à côté (`?p=personne` : l'identité et les rattachements) —
   s'obtiennent par `.fiche-colonnes` + `.fiche-col-large` /
@@ -1828,6 +1846,9 @@ tablette et s'empilent sur téléphone, sans qu'aucun point de rupture ne soit
   pas celle de l'écran. Un champ dont la longueur est connue (une date, un
   montant) prend une base fixe, un champ de texte libre une base souple qui
   s'étire. `.feuille-form` est la même rangée sous son nom d'origine.
+  ⚠️ **Une rangée de champs passe à la ligne, elle ne tronque pas** : rétrécis
+  sous leur base, des menus se lisaient « He… », « S… » (lignes de prestation
+  d'une fiche de salaire, `.ligne-row-presta`, désormais en `flex-wrap`).
 - **Pas de paragraphe de description au-dessus d'un champ** : le texte indicatif
   (`placeholder`) dit ce qu'on y met. Le dire deux fois allonge sans apprendre.
   Exception : une contrainte réelle qu'un `placeholder` ne peut pas porter
@@ -1882,7 +1903,12 @@ que d'afficher depuis le POST : un rechargement ne doit pas rejouer l'action.
 oblige à redescendre.
 
 Un refus qui ne vient pas d'une route mais de la base — un exercice clôturé —
-passe par **`$_SESSION['flash_err']`** : le gestionnaire d'exceptions
+ne devrait pas arriver : **une ligne que la base refusera ne propose pas le
+geste**. Sur `?p=compta_ecritures`, une écriture d'un exercice clôturé se lit
+comme pour un compte en lecture seule — ni case, ni crayon, ni « + » de
+catégorie, ni choix d'axe —, et un cadenas prend la place de sa case à cocher
+(`td.ecr-clos`). Joindre une pièce reste possible : la clôture ne l'interdit
+pas. Si le refus survient quand même, il passe par **`$_SESSION['flash_err']`** : le gestionnaire d'exceptions
 d'`index.php` y pose le message et renvoie à la page précédente, que
 `layout.php` affiche en `.err.flash`. À réserver à ce cas : une route qui sait
 refuser le dit par son drapeau d'URL.

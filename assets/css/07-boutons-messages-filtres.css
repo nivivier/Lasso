@@ -62,22 +62,20 @@ button:active, .btn:active { transform: translateY(1px); }
 .ligne-row .l-taux-manuel { flex: 0 0 90px; width: auto; }
 .ligne-row .l-sub { flex: 1; font-size: var(--fs-basic); min-width: 110px; }
 .ligne-row .l-del { flex: 0 0 auto; padding: var(--esp-2) var(--esp-3); line-height: 1; }
-/* Prestations (fiche de salaire) : plus de colonnes sur la ligne (axe +
-   événement toujours visibles) → chaque champ ne garde que la largeur dont
-   il a vraiment besoin. */
+/* Prestations : à l'étroit, la ligne passe à la ligne plutôt que de
+   tronquer ses champs. */
+.ligne-row-presta { flex-wrap: wrap; }
 .ligne-row-presta .l-unite,
 .ligne-row-presta .l-taux-choix,
-.ligne-row-presta .l-axe { min-width: 0; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
+.ligne-row-presta .l-axe { text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
 .ligne-row-presta .l-taux-choix,
 .ligne-row-presta .l-axe,
 .ligne-row-presta .l-evenement,
 .evenement-employes .epf-col-sm { font-size: var(--fs-small); }
-/* Quantité : largeur doublée et fixe, y compris en mobile (spécificité 3 classes
+/* Quantité : largeur fixe, y compris en mobile (spécificité 3 classes
    pour l'emporter sur la règle mobile générique .ligne-row .l-qte). */
-.ligne-row.ligne-row-presta .l-qte { flex: 0 0 60px; width: auto; min-width: 0; }
-/* Les autres champs ne gardent qu'une largeur minimale : ils s'agrandissent
-   si la ligne a de la place, sans jamais dépasser la largeur de la carte
-   (flex-grow réparti dans l'espace restant du conteneur, pas au-delà). */
+.ligne-row.ligne-row-presta .l-qte { flex: 0 0 84px; width: auto; min-width: 0; }
+/* Les autres : une base, étirée s'il reste de la place. */
 .ligne-row-presta .l-unite { flex: 1 1 130px; }
 .ligne-row-presta .l-taux-choix { flex: 1 1 90px; }
 .ligne-row-presta .l-taux-manuel { flex: 1 1 90px; width: auto; }

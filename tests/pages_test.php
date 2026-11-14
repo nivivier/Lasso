@@ -27,18 +27,8 @@ $dir = sys_get_temp_dir() . '/lasso_pages_' . bin2hex(random_bytes(6));
 mkdir($dir);
 $base = "$dir/demo.sqlite";
 
-$tests = 0;
-$fails = 0;
-function check(string $label, $attendu, $obtenu): void
-{
-    global $tests, $fails;
-    $tests++;
-    if ($attendu === $obtenu) {
-        return;
-    }
-    $fails++;
-    printf("  FAIL  %s\n        attendu %s\n        obtenu  %s\n", $label, var_export($attendu, true), var_export($obtenu, true));
-}
+define('TESTS_SILENCIEUX', true);
+require_once __DIR__ . '/_outils.php';
 
 function nettoyer(string $dir): void
 {

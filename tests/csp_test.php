@@ -15,20 +15,8 @@
 // signalée à l'écriture plutôt que découverte en production.
 
 $racine = dirname(__DIR__);
-$tests = 0;
-$fails = 0;
 
-function check(string $label, $attendu, $obtenu): void
-{
-    global $tests, $fails;
-    $tests++;
-    if ($attendu === $obtenu) {
-        printf("  ok    %s\n", $label);
-        return;
-    }
-    $fails++;
-    printf("  FAIL  %-52s attendu %s, obtenu %s\n", $label, var_export($attendu, true), var_export($obtenu, true));
-}
+require_once __DIR__ . '/_outils.php';
 
 // Fichiers susceptibles de produire du HTML.
 $fichiers = [];

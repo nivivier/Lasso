@@ -932,6 +932,72 @@ deux états du code, pas un état à une attente.
 
 ---
 
+## Dépendances et modules
+
+Les récits qui accompagnaient les règles de `CLAUDE.md`. Ce fichier-là est relu
+par chaque session : il garde la règle et son avertissement, l'histoire vit ici.
+
+### Composer : la plateforme figée à PHP 8.3 (2026-11)
+
+Sans `config.platform.php` dans `composer.json`, Composer résout les
+dépendances pour la version de PHP de la machine qui lance la commande. Une
+résolution faite sur PHP 8.5 avait tiré `symfony/intl`/`validator` 8.1 (qui
+exigent PHP ≥ 8.4.1) dans un `vendor/` commité : le module de facturation
+devenait inutilisable sous 8.4. Invisible en local et en production, toutes
+deux en 8.5 ; c'est l'intégration continue (PHP 8.3) qui l'a révélé. D'où le
+verrou à `8.3.0`, et la règle de ne jamais lancer `composer update` sans lui.
+
+### Le carnet d'adresses possède les structures et les personnes
+
+Question longtemps restée ouverte : quatre modules (facturation, événements,
+booking, recherche de fonds) se servent des structures et des personnes, et
+aucun ne pouvait se les approprier sans que les trois autres en dépendent. Le
+module `carnet` est la réponse : il possède l'IDENTITÉ — qui existe, et comment
+on l'appelle. Les écrans propres au CRM (contacts, notes, tags, lieux,
+messages, import) restent au booking : ils parlent de démarchage. Les routes
+des structures ont longtemps vécu dans `lib/routes_facturation.php`, héritage
+de l'époque où une structure n'était qu'un débiteur ; elles sont dans
+`lib/routes_carnet.php` depuis 2026-11.
+
+### `requires` : deux mécaniques, une seule touche aux droits
+
+`requires` déclenche toujours la cascade d'activation (`set_modules_actifs()`).
+Le plafonnement des droits (`clamp_permissions_dependantes()`) est réservé aux
+sous-modules qui prolongent les DONNÉES de leur parent (`analytique`,
+`mailing`) ; les autres portent `plafonne => false`. Sans cette distinction, le
+clamp rabattait « pieces = écriture » sur « lecture » dès que `compta` n'était
+qu'en lecture — en silence, et le module « dépôt sans lecture des comptes »
+devenait inconfigurable. Déposer une pièce n'est pas tenir les comptes,
+émettre une facture n'est pas écrire le carnet.
+
+`pieces` n'existe comme module séparé que pour cela : donner le dépôt d'un
+justificatif sans la lecture des comptes. D'où aussi la seule exception de la
+navigation — le bandeau de la comptabilité s'ouvre avec `compta` OU `pieces`,
+sans quoi qui n'a que le dépôt n'aurait aucune porte vers son écran.
+
+### Une route ne revérifie pas ses droits
+
+Le dispatcher est le seul contrôle. Un `require_lecture()`/`require_ecriture()`
+dans une route déjà rattachée à son module ne peut pas se déclencher — le
+dispatcher aurait refusé au même endroit —, mais il laisse croire que les
+routes qui n'en ont pas sont moins gardées. Le vrai risque est l'oubli
+inverse, et il est silencieux : une route qui écrit sans être déclarée dans
+`ajouter_routes_module()` n'a pas d'entrée dans `$routeModules`, et tout compte
+connecté peut y poster. `tests/permissions_test.php` (§ 6) part donc des routes
+qui appellent `check_csrf()`, plutôt que d'une liste à tenir à jour.
+
+La désinscription n'écrit que sur un POST : un antivirus de messagerie ou un
+aperçu de lien suit les URL d'un message, et un GET qui écrit aurait
+désinscrit tout seul.
+
+### `lib/helpers/` est à deux niveaux de la racine
+
+Le jour du découpage de `lib/helpers.php`, un `__DIR__ . '/../data'` recopié
+tel quel dans `lib/helpers/session.php` y désignait `lib/data/` : les sessions
+ont atterri hors du dossier protégé.
+
+---
+
 ## Tests
 
 ### Pourquoi un lanceur unique
@@ -943,11 +1009,21 @@ d'export iCal écrit et fonctionnel est resté des semaines non commité, donc
 jamais déployé.
 
 `php tests/run.php` fait l'analyse syntaxique de tout le projet et lance les
-fichiers de test **chacun dans son propre processus** — ils définissent tous une
-fonction `check()` globale, les inclure ensemble déclencherait un
-« Cannot redeclare ». Un sous-processus convertit en prime toute erreur fatale
-en code de sortie 255, donc en échec visible. La CI lance exactement la même
-commande.
+fichiers de test **chacun dans son propre processus** — chacun pose sa propre
+base temporaire (`APP_DB_PATH`, une constante) et ses variables globales, les
+inclure ensemble les mêlerait. Un sous-processus convertit en prime toute
+erreur fatale en code de sortie 255, donc en échec visible. La CI lance
+exactement la même commande.
+
+### Un seul `check()` pour tous les tests (2026-11)
+
+Chaque fichier redéfinissait sa fonction `check()` : 39 copies, qui avaient
+divergé — la tolérance au centime sur les montants n'existait que dans cinq
+d'entre elles, et trois mises en page d'échec coexistaient. Elles sont réunies
+dans `tests/_outils.php` (sans suffixe `_test`, donc jamais lancé seul) : une
+attente en nombre à virgule se compare au centime près, toute autre à
+l'identique ; `TESTS_SILENCIEUX`, défini avant le `require`, n'imprime que les
+échecs (`pages_test`, `base_demo_test`, qui vérifient des milliers de cas).
 
 ### Le JavaScript exécuté dans un vrai navigateur
 

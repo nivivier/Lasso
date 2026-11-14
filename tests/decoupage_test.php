@@ -11,19 +11,7 @@
 // liste ne serait jamais lu.
 
 $racine = dirname(__DIR__);
-$tests = 0;
-$fails = 0;
-function check(string $label, $attendu, $obtenu): void
-{
-    global $tests, $fails;
-    $tests++;
-    if ($attendu !== $obtenu) {
-        $fails++;
-        printf("  FAIL  %-56s attendu %s, obtenu %s\n", $label, var_export($attendu, true), var_export($obtenu, true));
-    } else {
-        printf("  ok    %s\n", $label);
-    }
-}
+require_once __DIR__ . '/_outils.php';
 
 $portes = ['helpers' => 'lib/helpers.php', 'booking' => 'lib/booking.php', 'db/migrations' => 'lib/db/migrations.php'];
 

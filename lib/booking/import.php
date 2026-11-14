@@ -787,7 +787,7 @@ function structure_import_appliquer_structure(array $ligne, array $choix, array 
             $resume['ignorees']++;
         }
         // $d['grande_region'] mis à jour vers la valeur effective (déduite ou
-        // fusionnée) : structure_lier_lieu_importe() ci-dessous lit $d, pas $maj.
+        // fusionnée) : structure_appliquer_champs_booking_importe() lit $d, pas $maj.
         $grandeRegionFinale = array_key_exists('grande_region', $maj) ? $maj['grande_region'] : (string) ($existante['grande_region'] ?? '');
         $d['grande_region'] = $grandeRegionFinale;
     }

@@ -6,20 +6,7 @@
 
 require_once __DIR__ . '/../lib/modules.php';
 
-$tests = 0;
-$fails = 0;
-function check(string $label, $attendu, $obtenu): void
-{
-    global $tests, $fails;
-    $tests++;
-    $ok = $attendu === $obtenu;
-    if (!$ok) {
-        $fails++;
-        printf("  FAIL  %-46s attendu %s, obtenu %s\n", $label, var_export($attendu, true), var_export($obtenu, true));
-    } else {
-        printf("  ok    %s\n", $label);
-    }
-}
+require_once __DIR__ . '/_outils.php';
 
 echo "1) permission_donne_lecture() / permission_donne_ecriture()\n";
 check('lecture présente = accès lecture', true, permission_donne_lecture(['compta' => 'lecture'], 'compta'));

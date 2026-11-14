@@ -83,7 +83,7 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
             <input type="hidden" name="id" value="<?= (int) $f['id'] ?>">
             <h2>Date de paiement <?= info_tip('Laissez la date vide pour marquer la fiche « à payer ».') ?></h2>
             <div class="paiement-date-row">
-                <input type="date" name="date_paiement" value="<?= e($f['date_paiement']) ?>" class="paiement-date">
+                <input type="date" name="date_paiement" aria-label="Date de paiement" value="<?= e($f['date_paiement']) ?>" class="paiement-date">
                 <?php if (!empty($f['date_paiement'])): ?>
                     <span class="paid-check">✓</span>
                 <?php endif; ?>
@@ -94,7 +94,7 @@ $depuisQs = isset($_GET['depuis']) ? '&depuis=' . rawurlencode($_GET['depuis']) 
             <div class="ecr-liee-box">
                 <h3 class="sub no-mt">Écriture liée</h3>
                 <div class="cat-search ecr-search">
-                    <input type="text" class="cat-search-input" id="ecriture-recherche" autocomplete="off"
+                    <input type="text" class="cat-search-input" id="ecriture-recherche" autocomplete="off" aria-label="Écriture liée"
                            placeholder="— aucune —" value="<?= e($ecrActuelleLabel) ?>">
                     <input type="hidden" name="ecriture_id" id="ecriture-select" value="<?= $ecrActuelleId ?: '' ?>">
                     <ul class="cat-search-list" hidden role="listbox">

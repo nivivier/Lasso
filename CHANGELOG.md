@@ -9,6 +9,35 @@ puis sont promues sur le canal **stable** en figeant une version.
 
 ## [Non publié]
 
+### Modifié
+- **Écritures d'un exercice clôturé en lecture seule dans la liste** : plus de
+  case à cocher, de crayon, de « + » de catégorie ni de choix d'axe sur une
+  écriture que la base refuserait de modifier — un cadenas prend la place de
+  la case. Joindre une pièce reste possible.
+- **Liste des écritures sans colonnes cachées** : entre 700 et environ
+  1 080 px de large, le tableau défilait dans son cadre et masquait ses
+  dernières colonnes (Catégorie, Axe, Pièce), jusque dans une fenêtre de
+  1 400 px. Il passe désormais en cartes sous 1 080 px, et resserre ses
+  colonnes de texte juste au-dessus.
+- **Lignes de prestation d'une fiche de salaire lisibles** : dans une carte
+  étroite, la ligne passe à la ligne au lieu de tronquer ses menus
+  (« He… », « S… ») ; le champ quantité affiche son indication en entier.
+- Les routes des structures (liste, carte, fiche, statut, fusion) quittent
+  `lib/routes_facturation.php` pour `lib/routes_carnet.php` : elles
+  appartiennent au carnet d'adresses.
+- Les 39 fichiers de tests partagent une seule fonction `check()`
+  (`tests/_outils.php`) au lieu de 39 copies divergentes.
+- `CLAUDE.md` allégé d'un tiers : les règles restent, les récits passent dans
+  `docs/DECISIONS.md` (§ Dépendances et modules). Commentaires citant des
+  fonctions disparues corrigés.
+
+### Corrigé
+- **Champs sans nom accessible** : 15 champs sur 9 écrans (lignes de facture
+  et de prestation, dates de paiement, écriture liée, année, pays, ciblage…)
+  n'étaient annoncés par un lecteur d'écran que comme « zone de texte ». Ils
+  ont un nom, et le test du navigateur refuse désormais tout champ visible qui
+  n'en a pas.
+
 ## [3.4.0] — 2026-11-14
 
 ### Ajouté

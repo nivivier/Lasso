@@ -12,7 +12,7 @@ $moisNoms   = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
         <h1>Suggérer une ventilation de charges</h1>
         <form method="get">
             <input type="hidden" name="p" value="compta_ventilation_suggestion">
-            <select name="annee" class="inline-year-select" data-submit-on-change>
+            <select name="annee" class="inline-year-select" aria-label="Année" data-submit-on-change>
                 <?php foreach ($anneesEcr as $a): ?>
                     <option value="<?= (int) $a ?>" <?= (int) $a === $annee ? 'selected' : '' ?>><?= (int) $a ?></option>
                 <?php endforeach; ?>

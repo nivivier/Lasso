@@ -9,19 +9,7 @@
 require_once __DIR__ . '/../lib/helpers.php';
 require_once __DIR__ . '/../lib/dev.php';
 
-$tests = 0;
-$fails = 0;
-function check(string $label, $attendu, $obtenu): void
-{
-    global $tests, $fails;
-    $tests++;
-    if ($attendu === $obtenu) {
-        printf("  ok    %s\n", $label);
-        return;
-    }
-    $fails++;
-    printf("  FAIL  %-56s attendu %s, obtenu %s\n", $label, var_export($attendu, true), var_export($obtenu, true));
-}
+require_once __DIR__ . '/_outils.php';
 
 echo "1) Mise à plat des noms\n";
 check('casse ignorée', doublons_potentiels_nom('Le Courrier'), doublons_potentiels_nom('LE COURRIER'));

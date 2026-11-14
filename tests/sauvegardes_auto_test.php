@@ -15,19 +15,7 @@ require_once __DIR__ . '/../lib/config.php';
 require_once __DIR__ . '/../lib/db.php';
 require_once __DIR__ . '/../lib/sauvegarde.php';
 
-$tests = 0;
-$fails = 0;
-function check(string $label, $attendu, $obtenu): void
-{
-    global $tests, $fails;
-    $tests++;
-    if ($attendu !== $obtenu) {
-        $fails++;
-        printf("  FAIL  %-56s attendu %s, obtenu %s\n", $label, var_export($attendu, true), var_export($obtenu, true));
-    } else {
-        printf("  ok    %s\n", $label);
-    }
-}
+require_once __DIR__ . '/_outils.php';
 
 echo "1) Rotation des copies automatiques\n";
 file_put_contents(APP_DB_PATH, 'base');

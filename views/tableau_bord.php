@@ -459,7 +459,7 @@ $dashTitre = function (string $groupe, string $titre): string {
         // savoir qu'il y a deux campagnes en cours n'apprend rien tant qu'on
         // ignore s'il y reste trois structures ou trois cents. C'est le même
         // « à contacter » que le dernier segment des barres ci-dessous, sommé
-        // sur toutes les campagnes ouvertes (campagnes_a_contacter()).
+        // sur toutes les campagnes ouvertes.
         $statutClasseDash = ['a_venir' => 'muted-badge', 'en_cours' => 'ok-badge', 'en_retard' => 'err-badge', 'terminee' => 'muted-badge'];
         ?>
         <?php ob_start(); ?>

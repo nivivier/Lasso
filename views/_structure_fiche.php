@@ -167,7 +167,7 @@ $bookingOkCreation = module_actif('booking') && peut_lire('booking');
                 <div class="tags-liste" id="tags-nouvelles-liste"></div>
                 <div class="linked-add mt-10">
                     <div class="cat-search tag-search">
-                        <input type="text" id="tag-nouveau-input" class="cat-search-input" placeholder="Ajouter un tag…" autocomplete="off">
+                        <input type="text" id="tag-nouveau-input" class="cat-search-input" placeholder="Ajouter un tag…" aria-label="Ajouter un tag" autocomplete="off">
                         <ul class="cat-search-list" hidden role="listbox">
                             <?php foreach ($tagsDispo as $t): ?><li><?= e($t['nom']) ?></li><?php endforeach; ?>
                         </ul>

@@ -272,8 +272,8 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
 </div>
 <?php endif; ?>
 
-<div class="table-scroll">
-<?php // Sur téléphone (ou dans toute colonne de moins de 700 px), la liste se
+<div class="table-scroll ecr-scroll">
+<?php // Sur téléphone (ou dans toute colonne de moins de 1 080 px, voir .ecr-scroll), la liste se
       // relit en cartes : mêmes cellules, replacées (.cartes-ecritures,
       // assets/css/). Le <thead> disparaît alors, et ses entonnoirs avec
       // lui : ils sont repris par le panneau « Filtres » de la barre d'outils. ?>
@@ -384,6 +384,13 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
         $pid = (int) ($ecr['plan_compte_id'] ?? 0);
         $rowCatPrefix = $estIgnore ? '' : ($catPrefixById[$pid] ?? '');
         $rowCatLeaf   = $estIgnore ? 'Ne pas lettrer' : ($catLeafById[$pid] ?? '');
+        // Exercice clôturé : la base refuse toute modification de la ligne
+        // (compta_cloture_declencheurs_sql()). La ligne se lit donc comme pour
+        // un compte en lecture seule, plutôt que d'offrir des gestes qui
+        // échoueraient après coup.
+        $ecrClos = $clotureAnnee !== null && (int) substr((string) $ecr['date_op'], 0, 4) <= $clotureAnnee;
+        $ecrEcrire = peut_ecrire('compta') && !$ecrClos;
+        $ecrEcrireAxe = peut_ecrire('analytique') && !$ecrClos;
         ?>
         <?php // Une écriture SAISIE À LA MAIN se modifie sur place : la ligne
               // porte ses valeurs brutes en data-, et les quatre cellules
@@ -398,8 +405,9 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
                   // soixante —, soit le quart de ce qu'on venait de rendre à
                   // cette page. Le compte, lui, s'affiche par son nom : seul
                   // son identifiant permet de présélectionner le bon. ?>
-            <?php if ($isManuel && peut_ecrire('compta')): ?>data-ecr-id="<?= (int) $ecr['id'] ?>" data-compte="<?= (int) $ecr['compte_bancaire_id'] ?>"<?php endif; ?>>
-            <?php if (peut_ecrire('compta')): ?><td class="carte-garde col-check"><input type="checkbox" name="ids[]" value="<?= (int) $ecr['id'] ?>" form="bulkform" class="row-check" aria-label="Sélectionner l'écriture du <?= e(date('d.m.Y', strtotime((string) $ecr['date_op']))) ?>, <?= e(chf((float) $ecr['montant'])) ?>"></td><?php endif; ?>
+            <?php if ($isManuel && $ecrEcrire): ?>data-ecr-id="<?= (int) $ecr['id'] ?>" data-compte="<?= (int) $ecr['compte_bancaire_id'] ?>"<?php endif; ?>>
+            <?php if (peut_ecrire('compta') && $ecrClos): ?><td class="carte-garde col-check ecr-clos" title="Exercice clôturé" aria-label="Exercice clôturé"><?= icon('lock') ?></td>
+            <?php elseif (peut_ecrire('compta')): ?><td class="carte-garde col-check"><input type="checkbox" name="ids[]" value="<?= (int) $ecr['id'] ?>" form="bulkform" class="row-check" aria-label="Sélectionner l'écriture du <?= e(date('d.m.Y', strtotime((string) $ecr['date_op']))) ?>, <?= e(chf((float) $ecr['montant'])) ?>"></td><?php endif; ?>
             <td class="carte-garde nowrap ecr-c-date"><?= e(date('d.m.Y', strtotime((string) $ecr['date_op']))) ?></td>
             <?php if ($compteColVisible): ?><td class="carte-garde compte-cell small muted ecr-c-compte"><?= e($ecr['compte_libelle']) ?></td><?php endif; ?>
             <?php
@@ -500,7 +508,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
                   // lettrées, pesait visuellement autant que les vraies valeurs à
                   // côté — alors qu'il n'est qu'une place vide qui en attend une. ?>
             <td class="carte-garde cat-cell" data-ecr-id="<?= (int) $ecr['id'] ?>" data-cat-val="<?= e($rowCatVal) ?>" data-cat-prefix="<?= e($rowCatPrefix) ?>">
-                <?php if (!peut_ecrire('compta')): ?>
+                <?php if (!$ecrEcrire): ?>
                     <?php if ($rowCatPrefix !== ''): ?><span class="row-field-prefix"><?= e($rowCatPrefix) ?></span><?php endif; ?>
                     <span><?= $rowCatVal !== '' ? e($rowCatLeaf) : '<span class="muted">— à lettrer —</span>' ?></span>
                 <?php elseif ($rowCatVal !== ''): ?>
@@ -522,7 +530,7 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
                 data-ecr-montant="<?= (float) $ecr['montant'] ?>"
                 data-ventilations="<?= e(json_encode(array_values($vents), JSON_UNESCAPED_UNICODE)) ?>">
                 <div class="axe-disp">
-                    <?php if (!peut_ecrire('analytique')): ?>
+                    <?php if (!$ecrEcrireAxe): ?>
                         <span class="axe-disp-txt muted small"><?= $dispTxt !== '' ? $dispTxt : '—' ?></span>
                     <?php elseif ($nVents === 0): ?>
                         <?php // Vide : le script le remplit au chargement depuis la liste
@@ -589,13 +597,13 @@ $catSearchField = function (string $name, ?int $selected, string $placeholder, b
             <?php endif; ?>
             <td class="carte-garde actions">
                 <?php if (peut_ecrire('compta')): ?>
-                <?php if ($isManuel): ?>
+                <?php if ($isManuel && !$ecrClos): ?>
                     <?php // Un bouton et non un lien : l'édition s'ouvre DANS la
                           // ligne, sans recharger. Le formulaire partait en tête
                           // de page, loin de l'écriture qu'il modifiait, et il
                           // fallait redescendre la retrouver. ?>
                     <button type="button" class="btn ghost btn-sm icon-only ecr-edit-btn" title="Modifier cette écriture" aria-label="Modifier cette écriture"><?= icon('pencil') ?></button>
-                <?php else: ?>
+                <?php elseif (!$isManuel): ?>
                     <a class="btn ghost btn-sm icon-only" title="Créer une règle depuis cette écriture" aria-label="Créer une règle depuis cette écriture"
                        href="?p=compta_regles&motif=<?= urlencode($ecr['texte']) ?>&compte=<?= (int) $ecr['compte_bancaire_id'] ?>"><?= icon('pencil-sparkles') ?></a>
                 <?php endif; ?>

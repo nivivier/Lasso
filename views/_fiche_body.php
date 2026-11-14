@@ -40,7 +40,7 @@ $axeCellHtml = function (array $l) use ($axes, $peutEcrireAxe): string {
     $h .= '<span class="axe-disp-txt">' . e($axeLib) . '</span>';
     $h .= '<button type="button" class="row-edit-btn axe-edit-btn" title="Modifier l\'axe">' . icon('pencil') . '</button>';
     $h .= '</div>';
-    $h .= '<select class="ligne-axe-sel axe-inline-sel"' . ($hasAxeSet ? ' hidden' : '') . '>';
+    $h .= '<select class="ligne-axe-sel axe-inline-sel" aria-label="Axe analytique"' . ($hasAxeSet ? ' hidden' : '') . '>';
     $h .= '<option value="">— Axe —</option>';
     foreach ($axes as $ax) {
         $sel = (int) $ax['id'] === $axeId ? ' selected' : '';

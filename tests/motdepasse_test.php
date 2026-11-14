@@ -25,20 +25,7 @@ require_once __DIR__ . '/../lib/calc.php';
 require_once __DIR__ . '/../lib/db.php';
 require_once __DIR__ . '/../lib/helpers.php';
 
-$tests = 0;
-$fails = 0;
-function check(string $label, $attendu, $obtenu): void
-{
-    global $tests, $fails;
-    $tests++;
-    $ok = is_float($attendu) ? abs($attendu - (float) $obtenu) < 0.005 : $attendu === $obtenu;
-    if (!$ok) {
-        $fails++;
-        printf("  FAIL  %-56s attendu %s, obtenu %s\n", $label, var_export($attendu, true), var_export($obtenu, true));
-    } else {
-        printf("  ok    %s\n", $label);
-    }
-}
+require_once __DIR__ . '/_outils.php';
 register_shutdown_function(function () use ($tmp) {
     foreach ([$tmp, $tmp . '-wal', $tmp . '-shm'] as $f) {
         if (is_file($f)) @unlink($f);
